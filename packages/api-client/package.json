@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@solvers/shared": "workspace:*",
-    "viem": "^2.57.4",
     "zod": "^3.25.0"
   },
   "devDependencies": {
