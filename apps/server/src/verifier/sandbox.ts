@@ -1,17 +1,18 @@
-import { spawn } from "node:child_process";
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, posix, resolve } from "node:path";
+import { posix } from "node:path";
 import { env } from "../env.js";
 import { badRequest } from "../lib/http.js";
-import { randomId } from "../lib/crypto.js";
-import { evaluateReport, PREVIEW_TEST_FILE, type Files, type RunResult } from "./report.js";
-import { describeReadFailure, dirUsage, readRegularFile, readRegularJson } from "./safe-read.js";
+import type { SandboxPort } from "../sandbox/client.js";
+import { verifierSandboxPort } from "../sandbox/deps.js";
+import { createPool, sandboxHttpError, type SandboxStore } from "../sandbox/pool.js";
+import { AUTO_PAUSE_SECONDS, VERIFIER_EGRESS } from "../sandbox/rules.js";
+import { CONTAINER_WORK, evaluateReport, PREVIEW_TEST_FILE, type Files, type RunResult } from "./report.js";
 
-// Guarantee verifier (INSTRUCTIONS.md 5.7): runs the delivery against the acceptance suite agreed
-// when the guarantee was created, in a disposable container (no network, limited CPU/memory,
-// no privileges, read-only rootfs, a timeout that kills the container). One test at a time (queue).
-// It also captures a static HTML preview of the component (no source code).
-// Everything that comes back from the container (report and preview) is UNTRUSTED: read only via safe-read.ts.
+// Guarantee verifier (INSTRUCTIONS.md 5.7, PLANO.md 6.5): runs the delivery against the agreed acceptance suite in an
+// ephemeral CreateOS sandbox (devbox:1, egress only to the npm registry, never the session's box), destroyed in `finally`.
+// The box installs the runner (vitest + Testing Library, same as agents/frontend-react/verifier) under /work, the
+// layout report.ts expects, then runs the tests. One run at a time (queue). It also captures a static HTML preview.
+// Everything that comes back from the box (report and preview) is UNTRUSTED: size-capped and parsed defensively.
+// Known gap versus the old Docker runner: the delivery runs in the same box as the runner, so it could forge the report.
 
 export type { Files, RunResult, TestReport } from "./report.js";
 
@@ -20,13 +21,59 @@ const RESERVED = /^(acceptance\.|__preview__)/;
 const MAX_TOTAL_BYTES = 300_000;
 const MAX_FILES = 40;
 const MAX_OUTPUT = 200_000;
-const TIMEOUT_MS = 60_000;
-/** Caps on the files that come back from the container and on what it may write to the report. */
+/** npm install + vitest in one command (dependencies are installed per run on devbox:1). */
+const TIMEOUT_MS = 300_000;
+/** Caps on the files that come back from the box. */
 const MAX_JSON_BYTES = 2_000_000;
 const MAX_PREVIEW_BYTES = 400_000;
-const MAX_REPORT_DIR_BYTES = 8_000_000;
-const MAX_REPORT_DIR_ENTRIES = 500;
-const WATCH_MS = 1_000;
+
+const WORK = CONTAINER_WORK;
+
+/** Runner project (agents/frontend-react/verifier): package.json, vitest config and setup. */
+export const RUNNER_FILES: Files = {
+  "package.json": JSON.stringify(
+    {
+      name: "solvers-react-test",
+      private: true,
+      type: "module",
+      dependencies: { react: "^19.3.0", "react-dom": "^19.3.0" },
+      devDependencies: {
+        "@testing-library/dom": "^10.4.2",
+        "@testing-library/jest-dom": "^7.0.1",
+        "@testing-library/react": "^16.3.3",
+        "@testing-library/user-event": "^14.6.7",
+        jsdom: "^30.1.1",
+        vitest: "^5.0.2",
+      },
+    },
+    null,
+    2,
+  ),
+  "setup.ts": `import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(() => {
+  cleanup();
+});
+`,
+  "vitest.config.ts": `import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  cacheDir: "/tmp/vite-cache",
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+    testTimeout: 10_000,
+    outputFile: { json: "./report/vitest.json" },
+    pool: "forks",
+    maxWorkers: 1,
+  },
+});
+`,
+};
 
 function normalizeName(name: string): string {
   const norm = posix.normalize(name.replace(/\\/g, "/")).replace(/^\/+/, "");
@@ -63,14 +110,6 @@ export function sanitizeAcceptance(files: Files): Files {
   return out;
 }
 
-export function writeFiles(dir: string, files: Files) {
-  for (const [name, content] of Object.entries(files)) {
-    const full = join(dir, name);
-    mkdirSync(dirname(full), { recursive: true });
-    writeFileSync(full, content);
-  }
-}
-
 /** Main component of the delivery (first .tsx/.jsx that is not a test and exports something). */
 export function entryComponent(files: Files): string | null {
   const entry = Object.entries(files).find(
@@ -105,25 +144,11 @@ it("__preview__", async () => {
 
 let queue: Promise<unknown> = Promise.resolve();
 
-/** Queues work so one test runs at a time (small VPS). */
+/** Queues work so one verification runs at a time (the Free plan allows one sandbox at a time). */
 function enqueue<T>(fn: () => Promise<T>): Promise<T> {
   const run = queue.then(fn, fn);
   queue = run.catch(() => undefined);
   return run;
-}
-
-function docker(args: string[]): Promise<{ code: number; out: string }> {
-  return new Promise((res) => {
-    const child = spawn("docker", args, { stdio: ["ignore", "pipe", "pipe"] });
-    let out = "";
-    const append = (d: Buffer) => {
-      if (out.length < MAX_OUTPUT) out += d.toString().slice(0, MAX_OUTPUT - out.length);
-    };
-    child.stdout.on("data", append);
-    child.stderr.on("data", append);
-    child.on("close", (code) => res({ code: code ?? 1, out }));
-    child.on("error", (e) => res({ code: 127, out: String(e) }));
-  });
 }
 
 /** Removes scripts, handlers and javascript: URLs from the captured HTML (the preview runs nothing). */
@@ -156,131 +181,80 @@ function simulate(files: Files, acceptance: Files | null): RunResult {
   };
 }
 
-/** Deletes the run folder. The container may have left folders without permissions: cleans up from inside it. */
-async function cleanup(base: string, report: string, image: string) {
+/** Untrusted JSON from the box: size-capped, parsed without throwing. */
+function parseReport(bytes: Uint8Array | null): { ok: true; value: unknown } | { ok: false; problem: string } {
+  if (!bytes) return { ok: false, problem: "The test report was not written." };
+  if (bytes.byteLength > MAX_JSON_BYTES) return { ok: false, problem: "The test report is too large." };
   try {
-    rmSync(base, { recursive: true, force: true });
-    return;
+    return { ok: true, value: JSON.parse(new TextDecoder().decode(bytes)) };
   } catch {
-    /* fall through to cleanup via the container */
-  }
-  try {
-    await docker([
-      "run", "--rm", "--network", "none", "--cap-drop", "ALL", "--user", "node",
-      "-v", `${report}:/work/report`, image,
-      "sh", "-c", "rm -rf /work/report/* /work/report/.[!.]* 2>/dev/null; true",
-    ]);
-    rmSync(base, { recursive: true, force: true });
-  } catch (e) {
-    console.warn(`[verifier] could not delete ${base}:`, (e as Error).message);
+    return { ok: false, problem: "The test report is not valid JSON." };
   }
 }
 
+/**
+ * Installs the runner and runs the tests in an already created box (egress to the npm registry), then reads the
+ * report. Exported for the smoke script, which reuses its own box instead of spending another sandbox creation.
+ */
+export async function runInBox(port: SandboxPort, boxId: string, files: Files, acceptance: Files | null): Promise<RunResult> {
+  const t0 = Date.now();
+  const all: Files = { ...files, ...(acceptance ?? {}) };
+  const entry = entryComponent(files);
+  if (entry) all[PREVIEW_TEST_FILE] = previewTest(entry);
+  const dirs = new Set([`${WORK}/report`, ...Object.keys(all).map((n) => posix.dirname(`${WORK}/src/${n}`))]);
+  const mk = await port.run(boxId, "mkdir", ["-p", "--", ...dirs], { timeoutMs: 30_000 });
+  if (mk.exitCode !== 0) throw new Error(`verifier: mkdir failed: ${mk.stderr.slice(-300)}`);
+  for (const [name, content] of Object.entries(RUNNER_FILES)) await port.upload(boxId, `${WORK}/${name}`, content);
+  for (const [name, content] of Object.entries(all)) await port.upload(boxId, `${WORK}/src/${name}`, content);
+  const r = await port.run(
+    boxId,
+    "bash",
+    ["-lc", `cd ${WORK} && npm install --no-audit --no-fund --ignore-scripts --loglevel=error && CI=true NODE_ENV=test npx --no-install vitest run --reporter=json --outputFile.json=${WORK}/report/vitest.json`],
+    { timeoutMs: TIMEOUT_MS, cwd: WORK },
+  );
+  const out = `${r.stdout}\n${r.stderr}`.slice(-MAX_OUTPUT);
+  const read = parseReport(await port.download(boxId, `${WORK}/report/vitest.json`).catch(() => null));
+  const testReport = evaluateReport({
+    json: read.ok ? read.value : null,
+    jsonProblem: read.ok ? undefined : read.problem,
+    exitCode: r.exitCode,
+    timedOut: r.timedOut,
+    out,
+    acceptanceFiles: acceptance ? Object.keys(acceptance) : null,
+    durationMs: Date.now() - t0,
+  });
+  let previewHtml: string | null = null;
+  if (testReport.passed) {
+    const p = await port.download(boxId, `${WORK}/report/preview.html`).catch(() => null);
+    if (p && p.byteLength <= MAX_PREVIEW_BYTES) previewHtml = sanitizeHtml(new TextDecoder().decode(p));
+  }
+  return { report: testReport, previewHtml };
+}
+
+/** No rows for verifier boxes: they live only inside one call (`ephemeral` destroys them in finally). */
+const noStore: SandboxStore = {
+  active: async () => null,
+  get: async () => null,
+  list: async () => [],
+  insert: async () => {
+    throw new Error("verifier sandboxes are not recorded");
+  },
+  update: async () => undefined,
+  idle: async () => [],
+  logRun: async () => undefined,
+};
+
+/** `image` is kept for callers of the Docker era; the runner image is now fixed (devbox:1 + RUNNER_FILES). */
 export async function runTests(rawFiles: Files, opts: { acceptance?: Files | null; image?: string } = {}): Promise<RunResult> {
   const files = sanitizeFiles(rawFiles);
   const acceptance = opts.acceptance ?? null;
   if (env.VERIFIER_MODE === "simulated") return simulate(files, acceptance);
-  const image = opts.image ?? env.VERIFIER_IMAGE;
   return enqueue(async () => {
-    const id = randomId(8);
-    const base = resolve(env.DELIVERABLES_DIR, "runs", id);
-    const src = join(base, "src");
-    const report = join(base, "report");
-    const name = `solvers-verify-${id}`;
-    const t0 = Date.now();
-    let timedOut = false;
-    let overflow = false;
-    let timer: NodeJS.Timeout | undefined;
-    let watch: NodeJS.Timeout | undefined;
-    const kill = () => void docker(["kill", name]);
-    // Everything that creates the run folder stays inside the try: any error here also deletes runs/<id>.
+    const pool = createPool({ port: verifierSandboxPort(), store: noStore });
     try {
-      mkdirSync(report, { recursive: true });
-      // The container runs as "node" (uid 1000), which does not own the folder (the server user does):
-      // without this vitest cannot write the report. The folder belongs to this run only and is deleted at the end.
-      // What the container leaves here is UNTRUSTED (symlink, FIFO, huge file): see safe-read.ts.
-      chmodSync(report, 0o777);
-      writeFiles(src, { ...files, ...(acceptance ?? {}) });
-      const entry = entryComponent(files);
-      if (entry) writeFiles(src, { [PREVIEW_TEST_FILE]: previewTest(entry) });
-      timer = setTimeout(() => {
-        timedOut = true;
-        kill();
-      }, TIMEOUT_MS);
-      // Report size watchdog: the container writes straight into a host folder.
-      watch = setInterval(() => {
-        const u = dirUsage(report, MAX_REPORT_DIR_ENTRIES);
-        if (!overflow && (u.truncated || u.bytes > MAX_REPORT_DIR_BYTES)) {
-          overflow = true;
-          kill();
-        }
-      }, WATCH_MS);
-      const r = await docker([
-        "run",
-        "--rm",
-        "--name",
-        name,
-        "--network",
-        "none",
-        "--cpus",
-        "1",
-        "--memory",
-        "768m",
-        "--pids-limit",
-        "256",
-        "--cap-drop",
-        "ALL",
-        "--security-opt",
-        "no-new-privileges",
-        // Read-only rootfs: the delivery's code cannot tamper with vitest or node_modules.
-        // Only /tmp (capped tmpfs; vitest's cacheDir points there) and /work/report are writable.
-        "--read-only",
-        "--tmpfs",
-        "/tmp:rw,size=64m",
-        // Vite writes the bundled config here (node_modules/.vite-temp); with a read-only rootfs it needs a tmpfs.
-        "--tmpfs",
-        "/work/node_modules/.vite-temp:rw,size=16m",
-        "--env",
-        "HOME=/tmp",
-        // No created file may exceed 8 MB (the watchdog above covers the folder total).
-        "--ulimit",
-        "fsize=8000000:8000000",
-        "--user",
-        "node",
-        "-v",
-        `${src}:/work/src:ro`,
-        "-v",
-        `${report}:/work/report`,
-        image,
-        "npx",
-        "--no-install",
-        "vitest",
-        "run",
-        "--reporter=json",
-        "--outputFile.json=/work/report/vitest.json",
-      ]);
-      clearInterval(watch);
-      const read = readRegularJson(join(report, "vitest.json"), MAX_JSON_BYTES);
-      const testReport = evaluateReport({
-        json: read.ok ? read.value : null,
-        jsonProblem: read.ok ? undefined : describeReadFailure("The test report", read),
-        exitCode: r.code,
-        timedOut,
-        overflow,
-        out: r.out,
-        acceptanceFiles: acceptance ? Object.keys(acceptance) : null,
-        durationMs: Date.now() - t0,
-      });
-      let previewHtml: string | null = null;
-      if (testReport.passed) {
-        const p = readRegularFile(join(report, "preview.html"), MAX_PREVIEW_BYTES);
-        if (p.ok) previewHtml = sanitizeHtml(p.data.toString("utf8"));
-      }
-      return { report: testReport, previewHtml };
-    } finally {
-      clearTimeout(timer);
-      clearInterval(watch);
-      await cleanup(base, report, image);
+      return await pool.ephemeral({ egress: VERIFIER_EGRESS, ingress: false, autoPauseSeconds: AUTO_PAUSE_SECONDS }, (boxId) => runInBox(pool.port, boxId, files, acceptance));
+    } catch (e) {
+      throw sandboxHttpError(e) ?? e;
     }
   });
 }

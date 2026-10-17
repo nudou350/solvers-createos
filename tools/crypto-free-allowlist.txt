@@ -8,3 +8,5 @@
 ^agents/[^/]+/locales/pt\.json$:\b(ao mesmo|em|de|no|pouco|muito|todo o|meio|mais|menos|quanto|algum|o) tempo\b
 # The migration contract names the removed features on purpose.
 ^docs/hackathon/CONTRACTS\.md$:.
+# OAuth access-token ids (jti) of the MCP connector, not blockchain tokens.
+^apps/server/(src|test)/.*:\btokenId\b

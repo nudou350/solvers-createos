@@ -32,7 +32,7 @@ What this means for a Solvers session: one sandbox per user session, reused acro
 
 | Image | Contents |
 |---|---|
-| `devbox:1` | Ubuntu 24.04 LTS, Python 3.12 with `pip` and `uv`, Node.js 24, Bun 1.4, Go 1.26, Rust 1.83, Docker 29, SSH, about 374 packages (pandas, numpy, ...), five coding-agent CLIs |
+| `devbox:1` | Ubuntu 24.04 LTS, Python 3.13 with `pip` and `uv`, Node.js 24, Bun 1.4, Go 1.26, Rust 1.83, Docker 29, SSH, about 374 packages (pandas, numpy, ...), five coding-agent CLIs |
 | `desktop:1` | Graphical desktop (XFCE, Chrome) with computer-use APIs |
 | `ubuntu:26.04` | Ubuntu 26.04 LTS, minimal |
 | `debian:13` | Debian 13, minimal |

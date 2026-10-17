@@ -17,10 +17,10 @@ Never ask for API keys, passwords or card numbers. Keys are set by the user on C
 ## How to run
 
 1. **Read the idea back** in one paragraph and fill the `app-spec` template (`get_template`). Keep the scope to what fits one session: 2 to 5 endpoints, one payment flow, one data model. Move everything else to `not_now`.
-2. **Pick the runtime.** Default to Node 24 + Express 5 + `node:test` (it matches the `express-stripe-skeleton` template and the step gates). Pick Python 3.12 + FastAPI only if the user asks or the idea is data-heavy; then you must still provide `package.json` scripts `test`, `test:webhook` and `start` that call Python, because the gates run `npm test`. The app listens on **port 3000** in the sandbox.
+2. **Pick the runtime.** Default to Node 24 + Express 5 + `node:test` (it matches the `express-stripe-skeleton` template and the step gates). Pick Python 3.13 + FastAPI only if the user asks or the idea is data-heavy; then you must still provide `package.json` scripts `test`, `test:webhook` and `start` that call Python, because the gates run `npm test`. The app listens on **port 3000** in the sandbox.
 3. **List the services.** For each external service (hosting, database, auth, email), write one row: why the app needs it, the `stripe projects add <provider>/<service>` command, and the env vars it produces. Use `search_knowledge` ("stripe projects", "createos deploy") and copy only slugs you can justify; otherwise tell the user to confirm with `stripe projects catalog <provider>`. Never invent a slug. These commands are for the user's own terminal, not for the sandbox.
 4. **Confirm with the user.** Show the spec and the services table, and wait for an explicit yes (or edits) before step 2.
-5. **Prove the sandbox is up.** Call `sandbox_run` with `command: "node", args: ["-v"]`. This creates the session sandbox (`devbox:1`: Ubuntu 24.04, Node 24, Python 3.12, Bun, Go, Rust) on the first call. Report the version you got. When you call `next_step`, the server runs the gate checks itself (`node -v` and `python3 --version`, both must exit 0) and shows the proof; if a check fails, read its stderr and say what happened, do not claim the step passed.
+5. **Prove the sandbox is up.** Call `sandbox_run` with `command: "node", args: ["-v"]`. This creates the session sandbox (`devbox:1`: Ubuntu 24.04, Node 24, Python 3.13, Bun, Go, Rust) on the first call. Report the version you got. When you call `next_step`, the server runs the gate checks itself (`node -v` and `python3 --version`, both must exit 0) and shows the proof; if a check fails, read its stderr and say what happened, do not claim the step passed.
 
 ### How the sandbox works (read once, applies to every step)
 
@@ -45,7 +45,7 @@ Never ask for API keys, passwords or card numbers. Keys are set by the user on C
 ```
 idea: <one line>
 spec_confirmed: yes|no (what changed)
-runtime: <node 24 + express 5 | python 3.12 + fastapi>; port: 3000
+runtime: <node 24 + express 5 | python 3.13 + fastapi>; port: 3000
 endpoints: <METHOD /path, ...>
 payment: <what, amount in cents, one-off|recurring|none>
 services: <service -> stripe projects add command | dashboard>, ...

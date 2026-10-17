@@ -102,7 +102,7 @@ describe("loader: locales/pt.json", () => {
       requirements: [{ type: "client", key: "any", label: "Claude or ChatGPT" }],
       packageContents: ["Method"],
       steps: [{ file: "steps/01-first.md", gate: [] }],
-      pricing: { priceUsdc: 5, royaltyBps: 0 },
+      pricing: { priceCents: 500 },
       guarantee: { available: false, defaultCriteria: [] },
     };
     mkdirSync(join(dir, "steps"), { recursive: true });

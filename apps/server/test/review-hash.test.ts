@@ -9,7 +9,7 @@ import { packageFromFolder, packageFromMemory } from "../src/runtime/validate/in
 import { baseFiles } from "./validate-fixtures.js";
 import { SKIP_WITHOUT_PAID } from "./helpers/repo-agents.js";
 
-// The PackageInput hash must be IDENTICAL to the disk loader's (what `cli:publish` writes on-chain as versionHash).
+// The PackageInput hash must be IDENTICAL to the disk loader's (what `cli:publish` stores as versionHash).
 
 const agents = resolve(import.meta.dirname, "../../../agents");
 const SLUGS = ["backend-node", "copy-marketing", "financas-pessoais", "frontend-react", "planejador-viagens", "planilhas-dados", "revisao-contratos", "ui-design"];

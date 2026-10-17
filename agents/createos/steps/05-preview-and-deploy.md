@@ -11,10 +11,12 @@ Run the app in the sandbox, prove `/health` answers, give the user a live previe
 
 ## How to run
 
-1. **Start the server detached**, bound to `0.0.0.0:3000`, so the command returns while the server keeps running:
-   `sandbox_run` with `bash` and `["-lc", "cd /workspace/app && (setsid nohup npm start > /tmp/app.log 2>&1 < /dev/null &) && sleep 2 && curl -fsS localhost:3000/health"]`.
+1. **Start the server in the background**, bound to `0.0.0.0:3000`: `sandbox_run` with `background: true`,
+   `command: "bash"` and `args: ["-lc", "cd /workspace/app && npm start"]`. It returns at once with a process id and a
+   log path. Never start a server with `&` in a normal `sandbox_run`: the call would wait for it and time out.
+   Then check it: `sandbox_run` with `bash` and `["-lc", "sleep 2 && curl -fsS localhost:3000/health"]`.
    - `exit_code` 0 and `{"ok":true}`: running.
-   - Otherwise read the log: `bash -lc "tail -n 50 /tmp/app.log"`. `EADDRINUSE` means a previous server is still up (`pkill -f "node src/server.js"`, then start again). A crash on boot goes back to the step 3 fix loop.
+   - Otherwise read the log at the path the background call returned (`bash -lc "tail -n 50 <log path>"`). `EADDRINUSE` means a previous server is still up (`pkill -f "node src/server.js"`, then start again). A crash on boot goes back to the step 3 fix loop.
 2. **Open the preview.** Call `sandbox_preview` with `port: 3000` and give the user the URL, with two or three things to try (`/health`, the main endpoint). Say plainly that the preview is temporary (it stops when the sandbox pauses after 5 idle minutes) and that the purchase route answers 503 there because the sandbox holds no Stripe key and cannot reach Stripe.
 3. **Gate.** When you call `next_step`, the server runs `curl -fsS localhost:3000/health` in the sandbox and advances only if it exits 0. If the sandbox paused in between, start the server again first.
 4. **Deliver the code.** Print every project file with its path (read them back from the sandbox with `cat` if you are not sure they match what ran), plus a `.gitignore` (`node_modules`, `.env`, `.env.*`). If the trial ended before this step, say so and do not pretend.

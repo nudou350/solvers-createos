@@ -137,23 +137,3 @@ export function evaluateReport(i: EvalInput): TestReport {
     log: undefined,
   };
 }
-
-// ---------- On-chain state of the step before mark_passed ----------
-
-export const MILESTONE_PENDING = 0;
-export const MILESTONE_PASSED = 1;
-
-export type ChainMilestone = { status: number; deliverableHash: string } | null;
-
-/**
- * Decides what to do with mark_passed (irreversible on-chain):
- * - send: step pending (or on-chain state unknown): send it;
- * - already: already Passed with the SAME hash (a previous send that died midway): don't resend;
- * - conflict: already Passed with another hash, or in another state: this delivery can't be marked.
- */
-export function planMarkPassed(state: ChainMilestone, hashHex: string): "send" | "already" | "conflict" {
-  if (!state) return "send";
-  if (state.status === MILESTONE_PENDING) return "send";
-  if (state.status === MILESTONE_PASSED && state.deliverableHash.toLowerCase() === hashHex.toLowerCase()) return "already";
-  return "conflict";
-}

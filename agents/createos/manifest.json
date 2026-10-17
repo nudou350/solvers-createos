@@ -4,7 +4,7 @@
   "slug": "createos",
   "name": "CreateOS Builder",
   "tagline": "From a one-line idea to a running, paid app on CreateOS, with every step proven in a sandbox.",
-  "description": "Give it a one-line app idea and it builds the app with you inside Claude or ChatGPT: it writes the spec and the stack, scaffolds the project, writes the code and its tests, adds Stripe Checkout with a verified webhook, and ends with a live preview URL and a CreateOS deploy checklist. Unlike a plain chat, it runs your code: every step happens in an isolated CreateOS sandbox (Node 24, Python 3.12), it reads the real errors and fixes them, and the checklist of each step is proven by real execution (install, tests, webhook signature tests, health check) before it moves on. Nothing runs on your machine and your keys never enter the sandbox. Best for small APIs and services that take a payment: waitlists, reservations, paid links, webhooks. It does not deploy for you or handle live payments: you get the commands and settings to deploy on CreateOS with your own account, in Stripe test mode.",
+  "description": "Give it a one-line app idea and it builds the app with you inside Claude or ChatGPT: it writes the spec and the stack, scaffolds the project, writes the code and its tests, adds Stripe Checkout with a verified webhook, and ends with a live preview URL and a CreateOS deploy checklist. Unlike a plain chat, it runs your code: every step happens in an isolated CreateOS sandbox (Node 24, Python 3.13), it reads the real errors and fixes them, and the checklist of each step is proven by real execution (install, tests, webhook signature tests, health check) before it moves on. Nothing runs on your machine and your keys never enter the sandbox. Best for small APIs and services that take a payment: waitlists, reservations, paid links, webhooks. It does not deploy for you or handle live payments: you get the commands and settings to deploy on CreateOS with your own account, in Stripe test mode.",
   "category": "Desenvolvimento",
   "version": "1.0.0",
   "creator": {
@@ -13,15 +13,30 @@
     "bio": "The team behind Solvers. Builds and maintains the platform's own specialists, starting with the ones that run code in CreateOS sandboxes.",
     "avatarUrl": null
   },
-  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "terms": {
+    "rightsConfirmed": true,
+    "sourcesListed": true
+  },
   "requirements": [
-    { "type": "client", "label": "Claude or ChatGPT", "key": "any" },
-    { "type": "plan", "label": "Stripe account in test mode, for payments after deploy", "key": "stripe" },
-    { "type": "plan", "label": "CreateOS account, to deploy the result", "key": "createos" }
+    {
+      "type": "client",
+      "label": "Claude or ChatGPT",
+      "key": "any"
+    },
+    {
+      "type": "plan",
+      "label": "Stripe account in test mode, for payments after deploy",
+      "key": "stripe"
+    },
+    {
+      "type": "plan",
+      "label": "CreateOS account, to deploy the result",
+      "key": "createos"
+    }
   ],
   "packageContents": [
     "A 5-step method from idea to deploy, where each step's checklist is proven by commands run in a CreateOS sandbox",
-    "Code runs in an isolated sandbox (Node 24, Python 3.12): install, tests, a fix loop with checkpoints and a live preview URL",
+    "Code runs in an isolated sandbox (Node 24, Python 3.13): install, tests, a fix loop with checkpoints and a live preview URL",
     "Stripe Checkout in test mode with a signature-verified, idempotent webhook and offline tests for it",
     "Knowledge base with source and date: CreateOS Sandbox SDK, limits, networking, deploy, SDKs by language, Stripe Projects, Checkout and webhooks",
     "Ready-made templates: app spec, Express + Stripe skeleton with tests, CreateOS deploy checklist",
@@ -39,8 +54,22 @@
         "Sandbox up: python3 --version exits 0"
       ],
       "verify": [
-        { "label": "Sandbox up: node -v exits 0", "command": "node", "args": ["-v"], "expectExit": 0 },
-        { "label": "Sandbox up: python3 --version exits 0", "command": "python3", "args": ["--version"], "expectExit": 0 }
+        {
+          "label": "Sandbox up: node -v exits 0",
+          "command": "node",
+          "args": [
+            "-v"
+          ],
+          "expectExit": 0
+        },
+        {
+          "label": "Sandbox up: python3 --version exits 0",
+          "command": "python3",
+          "args": [
+            "--version"
+          ],
+          "expectExit": 0
+        }
       ]
     },
     {
@@ -51,7 +80,15 @@
         "Dependencies install in the sandbox"
       ],
       "verify": [
-        { "label": "Dependencies install in the sandbox", "command": "bash", "args": ["-lc", "cd /workspace/app && npm install --no-audit --no-fund"], "expectExit": 0 }
+        {
+          "label": "Dependencies install in the sandbox",
+          "command": "bash",
+          "args": [
+            "-lc",
+            "cd /workspace/app && npm install --no-audit --no-fund"
+          ],
+          "expectExit": 0
+        }
       ]
     },
     {
@@ -63,7 +100,15 @@
         "Test suite passes in the sandbox"
       ],
       "verify": [
-        { "label": "Test suite passes in the sandbox", "command": "bash", "args": ["-lc", "cd /workspace/app && npm test"], "expectExit": 0 }
+        {
+          "label": "Test suite passes in the sandbox",
+          "command": "bash",
+          "args": [
+            "-lc",
+            "cd /workspace/app && npm test"
+          ],
+          "expectExit": 0
+        }
       ]
     },
     {
@@ -76,8 +121,24 @@
         "Full test suite still passes"
       ],
       "verify": [
-        { "label": "Webhook signature tests pass in the sandbox", "command": "bash", "args": ["-lc", "cd /workspace/app && npm run test:webhook"], "expectExit": 0 },
-        { "label": "Full test suite still passes", "command": "bash", "args": ["-lc", "cd /workspace/app && npm test"], "expectExit": 0 }
+        {
+          "label": "Webhook signature tests pass in the sandbox",
+          "command": "bash",
+          "args": [
+            "-lc",
+            "cd /workspace/app && npm run test:webhook"
+          ],
+          "expectExit": 0
+        },
+        {
+          "label": "Full test suite still passes",
+          "command": "bash",
+          "args": [
+            "-lc",
+            "cd /workspace/app && npm test"
+          ],
+          "expectExit": 0
+        }
       ]
     },
     {
@@ -90,33 +151,73 @@
         "CreateOS deploy checklist filled in with port, build and run commands and env vars"
       ],
       "verify": [
-        { "label": "Health endpoint answers in the sandbox", "command": "bash", "args": ["-lc", "curl -fsS localhost:3000/health"], "expectExit": 0 }
+        {
+          "label": "Health endpoint answers in the sandbox",
+          "command": "bash",
+          "args": [
+            "-lc",
+            "curl -fsS localhost:3000/health"
+          ],
+          "expectExit": 0
+        }
       ]
     }
   ],
   "tools": [
     {
       "name": "sandbox_run",
-      "description": "Runs a command in this session's CreateOS sandbox (devbox:1: Ubuntu 24.04, Node 24, Python 3.12, Bun, Go, Rust; project in /workspace/app), optionally uploading files first. Egress only to registry.npmjs.org, pypi.org, *.pythonhosted.org, github.com and *.githubusercontent.com. Input: { session_id, command, args?, files?: [{ path, content }] (paths under /workspace), timeout_ms? (max 300000; 120000 during the free trial) }. Output: stdout, stderr, exit_code, exec_ms and truncated. Use bash -lc for cd, && and pipes. Never run user code anywhere else.",
+      "description": "Runs a command in this session's CreateOS sandbox (devbox:1: Ubuntu 24.04, Node 24, Python 3.13, Bun, Go, Rust; project in /workspace/app), optionally uploading files first. Egress only to registry.npmjs.org, pypi.org, *.pythonhosted.org, github.com and *.githubusercontent.com. Input: { session_id, command, args?, files?: [{ path, content }] (paths under /workspace), timeout_ms? (max 300000; 120000 during the free trial), background? (true starts a long-running process such as a server and returns at once with its process id and log path) }. Output: stdout, stderr, exit_code, exec_ms and truncated. Use bash -lc for cd, && and pipes. Never run user code anywhere else.",
       "runner": "builtin:sandbox",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "session_id": { "type": "string" },
-          "command": { "type": "string", "maxLength": 4096 },
-          "args": { "type": "array", "items": { "type": "string" }, "maxItems": 100 },
+          "session_id": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          },
           "files": {
             "type": "array",
             "maxItems": 50,
             "items": {
               "type": "object",
-              "properties": { "path": { "type": "string", "maxLength": 300 }, "content": { "type": "string" } },
-              "required": ["path", "content"]
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "content"
+              ]
             }
           },
-          "timeout_ms": { "type": "integer", "minimum": 1000, "maximum": 300000 }
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 300000
+          },
+          "background": {
+            "type": "boolean"
+          }
         },
-        "required": ["session_id", "command"]
+        "required": [
+          "session_id",
+          "command"
+        ]
       }
     },
     {
@@ -125,8 +226,20 @@
       "runner": "builtin:sandbox",
       "inputSchema": {
         "type": "object",
-        "properties": { "session_id": { "type": "string" }, "port": { "type": "integer", "minimum": 1, "maximum": 65535 } },
-        "required": ["session_id", "port"]
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        },
+        "required": [
+          "session_id",
+          "port"
+        ]
       }
     },
     {
@@ -135,8 +248,14 @@
       "runner": "builtin:sandbox",
       "inputSchema": {
         "type": "object",
-        "properties": { "session_id": { "type": "string" } },
-        "required": ["session_id"]
+        "properties": {
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ]
       }
     },
     {
@@ -145,8 +264,18 @@
       "runner": "builtin:sandbox",
       "inputSchema": {
         "type": "object",
-        "properties": { "session_id": { "type": "string" }, "checkpoint_id": { "type": "string" } },
-        "required": ["session_id", "checkpoint_id"]
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "checkpoint_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "checkpoint_id"
+        ]
       }
     }
   ],
@@ -163,20 +292,51 @@
     ]
   },
   "templates": [
-    { "name": "app-spec", "path": "templates/app-spec.md", "title": "App spec and stack", "description": "One-screen spec: behaviors, endpoints, payment in cents, runtime, and each service with its Stripe Projects command." },
-    { "name": "express-stripe-skeleton", "path": "templates/express-stripe-skeleton.md", "title": "Express 5 + Stripe Checkout + webhook skeleton", "description": "Health endpoint, Checkout Session in integer cents, signature-verified idempotent webhook, and 9 node:test tests that run offline." },
-    { "name": "createos-deploy-checklist", "path": "templates/createos-deploy-checklist.md", "title": "CreateOS deploy checklist", "description": "Proof table from the sandbox, GitHub, CreateOS build and run settings, port, env vars and the Stripe webhook on the live URL." }
+    {
+      "name": "app-spec",
+      "path": "templates/app-spec.md",
+      "title": "App spec and stack",
+      "description": "One-screen spec: behaviors, endpoints, payment in cents, runtime, and each service with its Stripe Projects command."
+    },
+    {
+      "name": "express-stripe-skeleton",
+      "path": "templates/express-stripe-skeleton.md",
+      "title": "Express 5 + Stripe Checkout + webhook skeleton",
+      "description": "Health endpoint, Checkout Session in integer cents, signature-verified idempotent webhook, and 9 node:test tests that run offline."
+    },
+    {
+      "name": "createos-deploy-checklist",
+      "path": "templates/createos-deploy-checklist.md",
+      "title": "CreateOS deploy checklist",
+      "description": "Proof table from the sandbox, GitHub, CreateOS build and run settings, port, env vars and the Stripe webhook on the live URL."
+    }
   ],
-  "differentiators": ["tool", "verifier", "liveData"],
-  "pricing": { "priceCents": 900 },
+  "differentiators": [
+    "tool",
+    "verifier",
+    "liveData"
+  ],
+  "pricing": {
+    "priceCents": 900
+  },
   "trial": {
     "available": true,
     "uses": 1,
     "steps": 2,
     "searches": 10,
-    "tools": { "sandbox_run": 5 },
-    "toolLimits": { "sandbox_run": { "maxFiles": 15, "maxBytes": 60000 } },
-    "templates": ["app-spec", "express-stripe-skeleton"],
+    "tools": {
+      "sandbox_run": 5
+    },
+    "toolLimits": {
+      "sandbox_run": {
+        "maxFiles": 15,
+        "maxBytes": 60000
+      }
+    },
+    "templates": [
+      "app-spec",
+      "express-stripe-skeleton"
+    ],
     "scope": "In the trial, one small app idea: the spec, the stack and a scaffold that installs in the sandbox.",
     "summary": "You get the confirmed spec and stack with the provisioning commands, and the project scaffolded and installed in a real CreateOS sandbox, with up to 5 sandbox runs.",
     "lockedSummary": "the code and tests run and fixed in the sandbox, Stripe Checkout with a verified webhook, a live preview URL and the CreateOS deploy checklist."
@@ -214,6 +374,10 @@
     }
   ],
   "versions": [
-    { "version": "1.0.0", "releasedAt": "2026-10-17T12:00:00Z", "notes": "First version: 5-step method with gates proven by real execution in a CreateOS sandbox, Stripe Checkout and webhook, knowledge base dated 2026-10-17, three templates and 10 internal evaluation cases." }
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-10-17T12:00:00Z",
+      "notes": "First version: 5-step method with gates proven by real execution in a CreateOS sandbox, Stripe Checkout and webhook, knowledge base dated 2026-10-17, three templates and 10 internal evaluation cases."
+    }
   ]
 }

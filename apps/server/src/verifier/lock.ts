@@ -1,5 +1,5 @@
 // In-process per-key mutex: serializes what must not run concurrently for the same step
-// (escrow:idx). A later caller waits for the previous one to finish (successfully or not) before running.
+// (e.g. one install folder). A later caller waits for the previous one to finish (successfully or not) before running.
 
 const tails = new Map<string, Promise<void>>();
 

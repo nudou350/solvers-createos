@@ -8,7 +8,7 @@ users:       <who uses it, and who pays>
 must_have:   <3 to 5 behaviors, each testable, e.g. "POST /waitlist with an email returns 201 and a position">
 not_now:     <what is explicitly out of this first version>
 payment:     <what is sold, price in integer cents, one-off or recurring; "none" if no payment>
-runtime:     <Node 24 + Express 5 (default) | Python 3.12 + FastAPI | other, with the reason>
+runtime:     <Node 24 + Express 5 (default) | Python 3.13 + FastAPI | other, with the reason>
 port:        3000
 data:        <in-memory for the demo | Postgres via Stripe Projects>
 endpoints:   <METHOD /path -> status codes>, one per line

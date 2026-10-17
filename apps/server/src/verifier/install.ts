@@ -23,7 +23,7 @@ export type Installed = {
 /**
  * Puts the approved delivery in place: builds everything in a temporary folder owned by this attempt and
  * only then swaps it in with a rename. The previous delivery and preview are kept as backups until
- * `commit()`, and `undo()` restores them (used when the chain ended up with a different delivery).
+ * `commit()`, and `undo()` restores them (used when a later step fails).
  */
 export function installDeliverable(mdir: string, files: Record<string, string>, previewHtml: string | null): Installed {
   const id = randomId(6);
