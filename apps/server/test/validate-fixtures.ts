@@ -64,9 +64,8 @@ export const baseManifest = () => ({
   knowledge: { updatedAt: "2026-09-30", reviewEveryDays: 90, sources: ["Receita Federal"] },
   templates: [{ name: "relatorio-mensal", path: "templates/relatorio-mensal.md", title: "Relatório mensal", description: "Receitas, limite e DAS do mês" }],
   onboarding: { questions: [{ id: "atividade", ask: "Qual é a atividade do seu MEI: comércio, serviço ou os dois?", why: "O valor do DAS muda conforme a atividade", options: ["Comércio", "Serviço", "Os dois"] }] },
-  pricing: { priceUsdc: 9, royaltyBps: 0 },
+  pricing: { priceCents: 900 },
   trial: { uses: 3, steps: 2, searches: 3, tools: {}, templates: [], summary: "Você faz as etapas 1 e 2.", lockedSummary: "O relatório fica na versão completa." },
-  guarantee: { available: false, defaultCriteria: [] },
   versions: [{ version: "1.0.0", releasedAt: "2026-09-30", notes: "Primeira versão" }],
 });
 

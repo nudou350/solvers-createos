@@ -11,7 +11,7 @@ import { SKIP_WITHOUT_PAID } from "./helpers/repo-agents.js";
 // Every third-party submission rule in the Core (PACKAGE_SPEC.md 3, 4, 5, 13, Appendix A) has an error test; warnings
 // stay warnings. No env, database or network.
 
-const run = (f: Files, opts: ValidateOptions = {}): ValidationResult => validatePackage(packageFromMemory(f), { mode: "third_party", now: NOW, minPriceUsdc: 5, ...opts });
+const run = (f: Files, opts: ValidateOptions = {}): ValidationResult => validatePackage(packageFromMemory(f), { mode: "third_party", now: NOW, minPriceCents: 500, ...opts });
 const codes = (r: ValidationResult, level: "E" | "A") => (level === "E" ? r.errors : r.warnings).map((i) => i.code);
 const show = (r: ValidationResult) => JSON.stringify({ errors: r.errors.map((i) => `${i.code} ${i.path}`), warnings: r.warnings.map((i) => `${i.code} ${i.path}`) });
 const edit = (fn: (m: Record<string, any>) => void): Files => {
@@ -72,7 +72,6 @@ describe("third_party mode: third-party submission errors", () => {
   it("non-empty tools (http runner)", () => expectError("TOOL_FORBIDDEN_RUNNER", edit((m) => (m.tools = [{ name: "consulta", description: "x", runner: "http" }]))));
   it("runner builtin:*", () => expectError("TOOL_FORBIDDEN_RUNNER", edit((m) => (m.tools = [{ name: "calcular", description: "x", runner: "builtin:budget" }]))));
   it("old runner alias (node:budget)", () => expectError("TOOL_FORBIDDEN_RUNNER", edit((m) => (m.tools = [{ name: "calcular", description: "x", runner: "node:budget" }]))));
-  it("guarantee.available: true", () => expectError("MANIFEST_GUARANTEE_FORBIDDEN", edit((m) => (m.guarantee = { available: true, defaultCriteria: ["Testes passam"] }))));
 
   for (const category of ["Finanças", "Jurídico", "Saúde", "saúde mental", "Health"]) {
     it(`category ${category} outside THIRD_PARTY_CATEGORIES`, () => {
@@ -101,13 +100,13 @@ describe("third_party mode: third-party submission errors", () => {
   it("slug already used by another creator (existing.slugs)", () => expectError("MANIFEST_ID_OWNER", baseFiles(), { existing: { slugs: ["fechamento-mei"] } }));
   it("a free slug passes with existing.slugs", () => assert.equal(run(baseFiles(), { existing: { slugs: ["outro-solver"] } }).ok, true));
 
-  it("id that is not the creator's Solver id (existing.agentId)", () => expectError("MANIFEST_ID_OWNER", edit((m) => (m.id = ID)), { existing: { agentId: "f".repeat(32), publishedVersion: "0.9.0", creatorWallet: "W1" } }));
+  it("id that is not the creator's Solver id (existing.agentId)", () => expectError("MANIFEST_ID_OWNER", edit((m) => (m.id = ID)), { existing: { agentId: "f".repeat(32), publishedVersion: "0.9.0", creatorUserId: "U1" } }));
   it("id equal to the creator's Solver id passes", () => {
-    const r = run(edit((m) => (m.id = ID)), { creatorId: "c1", existing: { agentId: ID, publishedVersion: "0.9.0", creatorWallet: "W1" } });
+    const r = run(edit((m) => (m.id = ID)), { creatorId: "c1", existing: { agentId: ID, publishedVersion: "0.9.0", creatorUserId: "U1" } });
     assert.equal(r.ok, true, show(r));
   });
-  it("1st version with an id in the manifest (the server assigns it)", () => expectError("MANIFEST_ID_OWNER", edit((m) => (m.id = ID)), { existing: { creatorWallet: "W1" } }));
-  it("1st version without an id passes", () => assert.equal(run(baseFiles(), { existing: { creatorWallet: "W1", slugs: [] } }).ok, true));
+  it("1st version with an id in the manifest (the server assigns it)", () => expectError("MANIFEST_ID_OWNER", edit((m) => (m.id = ID)), { existing: { creatorUserId: "U1" } }));
+  it("1st version without an id passes", () => assert.equal(run(baseFiles(), { existing: { creatorUserId: "U1", slugs: [] } }).ok, true));
 
   it("version not greater than the published one (existing.publishedVersion)", () => expectError("MANIFEST_VERSION_NOT_GREATER", baseFiles(), { existing: { agentId: ID, publishedVersion: "1.0.0" } }));
   it("version lower than the published one", () => expectError("MANIFEST_VERSION_NOT_GREATER", baseFiles(), { existing: { agentId: ID, publishedVersion: "1.2.0" } }));
@@ -280,9 +279,10 @@ describe("third_party mode: stats.differentiators lists only the proven ones", (
     f["knowledge/das-mei-2026.md"] = (f["knowledge/das-mei-2026.md"] as string).replace("2026-12-31", "2026-06-30");
     assert.ok(!run(f).stats.differentiators.includes("liveData"));
   });
-  it("verifier is never proven for third parties, not even with a test-based guarantee", () => {
-    const r = run(edit((m) => (m.guarantee = { available: true, defaultCriteria: ["Testes passam"] })));
-    assert.ok(!r.stats.differentiators.includes("verifier"));
+  it("verifier is proven by sandbox checks on a step (steps[].verify), not by declaring it", () => {
+    assert.ok(!run(baseFiles()).stats.differentiators.includes("verifier"));
+    const r = run(edit((m) => (m.steps[0].verify = [{ label: "Build passes", command: "bash", args: ["-lc", "npm run build"] }])));
+    assert.ok(r.stats.differentiators.includes("verifier"), show(r));
   });
 });
 

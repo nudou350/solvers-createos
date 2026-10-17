@@ -14,8 +14,8 @@ import { setTelegramApiForTests } from "../src/telegram/client.js";
 describe("POST /api/creator/telegram-link without a database", () => {
   let server: Server;
   let base = "";
-  const post = async (wallet: string | null) =>
-    fetch(`${base}/api/creator/telegram-link`, { method: "POST", headers: wallet ? { cookie: `${SESSION_COOKIE}=${await signSession(wallet)}` } : {} });
+  const post = async (userId: string | null) =>
+    fetch(`${base}/api/creator/telegram-link`, { method: "POST", headers: userId ? { cookie: `${SESSION_COOKIE}=${await signSession(userId)}` } : {} });
 
   before(async () => {
     await new Promise<void>((resolve) => {
@@ -35,7 +35,7 @@ describe("POST /api/creator/telegram-link without a database", () => {
 
   it("bot not configured (no TELEGRAM_BOT_TOKEN): 503 telegram_unavailable with a clear message", async () => {
     setTelegramApiForTests(null);
-    const res = await post("rota-sem-bot");
+    const res = await post("00000000-0000-4000-8000-000000000001");
     assert.equal(res.status, 503);
     const body = (await res.json()) as { code: string; error: string };
     assert.equal(body.code, "telegram_unavailable");
@@ -50,7 +50,7 @@ describe("POST /api/creator/telegram-link without a database", () => {
       deleteWebhook: async () => undefined,
     };
     setTelegramApiForTests(api);
-    const res = await post("rota-getme-falha");
+    const res = await post("00000000-0000-4000-8000-000000000002");
     assert.equal(res.status, 503);
     const text = JSON.stringify(await res.json());
     assert.match(text, /telegram_unavailable/);

@@ -2,16 +2,14 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { canTransition, nextActionFor, SUBMISSION_STATUSES, type SubmissionStatus } from "@solvers/shared";
 import {
-  adminWallets,
   creatorNotReady,
   differentiatorsOf,
   generateInviteCode,
-  isAdminWallet,
+  isAdminUser,
   mergeWarnings,
   normalizeInviteCode,
   normalizeManifest,
   planApproval,
-  priceToUnits,
   reviewPathProblem,
   reviewTransitionProblem,
   safeManifestFields,
@@ -23,9 +21,9 @@ import {
 
 const CHECKLIST = { promiseDelivered: true, twoDifferentiatorsProven: true, rightsAndSources: true, noHarmfulInstructions: true, priceTrialShowcaseCoherent: true };
 const OK_VALIDATION = { ok: true, errors: [], warnings: [] };
-const manifest = (pricing: Record<string, unknown> = { priceUsdc: 9, royaltyBps: 500 }) => ({ name: "Meu Solver", version: "1.0.0", pricing });
+const manifest = (pricing: Record<string, unknown> = { priceCents: 900 }) => ({ name: "Meu Solver", version: "1.0.0", pricing });
 const plan = (over: Partial<Parameters<typeof planApproval>[0]> = {}) =>
-  planApproval({ status: "pending_review", validation: OK_VALIDATION, manifest: manifest(), checklist: CHECKLIST, versionHash: "ab".repeat(32), minPriceUnits: 5_000_000n, ...over });
+  planApproval({ status: "pending_review", validation: OK_VALIDATION, manifest: manifest(), checklist: CHECKLIST, versionHash: "ab".repeat(32), ...over });
 
 describe("review state machine", () => {
   it("only pending_review approves; pending_review and changes_requested reject; only pending_review requests changes", () => {
@@ -33,16 +31,16 @@ describe("review state machine", () => {
       assert.equal(reviewTransitionProblem(s, "approve") === null, s === "pending_review", `approve in ${s}`);
       assert.equal(reviewTransitionProblem(s, "request_changes") === null, s === "pending_review", `request_changes in ${s}`);
       assert.equal(reviewTransitionProblem(s, "reject") === null, s === "pending_review" || s === "changes_requested", `reject in ${s}`);
+      assert.equal(reviewTransitionProblem(s, "revoke") === null, s === "publish_failed", `revoke in ${s}`);
     }
   });
 
   it("reviewer actions never bypass canTransition", () => {
     const from: SubmissionStatus = "pending_review";
-    assert.ok(canTransition(from, "awaiting_creator_signature"));
-    assert.ok(!canTransition("rejected", "awaiting_creator_signature"));
-    assert.ok(!canTransition("published", "awaiting_creator_signature"));
-    assert.ok(!canTransition("awaiting_creator_signature", "pending_review"), "approved does not go back to review");
-    assert.ok(canTransition("publish_failed", "awaiting_creator_signature"), "resuming publication exists, but it is not an approval");
+    assert.ok(canTransition(from, "publishing"), "approving starts the publication");
+    assert.ok(!canTransition("rejected", "publishing"));
+    assert.ok(!canTransition("publishing", "pending_review"), "approved does not go back to review");
+    assert.ok(canTransition("publish_failed", "publishing"), "retrying publication exists, but it is not an approval");
     assert.ok(reviewTransitionProblem("publish_failed", "approve"));
   });
 
@@ -53,20 +51,18 @@ describe("review state machine", () => {
   });
 
   it("the creator's next step follows the state", () => {
-    assert.equal(nextActionFor("changes_requested", false), "fix_and_resubmit");
-    assert.equal(nextActionFor("awaiting_creator_signature", true), "sign_register");
-    assert.equal(nextActionFor("awaiting_creator_signature", false), "sign_update");
-    assert.equal(nextActionFor("pending_review", true), "wait_review");
+    assert.equal(nextActionFor("changes_requested"), "fix_and_resubmit");
+    assert.equal(nextActionFor("publishing"), "wait_publish");
+    assert.equal(nextActionFor("pending_review"), "wait_review");
   });
 });
 
 describe("planApproval", () => {
-  it("approves and freezes the hash, the price in 6-decimal units, royalty, name and version", () => {
+  it("approves and freezes the hash, the price in cents, name and version", () => {
     const p = plan();
     assert.ok(p.ok);
     if (!p.ok) return;
-    assert.deepEqual(p.approved, { versionHash: "ab".repeat(32), priceUsdc: "9000000", royaltyBps: 500, name: "Meu Solver", version: "1.0.0" });
-    assert.equal(p.priceUnits, 9_000_000n);
+    assert.deepEqual(p.approved, { versionHash: "ab".repeat(32), priceCents: 900, name: "Meu Solver", version: "1.0.0" });
   });
 
   it("refuses a wrong state, a failed validation and an incomplete checklist", () => {
@@ -77,22 +73,16 @@ describe("planApproval", () => {
     assert.equal((plan({ checklist: {} }) as { code: string }).code, "checklist_incomplete");
   });
 
-  it("price: at least the minimum price (5 USD), with up to 6 decimals", () => {
-    assert.ok(plan({ manifest: manifest({ priceUsdc: 5, royaltyBps: 0 }) }).ok, "exactly the minimum passes");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: 4.99, royaltyBps: 0 }) }) as { code: string }).code, "price_below_min");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: 0, royaltyBps: 0 }) }) as { code: string }).code, "price_invalid");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: -9, royaltyBps: 0 }) }) as { code: string }).code, "price_invalid");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: "9", royaltyBps: 0 }) }) as { code: string }).code, "price_invalid");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: 9.1234567, royaltyBps: 0 }) }) as { code: string }).code, "price_invalid", "7 decimals do not fit in USDC");
-    assert.equal((plan({ manifest: manifest({ priceUsdc: Number.NaN, royaltyBps: 0 }) }) as { code: string }).code, "price_invalid");
-    assert.equal((plan({ minPriceUnits: 12_000_000n }) as { code: string }).code, "price_below_min", "the chain's minimum applies");
-  });
-
-  it("royaltyBps: integer from 0 to 1000", () => {
-    for (const ok of [0, 1, 1000]) assert.ok(plan({ manifest: manifest({ priceUsdc: 9, royaltyBps: ok }) }).ok, `bps ${ok}`);
-    for (const bad of [-1, 1001, 5.5, "500", undefined]) {
-      assert.equal((plan({ manifest: manifest({ priceUsdc: 9, royaltyBps: bad }) }) as { code: string }).code, "royalty_invalid", `bps ${String(bad)}`);
-    }
+  it("price: whole cents, at least the minimum price ($5.00)", () => {
+    assert.ok(plan({ manifest: manifest({ priceCents: 500 }) }).ok, "exactly the minimum passes");
+    assert.equal((plan({ manifest: manifest({ priceCents: 499 }) }) as { code: string }).code, "price_below_min");
+    assert.equal((plan({ manifest: manifest({ priceCents: 0 }) }) as { code: string }).code, "price_invalid");
+    assert.equal((plan({ manifest: manifest({ priceCents: -900 }) }) as { code: string }).code, "price_invalid");
+    assert.equal((plan({ manifest: manifest({ priceCents: "900" }) }) as { code: string }).code, "price_invalid");
+    assert.equal((plan({ manifest: manifest({ priceCents: 900.5 }) }) as { code: string }).code, "price_invalid");
+    assert.equal((plan({ manifest: manifest({ priceCents: Number.NaN }) }) as { code: string }).code, "price_invalid");
+    assert.equal((plan({ manifest: manifest({ price: 9 }) }) as { code: string }).code, "price_invalid", "only priceCents counts");
+    assert.equal((plan({ minPriceCents: 1200 }) as { code: string }).code, "price_below_min", "a higher minimum applies");
   });
 
   it("no manifest, no approval", () => {
@@ -100,23 +90,12 @@ describe("planApproval", () => {
   });
 });
 
-describe("priceToUnits", () => {
-  it("converts exact values and refuses the rest", () => {
-    assert.equal(priceToUnits(9), 9_000_000n);
-    assert.equal(priceToUnits(0.1 + 0.2), 300_000n, "floating-point noise does not fail it");
-    assert.equal(priceToUnits(9.1234567), null);
-    assert.equal(priceToUnits(5.5), 5_500_000n);
-    assert.equal(priceToUnits(Infinity), null);
-  });
-});
-
 describe("admins", () => {
-  it("ADMIN_WALLETS splits on commas and ignores spaces and empty entries", () => {
-    assert.deepEqual([...adminWallets(" A , B,, C ")], ["A", "B", "C"]);
-    assert.ok(isAdminWallet("B", "A,B"));
-    assert.ok(!isAdminWallet("b", "A,B"), "case-sensitive");
-    assert.ok(!isAdminWallet(undefined, "A,B"));
-    assert.ok(!isAdminWallet("A", ""), "empty list = nobody is admin");
+  it("ADMIN_USER_IDS splits on commas and ignores spaces and empty entries", () => {
+    assert.ok(isAdminUser("b", " a , b,, c "));
+    assert.ok(isAdminUser("B", "a,b"), "uuids compare lowercase");
+    assert.ok(!isAdminUser(undefined, "a,b"));
+    assert.ok(!isAdminUser("a", ""), "empty list = nobody is admin");
   });
 });
 
@@ -188,7 +167,7 @@ describe("views", () => {
     updatedAt: new Date("2026-10-02T11:00:00Z"),
   };
   it("the creator's view has neither disk paths nor the manifest", () => {
-    const v = toSubmissionView({ ...row, zipPath: "C:/segredo/a.zip" } as typeof row, true);
+    const v = toSubmissionView({ ...row, zipPath: "C:/segredo/a.zip" } as typeof row);
     assert.equal(v.name, "Nome");
     assert.equal(v.nextAction, "fix_and_resubmit");
     assert.ok(!JSON.stringify(v).includes("segredo"));

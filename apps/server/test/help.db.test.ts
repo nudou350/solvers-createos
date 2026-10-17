@@ -8,28 +8,33 @@ import { after, before, describe, it } from "node:test";
 const url = process.env.TEST_DATABASE_URL;
 const PREFIX = "helptest";
 const AGENT = "0".repeat(24) + "he1p0001";
-const BUYER = `${PREFIX}-buyer`;
-const OLD = `${PREFIX}-old`; // only has requests older than 1 hour
+const uid = (n: number) => `4e1b0000-0000-4000-8000-${n.toString().padStart(12, "0")}`;
+const BUYER = uid(1);
+const OLD = uid(2); // only has requests older than 1 hour
+const OTHER = uid(3);
+const CREATOR = uid(4);
+const USERS = [BUYER, OLD, OTHER, CREATOR];
 
 describe("help request with a database", { skip: url ? false : "set TEST_DATABASE_URL (disposable migrated database)" }, () => {
   let db: typeof import("../src/db/index.js").db;
   let schema: typeof import("../src/db/index.js").schema;
   let pool: typeof import("../src/db/index.js").pool;
   let like: typeof import("drizzle-orm").like;
+  let inArray: typeof import("drizzle-orm").inArray;
   let eq: typeof import("drizzle-orm").eq;
   let server: Server;
   let base = "";
-  let cookie: (wallet: string) => Promise<string>;
+  let cookie: (userId: string) => Promise<string>;
 
-  const help = async (wallet: string | null, body: unknown, slug = `${PREFIX}-agente`) =>
+  const help = async (userId: string | null, body: unknown, slug = `${PREFIX}-agente`) =>
     fetch(`${base}/api/agents/${slug}/help`, {
       method: "POST",
-      headers: { "content-type": "application/json", ...(wallet ? { cookie: await cookie(wallet) } : {}) },
+      headers: { "content-type": "application/json", ...(userId ? { cookie: await cookie(userId) } : {}) },
       body: JSON.stringify(body),
     });
 
   async function cleanup() {
-    await db.delete(schema.escalations).where(like(schema.escalations.wallet, `${PREFIX}%`));
+    await db.delete(schema.escalations).where(inArray(schema.escalations.userId, USERS));
     await db.delete(schema.agents).where(like(schema.agents.slug, `${PREFIX}%`));
     await db.delete(schema.creators).where(like(schema.creators.id, `${PREFIX}%`));
   }
@@ -41,17 +46,18 @@ describe("help request with a database", { skip: url ? false : "set TEST_DATABAS
       SERVER_KEK: process.env.SERVER_KEK ?? Buffer.alloc(32, 7).toString("base64"),
     });
     ({ db, schema, pool } = await import("../src/db/index.js"));
-    ({ like, eq } = await import("drizzle-orm"));
+    ({ like, eq, inArray } = await import("drizzle-orm"));
     const { createApp } = await import("../src/app.js");
     const { mounts } = await import("../src/modules.js");
     const { signSession, SESSION_COOKIE } = await import("../src/auth/jwt.js");
-    cookie = async (wallet) => `${SESSION_COOKIE}=${await signSession(wallet)}`;
+    cookie = async (userId) => `${SESSION_COOKIE}=${await signSession(userId)}`;
 
     await cleanup();
-    await db.insert(schema.creators).values({ id: `${PREFIX}-creator`, wallet: `${PREFIX}-creator-wallet`, name: "Criador de teste", telegramChatId: "999000111" });
+    await db.insert(schema.users).values(USERS.map((id, i) => ({ id, email: `${PREFIX}-${i}@example.com` }))).onConflictDoNothing();
+    await db.insert(schema.creators).values({ id: `${PREFIX}-creator`, userId: CREATOR, name: "Criador de teste", telegramChatId: "999000111" });
     await db.insert(schema.agents).values({
       id: AGENT, slug: `${PREFIX}-agente`, name: "Agente de teste", tagline: "t", description: "d", category: "Outros",
-      creatorId: `${PREFIX}-creator`, version: "1.0.0", versionHash: "ab".repeat(32), price: 5_000_000n, status: "active", listed: true,
+      creatorId: `${PREFIX}-creator`, version: "1.0.0", versionHash: "ab".repeat(32), priceCents: 500, listed: true,
     });
     await new Promise<void>((resolve) => {
       server = createApp(mounts).listen(0, "127.0.0.1", () => resolve(undefined));
@@ -75,7 +81,7 @@ describe("help request with a database", { skip: url ? false : "set TEST_DATABAS
     assert.equal(curta.status, 400);
     assert.equal(((await curta.json()) as { code: string }).code, "validation");
     assert.equal((await help(BUYER, { message: "Travei no passo 2 da instalação" }, `${PREFIX}-nao-existe`)).status, 404);
-    const rows = await db.select().from(schema.escalations).where(eq(schema.escalations.wallet, BUYER));
+    const rows = await db.select().from(schema.escalations).where(eq(schema.escalations.userId, BUYER));
     assert.equal(rows.length, 0, "a refused request opens no ticket");
   });
 
@@ -89,25 +95,25 @@ describe("help request with a database", { skip: url ? false : "set TEST_DATABAS
     assert.ok(!JSON.stringify(body).includes("999000111"), "the creator's chat never leaves the server");
 
     const [row] = await db.select().from(schema.escalations).where(eq(schema.escalations.id, body.protocol));
-    assert.equal(row!.wallet, BUYER);
+    assert.equal(row!.userId, BUYER);
     assert.equal(row!.agentId, AGENT);
     assert.match(row!.summary, /Contact for reply: ana@exemplo\.com/);
     assert.match(row!.summary, /Travei no passo 2 da instalação/);
   });
 
-  it("limit: 3 requests per hour per wallet; the 4th gets 429 and opens no ticket", async () => {
+  it("limit: 3 requests per hour per user; the 4th gets 429 and opens no ticket", async () => {
     for (let i = 0; i < 2; i++) assert.equal((await help(BUYER, { message: `Outro problema número ${i} na instalação` })).status, 200);
     const quarto = await help(BUYER, { message: "Mais um problema na instalação" });
     assert.equal(quarto.status, 429);
     assert.equal(((await quarto.json()) as { code: string }).code, "rate_limited");
-    const rows = await db.select().from(schema.escalations).where(eq(schema.escalations.wallet, BUYER));
+    const rows = await db.select().from(schema.escalations).where(eq(schema.escalations.userId, BUYER));
     assert.equal(rows.length, 3);
   });
 
-  it("the limit is per wallet and requests older than 1 hour do not count", async () => {
+  it("the limit is per user and requests older than 1 hour do not count", async () => {
     const old = new Date(Date.now() - 2 * 3600_000);
-    for (let i = 0; i < 3; i++) await db.insert(schema.escalations).values({ id: `SLV-${PREFIX}${i}`, wallet: OLD, agentId: AGENT, summary: "antigo", createdAt: old });
+    for (let i = 0; i < 3; i++) await db.insert(schema.escalations).values({ id: `SLV-${PREFIX}${i}`, userId: OLD, agentId: AGENT, summary: "antigo", createdAt: old });
     assert.equal((await help(OLD, { message: "Voltei com uma dúvida nova na instalação" })).status, 200);
-    assert.equal((await help(`${PREFIX}-outra`, { message: "Sou outra pessoa com uma dúvida na instalação" })).status, 200);
+    assert.equal((await help(OTHER, { message: "Sou outra pessoa com uma dúvida na instalação" })).status, 200);
   });
 });

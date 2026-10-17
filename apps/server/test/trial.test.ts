@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { FREE_TRIAL_USES } from "@solvers/shared";
-import { escrowGivesAccess, paidAccessLine } from "../src/runtime/access-rules.js";
+import { paidAccessLine } from "../src/runtime/access-rules.js";
 import { Manifest } from "../src/runtime/manifest.js";
 import { myTrial, toolInputSize, trialAccessLine, trialEndText, trialInfo, trialLeft, trialLimits, trialStepLocked, trialToolCapError } from "../src/runtime/trial.js";
 
@@ -25,8 +25,7 @@ const base = {
     { name: "run_tests", description: "", runner: "docker:solvers-react-test" },
     { name: "a11y_check", description: "", runner: "node:a11y" },
   ],
-  guarantee: { available: false },
-  pricing: { priceUsdc: 19, royaltyBps: 500 },
+  pricing: { priceCents: 1900 },
 };
 const trial = {
   steps: 2,
@@ -36,7 +35,7 @@ const trial = {
   lockedSummary: "a revisão final com testes ilimitados.",
 };
 const parse = (extra: Record<string, unknown>) => Manifest.parse({ ...base, ...extra });
-const pkgOf = (m: Manifest) => ({ manifest: m, steps: m.steps.map((s) => ({ title: s.file, body: "", gate: [] })) });
+const pkgOf = (m: Manifest) => ({ manifest: m, steps: m.steps.map((s) => ({ title: s.file, body: "", gate: [], verify: [] })) });
 
 describe("manifest.trial", () => {
   it("no trial or available=false: no free trial", () => {
@@ -51,9 +50,18 @@ describe("manifest.trial", () => {
     assert.deepEqual(t.tools, {});
   });
 
-  it("pricePerUseUsdc from an old manifest is ignored", () => {
-    const m = parse({ pricing: { priceUsdc: 19, pricePerUseUsdc: 0.9, royaltyBps: 500 } });
-    assert.deepEqual(m.pricing, { priceUsdc: 19, royaltyBps: 500 });
+  it("pricing: integer cents, at least 500 (or 0 for a free platform Solver); unknown pricing fields are dropped", () => {
+    assert.deepEqual(parse({ pricing: { priceCents: 1900, extra: 1 } }).pricing, { priceCents: 1900 });
+    assert.equal(parse({ pricing: { priceCents: 0 } }).pricing.priceCents, 0);
+    assert.throws(() => parse({ pricing: { priceCents: 499 } }), /priceCents/);
+    assert.throws(() => parse({ pricing: { priceCents: 19.5 } }));
+  });
+
+  it("steps[].verify: optional sandbox checks with a label and a command", () => {
+    const m = parse({ steps: [{ file: "1.md", gate: ["Build passes"], verify: [{ label: "Build passes", command: "bash", args: ["-lc", "npm run build"] }] }] });
+    assert.deepEqual(m.steps[0]!.verify, [{ label: "Build passes", command: "bash", args: ["-lc", "npm run build"] }]);
+    assert.equal(parse({}).steps[0]!.verify, undefined);
+    assert.throws(() => parse({ steps: [{ file: "1.md", verify: [{ label: "x", command: "" }] }] }));
   });
 
   it("rejects steps beyond the method, a nonexistent tool and uses outside 1..10", () => {
@@ -213,17 +221,8 @@ describe("trial texts", () => {
 });
 
 describe("paid access", () => {
-  it("a guarantee gives access only while open (confirmed, not approved, refunded or closed)", () => {
-    assert.equal(escrowGivesAccess({ status: "active", closed: false }), true);
-    assert.equal(escrowGivesAccess({ status: "disputed", closed: false }), true);
-    assert.equal(escrowGivesAccess({ status: "pending", closed: false }), false);
-    assert.equal(escrowGivesAccess({ status: "approved", closed: false }), false);
-    assert.equal(escrowGivesAccess({ status: "refunded", closed: false }), false);
-    assert.equal(escrowGivesAccess({ status: "active", closed: true }), false);
-  });
-
   it("paid access line", () => {
     assert.equal(paidAccessLine("license"), "Access: lifetime license.");
-    assert.equal(paidAccessLine("guarantee"), "Access: guaranteed task (no limits while the guarantee is open).");
+    assert.equal(paidAccessLine("platform"), "Access: free (platform Solver, no license and no trial limits).");
   });
 });

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { HttpError } from "../src/lib/http.js";
-import { assertSessionCurrent, licenseRecheckDue, planNextStep, withSummary } from "../src/runtime/session-rules.js";
+import { assertSessionCurrent, planNextStep, withSummary } from "../src/runtime/session-rules.js";
 
 // Pure rules of the connector sessions (no env or database).
 
@@ -53,23 +53,14 @@ describe("planNextStep (completed_step)", () => {
 
 describe("withSummary", () => {
   it("writes the right slot without touching the others or the rest of the context", () => {
-    const ctx = { escrowId: "E1", summaries: ["a"] };
+    const ctx = { note: "E1", summaries: ["a"] };
     const out = withSummary(ctx, 1, "b");
-    assert.deepEqual(out, { escrowId: "E1", summaries: ["a", "b"] });
+    assert.deepEqual(out, { note: "E1", summaries: ["a", "b"] });
     assert.deepEqual(ctx.summaries, ["a"]);
   });
 
   it("a negative slot writes nothing; cuts at 4000 characters", () => {
     assert.deepEqual(withSummary({}, -1, "x"), { summaries: [] });
     assert.equal((withSummary({}, 0, "y".repeat(5000)).summaries as string[])[0]!.length, 4000);
-  });
-});
-
-describe("licenseRecheckDue", () => {
-  it("rechecks the first time and after the window; reuses within it", () => {
-    assert.equal(licenseRecheckDue(undefined, 1000), true);
-    assert.equal(licenseRecheckDue(1000, 1000 + 44_000), false);
-    assert.equal(licenseRecheckDue(1000, 1000 + 45_000), true);
-    assert.equal(licenseRecheckDue(5000, 1000), true); // the clock went back
   });
 });

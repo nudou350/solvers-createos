@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import { after, before, describe, it } from "node:test";
 
@@ -24,7 +25,7 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
   let poller: typeof import("../src/telegram/poller.js");
   let notify: typeof import("../src/submissions/notify.js");
   let tg: typeof import("../src/notify/telegram.js");
-  let cookie: (wallet: string) => Promise<string>;
+  let cookie: (userId: string) => Promise<string>;
   let server: Server;
   let base = "";
   const realFetch = globalThis.fetch;
@@ -38,28 +39,32 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
     deleteWebhook: async () => undefined,
   };
 
-  const W = (n: string) => `${P}-wallet-${n}`;
+  // One user per name (uuid), created with the creator row.
+  const users = new Map<string, string>();
+  const W = (n: string) => users.get(n) ?? (users.set(n, randomUUID()), users.get(n)!);
   const ID = (n: string) => `${P}-creator-${n}`;
-  const call = async (wallet: string | null, path = "/api/creator/telegram-link", method = "POST") =>
-    fetch(`${base}${path}`, { method, headers: wallet ? { cookie: await cookie(wallet) } : {} });
+  const call = async (userId: string | null, path = "/api/creator/telegram-link", method = "POST") =>
+    fetch(`${base}${path}`, { method, headers: userId ? { cookie: await cookie(userId) } : {} });
   const row = async (n: string) => (await db.select().from(schema.creators).where(eq(schema.creators.id, ID(n))))[0]!;
   const dm = (chat: number, text: string, id = 1) => ({ update_id: id, message: { message_id: id, text, chat: { id: chat, type: "private" } } });
   const deps = () => ({ api: fakeApi, redeem: store.redeemLinkCode, botUsername: "solvers_bot", limiter: rules.createFailureLimiter(), log: () => undefined });
-  const link = async (wallet: string) => ((await (await call(wallet)).json()) as { code: string }).code;
+  const link = async (userId: string) => ((await (await call(userId)).json()) as { code: string }).code;
 
   async function addCreator(n: string, name = `Criador ${n}`) {
-    await db.insert(schema.creators).values({ id: ID(n), wallet: W(n), name, invited: true, termsAcceptedAt: new Date() });
+    await db.insert(schema.users).values({ id: W(n), email: `${P}-${n}@test.solvers` });
+    await db.insert(schema.creators).values({ id: ID(n), userId: W(n), name, invited: true, termsAcceptedAt: new Date() });
   }
   async function cleanup() {
     await db.delete(schema.agents).where(like(schema.agents.slug, `${P}%`));
     await db.delete(schema.creators).where(like(schema.creators.id, `${P}%`));
+    await db.delete(schema.users).where(like(schema.users.email, `${P}-%@test.solvers`));
   }
 
   before(async () => {
     Object.assign(process.env, {
       DATABASE_URL: url,
       JWT_SECRET: process.env.JWT_SECRET ?? "j".repeat(40),
-      SERVER_KEK: process.env.SERVER_KEK ?? Buffer.alloc(32, 7).toString("base64"),
+      MEMORY_KEK: process.env.MEMORY_KEK ?? Buffer.alloc(32, 7).toString("base64"),
       TELEGRAM_BOT_TOKEN: FAKE_TOKEN,
       TELEGRAM_ADMIN_CHAT_ID: ADMIN_CHAT,
     });
@@ -75,7 +80,7 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
     const { createApp } = await import("../src/app.js");
     const { creatorRouter } = await import("../src/creator/routes.js");
     const { signSession, SESSION_COOKIE } = await import("../src/auth/jwt.js");
-    cookie = async (wallet) => `${SESSION_COOKIE}=${await signSession(wallet)}`;
+    cookie = async (userId) => `${SESSION_COOKIE}=${await signSession(userId)}`;
     await cleanup();
     for (const n of ["a", "b", "limit", "swap", "race", "exp", "notify", "plain"]) await addCreator(n, n === "a" ? "Ana Souza" : `Criador ${n}`);
     await new Promise<void>((resolve) => {
@@ -106,7 +111,7 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
     const res = await call(W("sem-perfil"));
     assert.equal(res.status, 403);
     assert.equal(((await res.json()) as { code: string }).code, "profile_required");
-    assert.equal((await db.select().from(schema.creators).where(eq(schema.creators.wallet, W("sem-perfil")))).length, 0);
+    assert.equal((await db.select().from(schema.creators).where(eq(schema.creators.userId, W("sem-perfil")))).length, 0);
   });
 
   it("issues the code: format, 15-minute validity, bot and deep link; only the hash is stored in the database", async () => {
@@ -226,11 +231,11 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
   it("notices: a linked creator receives them in their chat; without a link the request goes to the admin chat", async () => {
     await db.insert(schema.agents).values({
       id: AGENT, slug: `${P}-agente`, name: "Agente de teste", tagline: "t", description: "d", category: "Outros",
-      creatorId: ID("notify"), version: "1.0.0", versionHash: "ab".repeat(32), price: 5_000_000n, status: "active", listed: true,
+      creatorId: ID("notify"), version: "1.0.0", versionHash: "ab".repeat(32), priceCents: 500, listed: true,
     });
     outgoing.length = 0;
     // No Telegram linked yet: nothing for the creator (review) and the buyer's request goes to the admin.
-    await notify.notifyCreatorWallet(W("notify"), "revisão 1");
+    await notify.notifyCreatorUser(W("notify"), "revisão 1");
     await tg.notifyCreator(AGENT, "chamado 1");
     assert.deepEqual(outgoing.map((o) => [String(o.chat_id), o.text]), [[ADMIN_CHAT, "chamado 1"]]);
 
@@ -238,7 +243,7 @@ describe("Telegram linking with a database", { skip: url ? false : "set TEST_DAT
     const code = await link(W("notify"));
     assert.equal((await store.redeemLinkCode("8123", code)).status, "linked");
     outgoing.length = 0;
-    await notify.notifyCreatorWallet(W("notify"), "revisão 2");
+    await notify.notifyCreatorUser(W("notify"), "revisão 2");
     await tg.notifyCreator(AGENT, "chamado 2");
     assert.deepEqual(outgoing.map((o) => [String(o.chat_id), o.text]), [["8123", "revisão 2"], ["8123", "chamado 2"]]);
   });

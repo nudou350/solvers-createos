@@ -24,8 +24,7 @@ describe("package cache: getPackage reloads after a publication by another proce
     requirements: [],
     packageContents: [],
     steps: [{ file: "steps/01-primeira.md", gate: [] }],
-    pricing: { priceUsdc: 5, royaltyBps: 0 },
-    guarantee: { available: false, defaultCriteria: [] },
+    pricing: { priceCents: 500 },
   });
   const publish = (version: string) => {
     const dir = join(root, "published", "troca-solver");

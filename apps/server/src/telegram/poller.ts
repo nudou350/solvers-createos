@@ -3,7 +3,7 @@ import { createFailureLimiter, parseCommand, replyText, type LinkOutcome } from 
 import type { RedeemResult } from "./link-store.js";
 
 // The bot loop (getUpdates long polling) that handles `/vincular <code>` and `/start <code>` (deep link from the site). Runs only
-// in the solvers-tempo-worker process, the ONLY one that polls (two pollers with the same token knock each other out with 409). Nothing
+// in the worker process, the ONLY one that polls (two pollers with the same token knock each other out with 409). Nothing
 // here reads env or the database: Telegram and code redemption come in through `PollDeps`, and the test uses fakes.
 
 export type PollDeps = {

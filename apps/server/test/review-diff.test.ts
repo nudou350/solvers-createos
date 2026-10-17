@@ -114,12 +114,12 @@ describe("diffPackages: unified diff", () => {
     const a = baseFiles();
     const b = baseFiles();
     editManifest(b, (m) => {
-      (m.pricing as any).priceUsdc = 12;
+      (m.pricing as any).priceCents = 1200;
       m.version = "1.1.0";
     });
     const u = body(diffPackages(pkg(a), pkg(b)), "manifest.json");
-    assert.match(u, /\n-    "priceUsdc": 9,/);
-    assert.match(u, /\n\+    "priceUsdc": 12,/);
+    assert.match(u, /\n-    "priceCents": 900,?\n/);
+    assert.match(u, /\n\+    "priceCents": 1200,?\n/);
     assert.match(u, /\n\+  "version": "1\.1\.0",/);
     assert.ok(u.split("\n").length < 40, "only the hunks, not the whole manifest");
   });

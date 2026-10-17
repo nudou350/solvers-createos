@@ -145,7 +145,7 @@ describe("trial.templates in the manifest", () => {
   const base = {
     id: "0123456789abcdef0123456789abcdef", slug: "meu-solver", name: "Meu Solver", tagline: "Uma frase de valor", description: "Descrição", category: "Outros", version: "1.0.0",
     creator: { id: "c", name: "C", bio: "b" }, requirements: [], packageContents: [], steps: [{ file: "steps/01.md", gate: [] }, { file: "steps/02.md", gate: [] }],
-    pricing: { priceUsdc: 5, royaltyBps: 0 }, guarantee: { available: false, defaultCriteria: [] },
+    pricing: { priceCents: 500 },
   };
   const trial = { uses: 1, steps: 1, searches: 1, tools: {}, summary: "Etapa 1 e um modelo.", lockedSummary: "O restante." };
 

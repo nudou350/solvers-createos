@@ -1,27 +1,28 @@
-import express, { Router, type Express } from "express";
+import express, { Router, type Express, type NextFunction, type Request, type Response } from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
-import { and, eq, gt, like, lt } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { db, schema } from "../db/index.js";
+import { db, schema, type Db } from "../db/index.js";
 import { env } from "../env.js";
 import { h, HttpError, parse } from "../lib/http.js";
 import { randomId, randomToken, sha256Hex } from "../lib/crypto.js";
-import { mcpAudience, signAccessToken, verifyToken } from "../auth/jwt.js";
-import { allowedDomains, createNonce, parseWalletAddress, siweNonceOf, verifySiwe } from "../auth/siwe.js";
-import { MEMORY_KEY_MESSAGE, memoryKeyFromSignature, storeMemoryKey, wrapKey, type DbExecutor } from "../memory/crypto.js";
-import { authorizePage, pageLang } from "./page.js";
-import { AGENT_CLIENT_ID, AGENT_SIWE_STATEMENT, consentStatement, refreshRejection } from "./rules.js";
+import { mcpAudience, signAccessToken, signState, verifyState, verifyToken } from "../auth/jwt.js";
+import { requireUser, requireUserId } from "../auth/middleware.js";
+import { oauthErrorPage, pageLang } from "./page.js";
+import { refreshRejection, sameOrigin } from "./rules.js";
 
-// Authorization of the MCP connector: /mcp is a resource server and this app is also the authorization server
-// (OAuth 2.1 + PKCE S256 + dynamic client registration). The wallet proves itself with SIWE (EIP-4361, decisions.md D7);
-// the optional memory signature is an EIP-191 signature of MEMORY_KEY_MESSAGE by an EOA (D8).
+// Authorization of the MCP connector (Claude, ChatGPT): /mcp is a resource server and this app is also the authorization
+// server (OAuth 2.1 + PKCE S256 + dynamic client registration). The person approves on the web app's /connect page,
+// signed in with the web session (e-mail magic link); approving issues the code for that `users.id`.
 
 const ACCESS_TTL_SECS = 24 * 3600;
 const REFRESH_TTL_MS = 30 * 24 * 3600 * 1000;
 const CODE_TTL_MS = 5 * 60 * 1000;
-const AUTH_REQ_TTL_MS = 10 * 60 * 1000;
+const AUTH_REQ_TTL_SECS = 10 * 60;
+const AUTH_REQ_AUDIENCE = "solvers-oauth-request";
 
 const base = () => env.PUBLIC_API_URL.replace(/\/$/, "");
 
@@ -51,9 +52,6 @@ export function authorizationServerMetadata() {
     revocation_endpoint: `${base()}/oauth/revoke`,
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
-    // Non-standard extension: direct login of agents that hold a key (two calls, no browser), SIWE signed by that key.
-    agent_nonce_endpoint: `${base()}/oauth/agent/nonce`,
-    agent_token_endpoint: `${base()}/oauth/agent/token`,
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
     revocation_endpoint_auth_methods_supported: ["none"],
@@ -94,14 +92,17 @@ const AuthorizeQuery = z.object({
   resource: z.string().optional(),
 });
 
-type AuthRequest = z.infer<typeof AuthorizeQuery> & { clientName: string; nonce?: string };
+type AuthRequest = z.infer<typeof AuthorizeQuery> & { clientName: string };
 
-async function saveAuthRequest(req: AuthRequest): Promise<string> {
-  const id = `ar_${randomId(12)}`;
-  // Clears only expired authorization requests (kv holds other things too, such as the indexer cursor).
-  await db.delete(schema.kv).where(and(like(schema.kv.key, "oauth:req:%"), lt(schema.kv.updatedAt, new Date(Date.now() - AUTH_REQ_TTL_MS))));
-  await db.insert(schema.kv).values({ key: `oauth:req:${id}`, value: req });
-  return id;
+/** The pending request travels signed in the /connect URL (`req`), valid for 10 minutes: nothing is stored. */
+function saveAuthRequest(req: AuthRequest): Promise<string> {
+  return signState(req, AUTH_REQ_AUDIENCE, AUTH_REQ_TTL_SECS);
+}
+
+async function loadAuthRequest(id: string): Promise<AuthRequest> {
+  const ar = await verifyState<AuthRequest>(id, AUTH_REQ_AUDIENCE);
+  if (!ar) throw new OAuthError("invalid_request", "The authorization request has expired. Go back to Claude/ChatGPT and connect again.");
+  return ar;
 }
 
 /** Known clients: the page shows the destination as verified; the others get a warning. */
@@ -113,29 +114,17 @@ function redirectInfo(uri: string) {
   return { host, verified };
 }
 
-async function loadAuthRequest(id: string): Promise<AuthRequest> {
-  const [row] = await db
-    .select()
-    .from(schema.kv)
-    .where(and(eq(schema.kv.key, `oauth:req:${id}`), gt(schema.kv.updatedAt, new Date(Date.now() - AUTH_REQ_TTL_MS))));
-  if (!row) throw new OAuthError("invalid_request", "The authorization request has expired. Go back to Claude/ChatGPT and connect again.");
-  return row.value as AuthRequest;
-}
-
 function s256(verifier: string): string {
   return createHash("sha256").update(verifier).digest("base64url");
 }
 
 /** `exec` lets tokens be issued inside a transaction (refresh rotation: all or nothing). */
-async function issueTokens(clientId: string, wallet: string, wrappedMemoryKey: Buffer | null, exec: DbExecutor = db) {
+export async function issueTokens(clientId: string, userId: string, exec: Pick<Db, "insert"> = db) {
   const tokenId = `tok_${randomId(12)}`;
   const refresh = randomToken(32);
   const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
-  const owner = wallet.toLowerCase();
-  await exec.insert(schema.oauthTokens).values({ id: tokenId, clientId, wallet: owner, refreshHash: sha256Hex(refresh), expiresAt });
-  // The memory key lives as long as the authorization; revoking or expiring it deletes the key.
-  if (wrappedMemoryKey) await storeMemoryKey(tokenId, owner, wrappedMemoryKey, expiresAt, exec);
-  const access = await signAccessToken(owner, tokenId, clientId, ACCESS_TTL_SECS);
+  await exec.insert(schema.oauthTokens).values({ id: tokenId, clientId, userId, refreshHash: sha256Hex(refresh), expiresAt });
+  const access = await signAccessToken(userId, tokenId, clientId, ACCESS_TTL_SECS);
   return {
     access_token: access,
     token_type: "Bearer",
@@ -145,36 +134,8 @@ async function issueTokens(clientId: string, wallet: string, wrappedMemoryKey: B
   };
 }
 
-/** Memory key wrapped with the KEK, from an optional EIP-191 signature of MEMORY_KEY_MESSAGE (EOAs only, D8). */
-async function wrappedMemoryKey(wallet: string, memorySignature: string | undefined): Promise<Buffer | null> {
-  if (!memorySignature) return null;
-  const key = await memoryKeyFromSignature(wallet, memorySignature);
-  if (!key) {
-    throw new OAuthError(
-      "access_denied",
-      "Invalid memory key signature (it must be a plain wallet signature; smart-contract wallets cannot unlock memories)",
-      401,
-    );
-  }
-  return wrapKey(key);
-}
-
 export const oauthRouter = Router();
 const open = cors({ origin: true });
-
-/** Agent nonce: 10 per minute PER WALLET (the nonce table is written without authentication). */
-const agentNonceLimit = rateLimit({
-  windowMs: 60_000,
-  limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    const w = req.query.address ?? req.query.wallet;
-    return typeof w === "string" ? w.slice(0, 64).toLowerCase() : "anon";
-  },
-  validate: { keyGeneratorIpFallback: false },
-  message: { error: "too_many_requests", error_description: "Too many attempts for this wallet. Please wait a minute." },
-});
 
 oauthRouter.use(
   rateLimit({
@@ -215,23 +176,24 @@ oauthRouter.post(
 oauthRouter.get(
   "/authorize",
   h(async (req, res) => {
+    const lang = pageLang(req.query.lang, req.headers["accept-language"]);
     const q = AuthorizeQuery.safeParse(req.query);
     if (!q.success) {
-      res.status(400).type("html").send(authorizePage({ lang: pageLang(req.query.lang, req.headers["accept-language"]), error: "Invalid authorization request. Try connecting again from Claude or ChatGPT." }));
+      res.status(400).type("html").send(oauthErrorPage(lang, "Invalid authorization request. Try connecting again from Claude or ChatGPT."));
       return;
     }
     const client = await getClient(q.data.client_id);
     if (!client || !client.meta.redirect_uris.includes(q.data.redirect_uri)) {
-      res.status(400).type("html").send(authorizePage({ lang: pageLang(req.query.lang, req.headers["accept-language"]), error: "App not recognized. Try connecting again." }));
+      res.status(400).type("html").send(oauthErrorPage(lang, "App not recognized. Try connecting again."));
       return;
     }
     if (q.data.resource && q.data.resource.replace(/\/$/, "") !== mcpAudience()) {
-      res.status(400).type("html").send(authorizePage({ lang: pageLang(req.query.lang, req.headers["accept-language"]), error: "The requested resource does not belong to this server." }));
+      res.status(400).type("html").send(oauthErrorPage(lang, "The requested resource does not belong to this server."));
       return;
     }
     const clientName = client.meta.client_name ?? "Your AI assistant";
     const id = await saveAuthRequest({ ...q.data, clientName });
-    // Authorization happens on the web app (/connect), where e-mail login (Privy) and the embedded wallet work.
+    // Consent happens on the web app (/connect), where the person signs in with e-mail if needed.
     res.redirect(302, `${env.PUBLIC_WEB_URL.replace(/\/$/, "")}/connect?req=${encodeURIComponent(id)}`);
   }),
 );
@@ -240,143 +202,46 @@ oauthRouter.get(
 oauthRouter.get(
   "/authorize/info",
   h(async (req) => {
-    const { req: id } = parse(z.object({ req: z.string() }), req.query);
+    const { req: id } = parse(z.object({ req: z.string().max(8000) }), req.query);
     const ar = await loadAuthRequest(id);
-    const lang = pageLang(req.query.lang, req.headers["accept-language"]);
     const { host, verified } = redirectInfo(ar.redirect_uri);
-    return {
-      clientName: ar.clientName,
-      redirectHost: host,
-      verified,
-      memoryMessage: MEMORY_KEY_MESSAGE,
-      extensionUrl: `${base()}/oauth/authorize/extension?req=${encodeURIComponent(id)}&lang=${lang}`,
-    };
+    return { clientName: ar.clientName, redirectHost: host, verified };
   }),
 );
 
-/** Alternative for browser-extension wallets (EIP-6963 discovery): the consent page served by this server. */
-oauthRouter.get(
-  "/authorize/extension",
-  h(async (req, res) => {
-    const id = typeof req.query.req === "string" ? req.query.req : "";
-    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
-    res.setHeader("X-Frame-Options", "DENY");
-    const lang = pageLang(req.query.lang, req.headers["accept-language"]);
-    const ar = await loadAuthRequest(id).catch(() => null);
-    if (!ar) {
-      res.status(400).type("html").send(authorizePage({ lang, error: "The authorization request has expired. Go back to Claude/ChatGPT and connect again." }));
-      return;
-    }
-    const { host, verified } = redirectInfo(ar.redirect_uri);
-    res.type("html").send(
-      authorizePage({ lang, requestId: id, clientName: ar.clientName, redirectHost: host, verified, apiBase: base(), webUrl: env.PUBLIC_WEB_URL, memoryMessage: MEMORY_KEY_MESSAGE }),
-    );
-  }),
-);
+/** Consent must come from the web app: a request from another origin is refused (CSRF), on top of the SameSite cookie. */
+function fromWebApp(req: Request, _res: Response, next: NextFunction) {
+  if (sameOrigin(req.headers.origin, env.PUBLIC_WEB_URL)) return next();
+  next(new OAuthError("access_denied", "Approve the connection on the Solvers site.", 403));
+}
 
-oauthRouter.get(
-  "/authorize/nonce",
-  h(async (req) => {
-    const q = parse(
-      z.object({
-        req: z.string(),
-        wallet: z.string().max(64).optional(),
-        address: z.string().max(64).optional(),
-        /** Host and origin of the signing page (the consent page served here passes them; the web app uses the defaults). */
-        domain: z.string().max(255).optional(),
-        uri: z.string().max(2000).optional(),
-      }),
-      req.query,
-    );
-    const wallet = parseWalletAddress(q.address ?? q.wallet);
-    const ar = await loadAuthRequest(q.req);
-    const { host } = redirectInfo(ar.redirect_uri);
-    // The signed message says who gets access; the nonce is bound to this request.
-    const n = await createNonce(wallet, "oauth", consentStatement(ar.clientName, host), { domain: q.domain, uri: q.uri });
-    await db.update(schema.kv).set({ value: { ...ar, nonce: n.nonce } }).where(eq(schema.kv.key, `oauth:req:${q.req}`));
-    return n;
-  }),
-);
-
+/** Consent from the web app's /connect page, signed in (cookie `solvers_session`): issues the code for that user. */
 oauthRouter.post(
   "/authorize/complete",
+  fromWebApp,
+  cookieParser(),
+  requireUser,
   express.json(),
   h(async (req) => {
-    const body = parse(
-      z.object({
-        req: z.string(),
-        /** Optional: when present it must be the message's address. */
-        wallet: z.string().max(64).optional(),
-        message: z.string().max(2000),
-        signature: z.string().max(4096),
-        memorySignature: z.string().max(4096).optional(),
-      }),
-      req.body,
-    );
+    const userId = requireUserId(req);
+    const body = parse(z.object({ req: z.string().max(8000) }), req.body);
     const ar = await loadAuthRequest(body.req);
-    if (!ar.nonce || siweNonceOf(body.message) !== ar.nonce) {
-      throw new OAuthError("invalid_request", "This signature does not belong to this authorization request");
-    }
-    const wallet = await verifySiwe({ message: body.message, signature: body.signature, address: body.wallet }, "oauth");
-    const wrapped = await wrappedMemoryKey(wallet, body.memorySignature);
-
     const code = randomToken(24);
     await db.delete(schema.oauthCodes).where(lt(schema.oauthCodes.expiresAt, new Date()));
     await db.insert(schema.oauthCodes).values({
       code,
       clientId: ar.client_id,
-      wallet,
+      userId,
       codeChallenge: ar.code_challenge,
       redirectUri: ar.redirect_uri,
       scope: ar.scope ?? "solvers",
       resource: ar.resource ?? mcpAudience(),
-      memoryKey: wrapped,
       expiresAt: new Date(Date.now() + CODE_TTL_MS),
     });
-    await db.delete(schema.kv).where(eq(schema.kv.key, `oauth:req:${body.req}`));
     const url = new URL(ar.redirect_uri);
     url.searchParams.set("code", code);
     if (ar.state) url.searchParams.set("state", ar.state);
     return { redirectTo: url.toString() };
-  }),
-);
-
-// Direct agent login: two calls, no browser and no client registration. The agent signs the SIWE message returned by
-// /oauth/agent/nonce with its secp256k1 key (viem: `privateKeyToAccount(pk).signMessage({ message })`) and, optionally,
-// MEMORY_KEY_MESSAGE to unlock its memories. Nonce purpose "agent": not valid in the browser flow ("oauth") nor in the
-// web login ("login"), and vice versa.
-oauthRouter.get(
-  "/agent/nonce",
-  open,
-  agentNonceLimit,
-  h(async (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    const q = parse(z.object({ wallet: z.string().max(64).optional(), address: z.string().max(64).optional() }), req.query);
-    // The agent talks to the API, so the message names the API host (when it is an allowed SIWE domain).
-    const apiHost = new URL(base()).host.toLowerCase();
-    const origin = allowedDomains().includes(apiHost) ? { domain: apiHost, uri: base() } : {};
-    return createNonce(parseWalletAddress(q.address ?? q.wallet), "agent", AGENT_SIWE_STATEMENT, origin);
-  }),
-);
-
-oauthRouter.post(
-  "/agent/token",
-  open,
-  express.json(),
-  h(async (req, res) => {
-    res.setHeader("Cache-Control", "no-store");
-    const body = parse(
-      z.object({
-        wallet: z.string().max(64).optional(),
-        address: z.string().max(64).optional(),
-        message: z.string().max(2000),
-        signature: z.string().max(4096),
-        memorySignature: z.string().max(4096).optional(),
-      }),
-      req.body,
-    );
-    const wallet = await verifySiwe({ message: body.message, signature: body.signature, address: body.address ?? body.wallet }, "agent");
-    return issueTokens(AGENT_CLIENT_ID, wallet, await wrappedMemoryKey(wallet, body.memorySignature));
   }),
 );
 
@@ -396,22 +261,21 @@ oauthRouter.post(
       if (b.redirect_uri && b.redirect_uri !== row.redirectUri) throw new OAuthError("invalid_grant", "redirect_uri does not match");
       if (s256(b.code_verifier) !== row.codeChallenge) throw new OAuthError("invalid_grant", "Invalid PKCE");
       if (b.resource && b.resource.replace(/\/$/, "") !== mcpAudience()) throw new OAuthError("invalid_target", "Invalid resource");
-      return issueTokens(row.clientId, row.wallet, row.memoryKey ?? null);
+      return issueTokens(row.clientId, row.userId);
     }
     if (b.grant_type === "refresh_token") {
       if (!b.refresh_token) throw new OAuthError("invalid_request", "refresh_token is required");
       const refreshHash = sha256Hex(b.refresh_token);
-      // All-or-nothing rotation: revoke the old refresh token, move the memory key and issue the successor in one
-      // transaction. A failure midway rolls everything back and the client keeps a valid old refresh token. The row is
-      // locked (for update): a second request with the same refresh token waits and then sees it revoked.
+      // All-or-nothing rotation: revoke the old refresh token and issue the successor in one transaction. A failure midway
+      // rolls everything back and the client keeps a valid old refresh token. The row is locked (for update): a second
+      // request with the same refresh token waits and then sees it revoked.
       return db.transaction(async (tx) => {
         const [tok] = await tx.select().from(schema.oauthTokens).where(eq(schema.oauthTokens.refreshHash, refreshHash)).for("update");
         // Validate before revoking: an invalid request never consumes the legitimate client's token.
         const rejection = refreshRejection(tok, b.client_id, new Date());
         if (rejection || !tok) throw new OAuthError("invalid_grant", rejection ?? "Invalid or expired refresh token");
         await tx.update(schema.oauthTokens).set({ revoked: true }).where(eq(schema.oauthTokens.id, tok.id));
-        const [mk] = await tx.delete(schema.memoryKeys).where(eq(schema.memoryKeys.tokenId, tok.id)).returning();
-        return issueTokens(tok.clientId, tok.wallet, mk?.wrappedKey ?? null, tx);
+        return issueTokens(tok.clientId, tok.userId, tx);
       });
     }
     throw new OAuthError("unsupported_grant_type", "Unsupported grant_type");
@@ -426,22 +290,16 @@ oauthRouter.post(
   h(async (req) => {
     const token = (req.body as Record<string, string>).token;
     if (token) {
-      let tokenId: string | undefined;
       const [byRefresh] = await db
         .update(schema.oauthTokens)
         .set({ revoked: true })
         .where(eq(schema.oauthTokens.refreshHash, sha256Hex(token)))
-        .returning();
-      tokenId = byRefresh?.id;
-      if (!tokenId) {
+        .returning({ id: schema.oauthTokens.id });
+      if (!byRefresh) {
         // It may be the access token (JWT): revoke by jti.
         const claims = await verifyToken(token, mcpAudience()).catch(() => null);
-        if (claims?.jti) {
-          await db.update(schema.oauthTokens).set({ revoked: true }).where(eq(schema.oauthTokens.id, claims.jti));
-          tokenId = claims.jti;
-        }
+        if (claims?.jti) await db.update(schema.oauthTokens).set({ revoked: true }).where(eq(schema.oauthTokens.id, claims.jti));
       }
-      if (tokenId) await db.delete(schema.memoryKeys).where(eq(schema.memoryKeys.tokenId, tokenId));
     }
     return {};
   }),
@@ -459,5 +317,3 @@ export function mountOAuth(app: Express) {
   app.use("/.well-known", wellKnown);
   app.use("/oauth", oauthRouter);
 }
-
-export { issueTokens as _issueTokensForTests };

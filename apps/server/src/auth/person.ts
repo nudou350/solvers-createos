@@ -1,8 +1,6 @@
-import { createHash } from "node:crypto";
-
-// "Person" identity for the free trial: several wallets of the same e-mail count as one.
-// Pure functions (no env/database), tested in test/person.test.ts. The link wallet → person comes from a verified Privy
-// identity token (auth/privy.ts, POST /api/auth/privy/link → table wallet_persons).
+// Person identity: one user per mailbox. `users.email` stores the canonical form, so aliases of the same mailbox
+// (Gmail dots, "+tag") sign in to the same user and share one free trial. Pure (no env/database), tested in
+// test/person.test.ts.
 
 const GMAIL = new Set(["gmail.com", "googlemail.com"]);
 
@@ -24,10 +22,4 @@ export function normalizeEmail(raw: string): string | null {
   if (host === "gmail.com") local = local.replaceAll(".", "");
   if (!local) return null;
   return `${local}@${host}`;
-}
-
-/** Stable key of the person (the e-mail itself is never stored). Null: invalid e-mail. */
-export function personKey(email: string): string | null {
-  const normalized = normalizeEmail(email);
-  return normalized ? createHash("sha256").update(`solvers-person:v1:${normalized}`).digest("hex") : null;
 }

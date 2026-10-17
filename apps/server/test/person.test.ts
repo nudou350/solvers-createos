@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { normalizeEmail, personKey } from "../src/auth/person.js";
+import { normalizeEmail } from "../src/auth/person.js";
 
-// Person identity for the free trial (no env or database).
+// Person identity: the canonical e-mail of users.email (no env or database).
 
 describe("normalizeEmail", () => {
   it("lowercase and trimmed", () => {
@@ -33,23 +33,5 @@ describe("normalizeEmail", () => {
     for (const bad of ["", "maria", "@exemplo.com", "maria@", "maria@exemplo", "+x@gmail.com", "...@gmail.com", "a b@exemplo.com", "a@b@exemplo.com"]) {
       assert.equal(normalizeEmail(bad), null, bad);
     }
-  });
-});
-
-describe("personKey", () => {
-  it("same person (variations of the same e-mail), same key", () => {
-    const a = personKey("Maria.Silva+1@gmail.com");
-    assert.match(a!, /^[0-9a-f]{64}$/);
-    assert.equal(personKey("mariasilva@googlemail.com"), a);
-    assert.equal(personKey("MARIASILVA+outra@gmail.com"), a);
-  });
-
-  it("different people, different keys; the e-mail does not show in the key", () => {
-    assert.notEqual(personKey("maria@exemplo.com"), personKey("joao@exemplo.com"));
-    assert.ok(!personKey("maria@exemplo.com")!.includes("maria"));
-  });
-
-  it("invalid e-mail: null", () => {
-    assert.equal(personKey("nao-e-email"), null);
   });
 });

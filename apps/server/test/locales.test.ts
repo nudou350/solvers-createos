@@ -27,7 +27,7 @@ const PT = {
   creatorBio: "Contadores que atendem MEI há 10 anos",
 };
 
-const run = (f: Files, opts: Partial<ValidateOptions> = {}) => validatePackage(packageFromMemory(f), { origin: "third_party", now: NOW, minPriceUsdc: 5, ...opts });
+const run = (f: Files, opts: Partial<ValidateOptions> = {}) => validatePackage(packageFromMemory(f), { origin: "third_party", now: NOW, minPriceCents: 500, ...opts });
 const withLocale = (pt: unknown, path = "locales/pt.json"): Files => ({ ...baseFiles(), [path]: typeof pt === "string" ? pt : JSON.stringify(pt) });
 const show = (r: ReturnType<typeof run>) => JSON.stringify({ errors: r.errors.map((i) => `${i.code} ${i.path}`), warnings: r.warnings.map((i) => `${i.code} ${i.path}`) });
 

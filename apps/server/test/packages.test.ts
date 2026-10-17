@@ -30,8 +30,7 @@ function manifestJson(over: Record<string, unknown> = {}) {
     requirements: [],
     packageContents: [],
     steps: [{ file: "steps/01-primeira.md", gate: [] }],
-    pricing: { priceUsdc: 5, royaltyBps: 0 },
-    guarantee: { available: false, defaultCriteria: [] },
+    pricing: { priceCents: 500 },
     ...over,
   };
 }

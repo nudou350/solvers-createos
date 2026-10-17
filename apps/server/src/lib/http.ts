@@ -48,11 +48,6 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     res.status(400).json({ error: err.message, code: "validation" });
     return;
   }
-  const e = err as { name?: string; message?: string; logs?: string[] };
-  if (e?.name === "TxError" || e?.constructor?.name === "TxError") {
-    res.status(422).json({ error: e.message, code: "transaction_failed", logs: e.logs?.slice(-8) });
-    return;
-  }
   console.error("[error]", err);
   res.status(500).json({ error: "Internal error", code: "internal" });
 }

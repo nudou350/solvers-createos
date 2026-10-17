@@ -8,10 +8,10 @@ import { generateLinkCode, hashLinkCode, linkExpiry, normalizeLinkCode, planIssu
 export type IssueResult = { status: "ok"; code: string; expiresAt: Date } | { status: "no_profile" } | { status: "limited"; retryAfterSec: number };
 
 /** Issues a new code for the creator (the previous one stops working). Up to 5 per hour; only for those who already have a creator profile. */
-export async function issueLinkCode(wallet: string, now: Date = new Date(), bytes?: Uint8Array): Promise<IssueResult> {
+export async function issueLinkCode(userId: string, now: Date = new Date(), bytes?: Uint8Array): Promise<IssueResult> {
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`telegram-link:${wallet}`}, 0))`);
-    const [c] = await tx.select().from(schema.creators).where(eq(schema.creators.wallet, wallet));
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`telegram-link:${userId}`}, 0))`);
+    const [c] = await tx.select().from(schema.creators).where(eq(schema.creators.userId, userId));
     if (!c) return { status: "no_profile" } as const;
     const plan = planIssue({ windowStart: c.telegramLinkWindowStart, count: c.telegramLinkCount }, now);
     if (!plan.ok) return { status: "limited", retryAfterSec: plan.retryAfterSec } as const;

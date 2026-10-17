@@ -18,11 +18,10 @@ import { versionGreater } from "../src/submissions/rules.js";
 import { EXPIRED_NOTE, filesExpired, orphanFolderStale, partFileStale, staleOpen } from "../src/submissions/cleanup-rules.js";
 import { extractZip, NUCLEO_ZIP_LIMITS, ZipError } from "../src/submissions/zip.js";
 import { notListedBlock } from "../src/store/purchase-rules.js";
-import { PlatformAgentIgnored, mirrorAgentAccount } from "../src/indexer/sync.js";
 import { buildZip, type ZipSpec } from "./helpers/zip-builder.js";
 
 // Fixes from the creator-flow review that need no database: linear-time scans, package cache stamp, ZIP (exact
-// manifest, file vs folder), cleanup rules, version, sale without a catalog, platform id.
+// manifest, file vs folder), cleanup rules, version, sale without a catalog.
 
 const DAY = 86_400_000;
 
@@ -147,11 +146,10 @@ describe("cleanup and version rules", () => {
     assert.equal(filesExpired("published", ago(400), now), false);
     assert.equal(filesExpired("pending_review", ago(400), now), false);
   });
-  it("staleOpen: changes_requested and awaiting_creator_signature for more than 30 days", () => {
+  it("staleOpen: changes_requested for more than 30 days", () => {
     assert.equal(staleOpen("changes_requested", ago(31), now), true);
-    assert.equal(staleOpen("awaiting_creator_signature", ago(31), now), true);
     assert.equal(staleOpen("changes_requested", ago(30), now), false);
-    for (const s of ["pending_review", "awaiting_onchain_approval", "publishing", "publish_failed", "published", "submitted", "validating"]) assert.equal(staleOpen(s, ago(400), now), false, s);
+    for (const s of ["pending_review", "publishing", "publish_failed", "published", "submitted", "validating"]) assert.equal(staleOpen(s, ago(400), now), false, s);
     assert.match(EXPIRED_NOTE, /expired/);
   });
   it("partFileStale and orphanFolderStale: one day of slack", () => {
@@ -181,13 +179,6 @@ describe("sales: only what is in the catalog and has a package", () => {
       assert.equal(e?.status, 409);
       assert.equal(e?.code, "agent_not_listed");
     }
-  });
-});
-
-describe("indexer: reserved platform id", () => {
-  it("an on-chain agent with the Solver creator's id is ignored before any write", async () => {
-    // Registering an agent id is public on-chain: anyone may register the platform Solver's id; the indexer refuses to mirror it.
-    await assert.rejects(mirrorAgentAccount({ agentId: "c71ad0a50f750e75c71ad0a50f750e75" } as never), (e: unknown) => e instanceof PlatformAgentIgnored);
   });
 });
 

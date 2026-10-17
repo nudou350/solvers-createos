@@ -9,7 +9,6 @@ import {
   hasProfile,
   memoryStartInstruction,
   memoryText,
-  memoryUnavailableText,
   packageUsesMemory,
   parseProfileContent,
   readPayload,
@@ -181,12 +180,6 @@ describe("get_memory: text", () => {
     assert.match(t, /profile: \{"perfil":"Equilibrado"\}/);
     assert.match(t, /- \[n_ab12\] Usa Next\.js 15 \(2026-09-30\)/);
     assert.doesNotMatch(t, /undefined/);
-  });
-
-  it("no memory key: onboarding_unavailable only when there is a calibration", () => {
-    assert.match(memoryUnavailableText(true), /onboarding_unavailable/);
-    assert.match(memoryUnavailableText(true), /reconnect/);
-    assert.doesNotMatch(memoryUnavailableText(false), /onboarding_unavailable/);
   });
 });
 

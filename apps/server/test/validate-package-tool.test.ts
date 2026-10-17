@@ -21,7 +21,7 @@ Somar as receitas do mês do MEI e conferir o limite anual de faturamento, para 
 3. Mostre ao usuário o total do mês, o acumulado do ano e quanto resta do limite.
 
 ## Erros comuns
-- Esquecer receitas recebidas em dinheiro ou por Pix sem nota fiscal emitida.
+- Esquecer receitas recebidas em dinheiro ou por transferência sem nota fiscal emitida.
 
 ## Formato do result_summary
 Total do mês, acumulado do ano e limite restante, em reais, em uma linha cada.
@@ -40,8 +40,7 @@ const manifest = (over: Record<string, unknown> = {}) => ({
   requirements: [],
   packageContents: ["Método em uma etapa com checklist", "Relatório mensal pronto", "Limite do MEI conferido"],
   steps: [{ file: "steps/01-receitas.md", gate: ["Receitas do mês somadas", "Limite anual conferido"] }],
-  pricing: { priceUsdc: 5, royaltyBps: 500 },
-  guarantee: { available: false, defaultCriteria: [] },
+  pricing: { priceCents: 500 },
   terms: { rightsConfirmed: true, sourcesListed: true },
   versions: [{ version: "1.0.0", releasedAt: "2026-10-01", notes: "Primeira versão" }],
   ...over,
@@ -98,7 +97,7 @@ describe("validatePackageTool: errors with code, path, message and fix", () => {
   });
 
   it("reserved slug, forbidden category and price below the minimum", () => {
-    const out = validatePackageTool(input({ manifest: manifest({ slug: "criador-de-solvers", category: "Jurídico", pricing: { priceUsdc: 2, royaltyBps: 0 } }) }));
+    const out = validatePackageTool(input({ manifest: manifest({ slug: "criador-de-solvers", category: "Jurídico", pricing: { priceCents: 0 } }) }));
     const codes = out.errors.map((e) => e.code);
     assert.ok(codes.includes("MANIFEST_SLUG_RESERVED"), codes.join());
     assert.ok(codes.includes("MANIFEST_CATEGORY_FORBIDDEN"), codes.join());

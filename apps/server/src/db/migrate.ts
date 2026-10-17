@@ -2,9 +2,8 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db, pool } from "./index.js";
 
+/** Applies the pending migrations. The baseline creates the extensions it needs (citext, vector, pgcrypto). */
 export async function runMigrations() {
-  // pgvector must exist before the tables with vector columns.
-  await pool.query("CREATE EXTENSION IF NOT EXISTS vector");
   await migrate(db, { migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)) });
 }
 

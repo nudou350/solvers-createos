@@ -12,20 +12,12 @@ export function refreshRejection(tok: RefreshTokenRow | undefined, clientId: str
   return null;
 }
 
-/** Fixed `client_id` of the tokens issued by the agent's direct SIWE login (no dynamic registration, no oauth_clients row). */
-export const AGENT_CLIENT_ID = "agent";
-
-/** SIWE statement of the agent login: the message says what the signature authorizes (and what it does not). */
-export const AGENT_SIWE_STATEMENT = "Authorize this agent to use Solvers specialists. This does not authorize payments.";
-
-/** Statement of the consent page: who gets access, and that no payment is authorized. */
-export function consentStatement(clientName: string, redirectHost: string): string {
-  // EIP-4361: the statement is one line without "\n"; keep it ASCII-safe for wallets that render it raw.
-  const name = clientName.replace(/[\r\n]+/g, " ").slice(0, 80);
-  return `Authorize ${name} (${redirectHost}) to use your Solvers specialists. This does not authorize payments.`;
-}
-
-/** Does the token belong to an autonomous agent (direct SIWE login) rather than an AI assistant connected by a person? */
-export function isAgentClient(clientId: string | null | undefined): boolean {
-  return clientId === AGENT_CLIENT_ID;
+/** Does the request's `Origin` header name the web app's origin? A missing or malformed one does not. */
+export function sameOrigin(origin: string | undefined, webUrl: string): boolean {
+  if (!origin) return false;
+  try {
+    return new URL(origin).origin === new URL(webUrl).origin;
+  } catch {
+    return false;
+  }
 }

@@ -8,7 +8,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgTable,
   primaryKey,
   serial,
@@ -16,31 +15,60 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  varchar,
+  uuid,
   vector,
 } from "drizzle-orm/pg-core";
 import type { AgentTranslations, AgentVersion, BeforeAfter, Requirement } from "@solvers/shared";
 
-// Mirror of the on-chain state (indexer, D9) plus off-chain data. Baseline schema of the Tempo migration (plan §3.7).
-// Conventions: addresses are varchar(42) stored lowercase; tx hashes and bytes32 values are varchar(66) lowercase;
-// token amounts are bigint base units (6 decimals for TIP-20), converted to numbers only at the API edge.
+// Database baseline (docs/hackathon/CONTRACTS.md, "Database"). Conventions: identity is `users.id` (uuid) and every
+// per-person column is a uuid FK to it; money is integer USD cents; timestamps are timestamptz. Extensions: citext
+// (users.email) and pgvector (embeddings), created by the baseline migration.
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType: () => "bytea",
 });
+/** Case-insensitive text (citext extension). */
+const citext = customType<{ data: string }>({
+  dataType: () => "citext",
+});
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: "date" });
 const u64 = (name: string) => bigint(name, { mode: "bigint" });
-/** 20-byte address, lowercase. */
-const addr = (name: string) => varchar(name, { length: 42 });
-/** 32-byte value (tx hash, bytes32 id, content hash), lowercase 0x-prefixed. */
-const b32 = (name: string) => varchar(name, { length: 66 });
+
+// ---- identity ----
+
+/** One row per person. The e-mail is stored normalized (auth/person.ts), so aliases of one mailbox are one user. */
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: citext("email").notNull().unique(),
+  emailVerifiedAt: ts("email_verified_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+/** Magic-link tokens (auth/magic-link.ts): only the hash is stored; single use, short TTL. */
+export const loginTokens = pgTable(
+  "login_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: ts("expires_at").notNull(),
+    usedAt: ts("used_at"),
+  },
+  (t) => [index("login_tokens_user_idx").on(t.userId)],
+);
+
+const userRef = (name: string) => uuid(name).references(() => users.id);
+
+// ---- creators and submissions ----
 
 export const creators = pgTable(
   "creators",
   {
     id: text("id").primaryKey(),
-    wallet: addr("wallet").notNull().unique(),
+    userId: userRef("user_id").notNull().unique(),
     name: text("name").notNull(),
     avatarUrl: text("avatar_url"),
     bio: text("bio").notNull().default(""),
@@ -60,12 +88,12 @@ export const creators = pgTable(
   (t) => [uniqueIndex("creators_telegram_link_hash_idx").on(t.telegramLinkHash).where(sql`${t.telegramLinkHash} is not null`)],
 );
 
-/** Creator invites: the code goes by e-mail and the wallet is bound at first login. */
+/** Creator invites: the code goes by e-mail and the user is bound when it is redeemed. */
 export const creatorInvites = pgTable("creator_invites", {
   code: text("code").primaryKey(),
   email: text("email"),
   note: text("note"),
-  wallet: addr("wallet"),
+  userId: userRef("user_id"),
   createdAt: ts("created_at").notNull().defaultNow(),
   usedAt: ts("used_at"),
 });
@@ -75,8 +103,8 @@ export const packageSubmissions = pgTable(
   "package_submissions",
   {
     id: text("id").primaryKey(),
-    creatorWallet: addr("creator_wallet").notNull(),
-    /** Agent id (32 hex): assigned by the server on the first version of a slug; the on-chain id is bytes32(bytes16(id)) (D1). */
+    creatorUserId: userRef("creator_user_id").notNull(),
+    /** Agent id (32 hex): assigned by the server on the first version of a slug. */
     agentId: text("agent_id").notNull(),
     slug: text("slug").notNull(),
     version: text("version").notNull(),
@@ -86,12 +114,9 @@ export const packageSubmissions = pgTable(
     manifest: jsonb("manifest").$type<Record<string, unknown>>(),
     validation: jsonb("validation").$type<Record<string, unknown>>(),
     scans: jsonb("scans").$type<Record<string, unknown>>(),
-    /** Price/hash frozen at approval (the on-chain transaction reads from here, never from the client). */
-    approved: jsonb("approved").$type<{ versionHash: string; priceUsdc: string; royaltyBps: number; name: string; version: string } | null>(),
+    /** Price/hash frozen at approval (publishing reads from here, never from the client). */
+    approved: jsonb("approved").$type<{ versionHash: string; priceCents: number; name: string; version: string } | null>(),
     reviewerNotes: text("reviewer_notes"),
-    /** Confirmed registration/update transaction and the on-chain approval (tx hashes). */
-    registerTx: b32("register_tx"),
-    approveTx: b32("approve_tx"),
     error: text("error"),
     /** Worker attempts (each claim counts); past the cap the submission is rejected (poison pill). */
     attempts: integer("attempts").notNull().default(0),
@@ -99,7 +124,7 @@ export const packageSubmissions = pgTable(
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
   (t) => [
-    index("package_submissions_creator_idx").on(t.creatorWallet, t.createdAt),
+    index("package_submissions_creator_idx").on(t.creatorUserId, t.createdAt),
     index("package_submissions_status_idx").on(t.status),
     index("package_submissions_slug_idx").on(t.slug),
   ],
@@ -111,7 +136,7 @@ export const packageReviews = pgTable(
   {
     id: serial("id").primaryKey(),
     submissionId: text("submission_id").notNull(),
-    reviewerWallet: addr("reviewer_wallet").notNull(),
+    reviewerUserId: userRef("reviewer_user_id").notNull(),
     action: text("action").notNull(), // approve | request_changes | reject | suspend | resume | finish
     notes: text("notes").notNull().default(""),
     checklist: jsonb("checklist").$type<Record<string, boolean>>().notNull().default({}),
@@ -140,71 +165,56 @@ export const ingestJobs = pgTable(
   (t) => [uniqueIndex("ingest_jobs_submission_idx").on(t.submissionId)],
 );
 
-/** Version approved by review; the indexer compares the chain with this table (PACKAGE_SPEC.md 15.4). Written BEFORE any transaction. */
+/** Version approved by review (PACKAGE_SPEC.md 15.4), written when the review approves it. */
 export const agentPublishedVersions = pgTable(
   "agent_published_versions",
   {
     agentId: text("agent_id").notNull(),
     version: text("version").notNull(),
     versionHash: text("version_hash").notNull(),
-    priceUsdc: u64("price_usdc").notNull(),
+    priceCents: integer("price_cents").notNull(),
     approvedAt: ts("approved_at").notNull().defaultNow(),
-    approveTx: b32("approve_tx"),
   },
   (t) => [primaryKey({ columns: [t.agentId, t.version] })],
 );
+
+// ---- catalog ----
 
 export type AgentDetails = {
   beforeAfter?: BeforeAfter[];
   versions?: AgentVersion[];
   tools?: { name: string; description: string; runner: string }[];
-  guaranteeCriteria?: string[];
-  /** Guarantee task template defined by the creator (manifest.guarantee). */
-  guaranteeTemplate?: { priceUsdc: number; milestones: { title: string; criteria: string[]; sharePct: number; verify: "tests" | "manual" }[] };
   catalogOnly?: boolean;
 };
 
 export const agents = pgTable(
   "agents",
   {
-    id: text("id").primaryKey(), // manifest id, 32 hex (on-chain: bytes32(bytes16(id)), D1)
+    id: text("id").primaryKey(), // manifest id, 32 hex
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     tagline: text("tagline").notNull(),
     description: text("description").notNull(),
     category: text("category").notNull(),
     creatorId: text("creator_id").notNull(),
-    /** Position in the Registry's agentIds array (the license slot stores this index); null until registered on-chain. */
-    chainIndex: integer("chain_index"),
     version: text("version").notNull(),
-    /** Every version_hash column stores 64 lowercase hex WITHOUT 0x (the package hash form); bytes32 on-chain adds 0x. */
+    /** Every version_hash column stores 64 lowercase hex (the package hash form). */
     versionHash: text("version_hash").notNull(),
-    price: u64("price").notNull(),
-    pricePerUse: u64("price_per_use").notNull().default(sql`0`),
-    /** Creator share of the transfer royalty (bps of the original price, D15). */
-    royaltyBps: integer("royalty_bps").notNull().default(0),
+    priceCents: integer("price_cents").notNull(),
     /** Eval of `evalVersionHash` (D6): "measured" only when it equals versionHash. */
     evalScoreBps: integer("eval_score_bps").notNull().default(0),
     evalHash: text("eval_hash"),
     evalVersionHash: text("eval_version_hash"),
-    status: text("status").notNull().default("pending"), // pending | active | suspended | retired (on-chain mirror; the indexer rewrites it)
-    /** Platform kill switch: active | suspended. NEVER written by the indexer (PACKAGE_SPEC.md 15.4). */
+    /** Platform kill switch: active | suspended (PACKAGE_SPEC.md 15.4). */
     platformStatus: text("platform_status").notNull().default("active"),
-    /** ok | unapproved_chain_version: the chain diverged from the approved version (sales blocked). Written only by the indexer. */
-    syncFlag: text("sync_flag").notNull().default("ok"),
     totalSales: u64("total_sales").notNull().default(sql`0`),
-    /** License cap (on-chain `maxSupply`). null = unlimited. */
-    maxLicenses: integer("max_licenses"),
     verifiedUses: u64("verified_uses").notNull().default(sql`0`),
     ratingSum: u64("rating_sum").notNull().default(sql`0`),
     ratingCount: integer("rating_count").notNull().default(0),
-    disputesLost: integer("disputes_lost").notNull().default(0),
-    stake: u64("stake").notNull().default(sql`0`),
     requirements: jsonb("requirements").$type<Requirement[]>().notNull().default([]),
     packageContents: jsonb("package_contents").$type<string[]>().notNull().default([]),
     /** Catalog texts per language (locales/<lang>.json of the package): { pt: {...} }. English is in the columns above. */
     translations: jsonb("translations").$type<AgentTranslations>().notNull().default({}),
-    guaranteeAvailable: boolean("guarantee_available").notNull().default(false),
     /** Only shown in the store after the catalog (publish-agent) filled the data. */
     listed: boolean("listed").notNull().default(false),
     details: jsonb("details").$type<AgentDetails>().notNull().default({}),
@@ -213,91 +223,69 @@ export const agents = pgTable(
     createdAt: ts("created_at").notNull().defaultNow(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex("agents_chain_index_idx").on(t.chainIndex).where(sql`${t.chainIndex} is not null`),
-    index("agents_fts_idx").using("gin", sql`to_tsvector('portuguese', ${t.searchText})`),
-  ],
+  (t) => [index("agents_fts_idx").using("gin", sql`to_tsvector('portuguese', ${t.searchText})`)],
 );
 
+/** A purchased Solver. Created by the Stripe webhook; the Checkout Session id makes the purchase idempotent. */
 export const licenses = pgTable(
   "licenses",
   {
-    id: text("id").primaryKey(), // ERC-721 tokenId (decimal string)
+    id: uuid("id").primaryKey().defaultRandom(),
     agentId: text("agent_id").notNull(),
-    ownerWallet: addr("owner_wallet").notNull(),
-    /** Price paid at the primary sale: base of the transfer royalty. */
-    originalPrice: u64("original_price").notNull(),
-    /** Package version current when the license was minted. */
+    userId: userRef("user_id").notNull(),
+    /** Package version current when the license was granted. */
     versionHash: text("version_hash"),
-    /** Review the license backs on-chain (reviewId), null when unused. */
+    /** Review written with this license, null when unused. */
     reviewId: text("review_id"),
-    burned: boolean("burned").notNull().default(false),
     acquiredAt: ts("acquired_at").notNull().defaultNow(),
     type: text("type").notNull().default("permanent"),
-    /** Mint transaction. */
-    txHash: b32("tx_hash"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id").unique(),
   },
-  (t) => [index("licenses_owner_idx").on(t.ownerWallet), index("licenses_agent_idx").on(t.agentId)],
+  (t) => [index("licenses_user_idx").on(t.userId), index("licenses_agent_idx").on(t.agentId)],
 );
 
-export const credits = pgTable(
-  "credits",
-  {
-    agentId: text("agent_id").notNull(),
-    ownerWallet: addr("owner_wallet").notNull(),
-    remaining: integer("remaining").notNull().default(0),
-    purchased: integer("purchased").notNull().default(0),
-    createdAt: ts("created_at").notNull().defaultNow(),
-    updatedAt: ts("updated_at").notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.agentId, t.ownerWallet] })],
-);
-
-/** Free trial (off-chain) per wallet and Solver: uses, searches and tool runs (manifest.trial). */
+/** Free trial per user and Solver: uses, searches and tool runs (manifest.trial). */
 export const trials = pgTable(
   "trials",
   {
     agentId: text("agent_id").notNull(),
-    wallet: addr("wallet").notNull(),
+    userId: userRef("user_id").notNull(),
     used: integer("used").notNull().default(0),
     searchesUsed: integer("searches_used").notNull().default(0),
     toolRuns: jsonb("tool_runs").$type<Record<string, number>>().notNull().default({}),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.agentId, t.wallet] })],
+  (t) => [primaryKey({ columns: [t.agentId, t.userId] })],
 );
 
 export const reviews = pgTable(
   "reviews",
   {
-    id: text("id").primaryKey(), // `${agentId}:${authorWallet}` (one review per agent and author on-chain)
+    id: text("id").primaryKey(), // `${agentId}:${authorUserId}` (one review per agent and author)
     agentId: text("agent_id").notNull(),
-    authorWallet: addr("author_wallet").notNull(),
+    authorUserId: userRef("author_user_id").notNull(),
     rating: smallint("rating").notNull(),
     text: text("text").notNull().default(""),
     contentHash: text("content_hash").notNull(),
     /** Agent versionHash current at submission (D6). */
     versionHash: text("version_hash"),
-    /** License used (null = reviewed with credits). */
-    tokenId: text("token_id"),
-    onchain: boolean("onchain").notNull().default(false),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("reviews_agent_author_idx").on(t.agentId, t.authorWallet)],
+  (t) => [uniqueIndex("reviews_agent_author_idx").on(t.agentId, t.authorUserId)],
 );
 
-/** Review drafts: text and rating prepared before the transaction, by content hash; they become `reviews.text` only when the indexer sees the same hash on-chain. */
+/** Review drafts: text and rating prepared before the review is published, by content hash. */
 export const reviewDrafts = pgTable(
   "review_drafts",
   {
     agentId: text("agent_id").notNull(),
-    authorWallet: addr("author_wallet").notNull(),
+    authorUserId: userRef("author_user_id").notNull(),
     contentHash: text("content_hash").notNull(),
     rating: smallint("rating").notNull(),
     text: text("text").notNull().default(""),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.agentId, t.authorWallet, t.contentHash] })],
+  (t) => [primaryKey({ columns: [t.agentId, t.authorUserId, t.contentHash] })],
 );
 
 /** Creator gallery (up to 5) and review photos (up to 3); positions are unique per owner so concurrent uploads never exceed the cap. */
@@ -329,61 +317,11 @@ export const reviewImages = pgTable(
   (t) => [uniqueIndex("review_images_pos_idx").on(t.reviewId, t.position), check("review_images_pos_chk", sql`${t.position} between 0 and 2`)],
 );
 
-export const escrows = pgTable(
-  "escrows",
-  {
-    id: text("id").primaryKey(), // on-chain escrowId (decimal string)
-    agentId: text("agent_id").notNull(),
-    buyerWallet: addr("buyer_wallet").notNull(),
-    creatorWallet: addr("creator_wallet").notNull(),
-    title: text("title").notNull().default(""),
-    description: text("description").notNull().default(""),
-    /** Purchase id of the creation (D10/§4.8). */
-    purchaseId: b32("purchase_id"),
-    total: u64("total").notNull(),
-    /** Derived on-chain status: active | approved (contract Completed) | disputed | refunded (D19: no stored `closed`). */
-    status: text("status").notNull().default("active"),
-    autoReleaseAt: ts("auto_release_at"),
-    reviewWindowSecs: integer("review_window_secs").notNull(),
-    deliveryDeadline: ts("delivery_deadline"),
-    /** Platform fee frozen at creation (bps). */
-    feeBps: integer("fee_bps").notNull(),
-    txHash: b32("tx_hash"),
-    createdAt: ts("created_at").notNull().defaultNow(),
-  },
-  (t) => [index("escrows_buyer_idx").on(t.buyerWallet)],
-);
+// ---- users ----
 
-export const milestones = pgTable(
-  "milestones",
-  {
-    escrowId: text("escrow_id").notNull(),
-    idx: integer("idx").notNull(),
-    title: text("title").notNull(),
-    criteria: text("criteria").notNull(),
-    criteriaHash: text("criteria_hash").notNull(),
-    /** tests: automatic verifier; manual: the buyer reviews the deliverable. */
-    verify: text("verify").notNull().default("tests"),
-    amount: u64("amount").notNull(),
-    status: text("status").notNull().default("pending"),
-    passedAt: ts("passed_at"),
-    deliverablePath: text("deliverable_path"),
-    deliverableHash: text("deliverable_hash"),
-    previewUrl: text("preview_url"),
-    /** Acceptance battery agreed at creation (the deliverable cannot replace it). */
-    acceptancePath: text("acceptance_path"),
-    acceptanceHash: text("acceptance_hash"),
-    verifierReport: jsonb("verifier_report").$type<Record<string, unknown>>(),
-    disputeReason: text("dispute_reason"),
-    disputeCriterion: text("dispute_criterion"),
-    disputedAt: ts("disputed_at"),
-  },
-  (t) => [primaryKey({ columns: [t.escrowId, t.idx] })],
-);
-
-/** Off-chain profile data (name and e-mail come from the e-mail login). */
+/** Profile data (the e-mail comes from the login). */
 export const userProfiles = pgTable("user_profiles", {
-  wallet: addr("wallet").primaryKey(),
+  userId: userRef("user_id").primaryKey(),
   displayName: text("display_name"),
   email: text("email"),
   createdAt: ts("created_at").notNull().defaultNow(),
@@ -391,10 +329,8 @@ export const userProfiles = pgTable("user_profiles", {
 });
 
 export const userReputation = pgTable("user_reputation", {
-  wallet: addr("wallet").primaryKey(),
+  userId: userRef("user_id").primaryKey(),
   purchases: integer("purchases").notNull().default(0),
-  disputesOpened: integer("disputes_opened").notNull().default(0),
-  disputesLost: integer("disputes_lost").notNull().default(0),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
 
@@ -402,56 +338,31 @@ export const usageEvents = pgTable(
   "usage_events",
   {
     id: serial("id").primaryKey(),
-    wallet: addr("wallet").notNull(),
+    userId: userRef("user_id").notNull(),
     agentId: text("agent_id"),
     sessionId: text("session_id"),
     tool: text("tool").notNull(),
     responseHash: text("response_hash"),
-    batched: boolean("batched").notNull().default(false),
-    /** Batch being sent (marked before the transaction so a use is never counted twice). */
-    batchId: text("batch_id"),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [index("usage_agent_created_idx").on(t.agentId, t.createdAt), index("usage_wallet_idx").on(t.wallet)],
+  (t) => [index("usage_agent_created_idx").on(t.agentId, t.createdAt), index("usage_user_idx").on(t.userId)],
 );
 
-/** Usage batches sent on-chain (recordUsageBatch). The tx hash is recorded BEFORE broadcast (sent_txs) for reconciliation. */
-export const usageBatches = pgTable(
-  "usage_batches",
-  {
-    id: text("id").primaryKey(),
-    agentId: text("agent_id").notNull(),
-    count: integer("count").notNull(),
-    merkleRoot: text("merkle_root").notNull(),
-    txHash: b32("tx_hash"),
-    status: text("status").notNull().default("pending"), // pending | confirmed | released
-    createdAt: ts("created_at").notNull().defaultNow(),
-    updatedAt: ts("updated_at").notNull().defaultNow(),
-  },
-  (t) => [index("usage_batches_status_idx").on(t.status)],
-);
+// ---- connector (MCP) ----
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
-  wallet: addr("wallet").notNull(),
+  userId: userRef("user_id").notNull(),
   agentId: text("agent_id").notNull(),
   version: text("version").notNull(),
   stepIndex: integer("step_index").notNull().default(0),
-  access: text("access").notNull(), // license | guarantee (context.escrowId) | trial | credits
+  access: text("access").notNull(), // license | trial | platform
   context: jsonb("context").$type<Record<string, unknown>>().notNull().default({}),
   licenseId: text("license_id"),
   calls: integer("calls").notNull().default(0),
   expiresAt: ts("expires_at").notNull().default(sql`now() + interval '24 hours'`),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-/** SIWE nonces (D7): single use, short TTL. */
-export const authNonces = pgTable("auth_nonces", {
-  nonce: text("nonce").primaryKey(),
-  wallet: addr("wallet").notNull(),
-  purpose: text("purpose").notNull().default("login"),
-  expiresAt: ts("expires_at").notNull(),
 });
 
 export const oauthClients = pgTable("oauth_clients", {
@@ -463,12 +374,11 @@ export const oauthClients = pgTable("oauth_clients", {
 export const oauthCodes = pgTable("oauth_codes", {
   code: text("code").primaryKey(),
   clientId: text("client_id").notNull(),
-  wallet: addr("wallet").notNull(),
+  userId: userRef("user_id").notNull(),
   codeChallenge: text("code_challenge").notNull(),
   redirectUri: text("redirect_uri").notNull(),
   scope: text("scope"),
   resource: text("resource"),
-  memoryKey: bytea("memory_key"), // memory key already wrapped with the KEK
   expiresAt: ts("expires_at").notNull(),
 });
 
@@ -477,36 +387,39 @@ export const oauthTokens = pgTable(
   {
     id: text("id").primaryKey(),
     clientId: text("client_id").notNull(),
-    wallet: addr("wallet").notNull(),
+    userId: userRef("user_id").notNull(),
     refreshHash: text("refresh_hash").notNull(),
     expiresAt: ts("expires_at").notNull(),
     revoked: boolean("revoked").notNull().default(false),
     createdAt: ts("created_at").notNull().defaultNow(),
   },
-  (t) => [index("oauth_tokens_wallet_idx").on(t.wallet)],
+  (t) => [index("oauth_tokens_user_idx").on(t.userId)],
 );
 
-/** Memory key per token session (wrapped with SERVER_KEK). Gone when it expires. */
+// ---- memory ----
+
+/** Memory key of each user: a random data key wrapped with MEMORY_KEK (AES-256-GCM). */
 export const memoryKeys = pgTable("memory_keys", {
-  tokenId: text("token_id").primaryKey(),
-  wallet: addr("wallet").notNull(),
+  userId: userRef("user_id").primaryKey(),
   wrappedKey: bytea("wrapped_key").notNull(),
-  expiresAt: ts("expires_at").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
 });
 
 export const memories = pgTable(
   "memories",
   {
     id: text("id").primaryKey(),
-    wallet: addr("wallet").notNull(),
+    userId: userRef("user_id").notNull(),
     agentId: text("agent_id").notNull(),
     ciphertext: bytea("ciphertext").notNull(),
     iv: bytea("iv").notNull(),
     tag: bytea("tag").notNull(),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("memories_wallet_agent_idx").on(t.wallet, t.agentId)],
+  (t) => [uniqueIndex("memories_user_agent_idx").on(t.userId, t.agentId)],
 );
+
+// ---- knowledge ----
 
 export const knowledgeChunks = pgTable(
   "knowledge_chunks",
@@ -541,70 +454,9 @@ export const agentSearchVectors = pgTable(
   (t) => [index("agent_search_vectors_agent_idx").on(t.agentId)],
 );
 
-/** Indexer idempotency (D9): one row per processed log. */
-export const processedEvents = pgTable(
-  "processed_events",
-  {
-    txHash: b32("tx_hash").notNull(),
-    logIndex: integer("log_index").notNull(),
-    blockNumber: u64("block_number").notNull(),
-    name: text("name").notNull(),
-    processedAt: ts("processed_at").notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.txHash, t.logIndex] })],
-);
-
-/** Transactions whose events failed to apply: retried without blocking the cursor. */
-export const indexerFailures = pgTable("indexer_failures", {
-  txHash: b32("tx_hash").primaryKey(),
-  /** Only non-infrastructure failures count (an RPC outage spends no attempts). */
-  attempts: integer("attempts").notNull().default(1),
-  lastError: text("last_error").notNull(),
-  nextAttemptAt: ts("next_attempt_at").notNull().defaultNow(),
-  /** pending (retried) | dead (gave up: manual reprocess, see cli:reindex). */
-  status: text("status").notNull().default("pending"),
-  createdAt: ts("created_at").notNull().defaultNow(),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-/** Key-value store (indexer cursor `indexer:evm:<chainId>` = { block, blockHash }). */
-export const kv = pgTable("kv", {
-  key: text("key").primaryKey(),
-  value: jsonb("value").notNull(),
-  updatedAt: ts("updated_at").notNull().defaultNow(),
-});
-
-/** Every money-moving event seen by the indexer (history, "verify on the explorer", creator dashboard). */
-export const chainTxs = pgTable(
-  "chain_txs",
-  {
-    txHash: b32("tx_hash").notNull(),
-    logIndex: integer("log_index").notNull(),
-    wallet: addr("wallet"),
-    /** purchase | credits | escrow | royalty | release | refund | slash | claim | stake */
-    kind: text("kind").notNull(),
-    agentId: text("agent_id"),
-    /** Gross amount moved (price, credits total, escrow deposit, released milestone, royalty). */
-    amount: u64("amount"),
-    fee: u64("fee"),
-    creatorAmount: u64("creator_amount"),
-    creatorWallet: addr("creator_wallet"),
-    feeBps: integer("fee_bps"),
-    blockNumber: u64("block_number"),
-    blockTime: ts("block_time"),
-    createdAt: ts("created_at").notNull().defaultNow(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.txHash, t.logIndex] }),
-    index("chain_txs_wallet_idx").on(t.wallet),
-    index("chain_txs_agent_idx").on(t.agentId),
-    index("chain_txs_creator_idx").on(t.creatorWallet, t.kind),
-  ],
-);
-
 export const escalations = pgTable("escalations", {
   id: text("id").primaryKey(),
-  wallet: addr("wallet").notNull(),
+  userId: userRef("user_id").notNull(),
   agentId: text("agent_id").notNull(),
   sessionId: text("session_id"),
   summary: text("summary").notNull(),
@@ -613,38 +465,27 @@ export const escalations = pgTable("escalations", {
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 
+// ---- payments ----
+
 /**
- * Payment ledger (plan §5): one row per charge of any provider (direct-wallet, pix-intermediated, agent-pay). Written
- * BEFORE any provider call or transaction; `purchase_id` = keccak256("solvers:v1:" + chargeId) is unique and is what the
- * contracts record (scoped by payer, X22).
+ * Payment ledger: one row per charge, written BEFORE the provider call. `provider_ref` is the Stripe Checkout Session id
+ * (unique: the webhook fulfils each session once).
  */
 export const paymentLedger = pgTable(
   "payment_ledger",
   {
     id: text("id").primaryKey(), // chargeId
-    provider: text("provider").notNull(), // direct-wallet | pix-intermediated | agent-pay | fake
-    providerChargeId: text("provider_charge_id"),
-    purchaseId: b32("purchase_id").notNull(),
-    kind: text("kind").notNull(), // license | credits | escrow
-    buyerWallet: addr("buyer_wallet").notNull(),
-    /** Wallet that pays on-chain (the buyer for direct-wallet, PLATFORM for Pix and agent-pay). */
-    payerWallet: addr("payer_wallet").notNull(),
+    provider: text("provider").notNull(), // stripe | fake
+    providerRef: text("provider_ref").unique(),
+    kind: text("kind").notNull(), // license
+    buyerUserId: userRef("buyer_user_id").notNull(),
+    /** Who pays (the buyer, unless someone else pays for them). */
+    payerUserId: userRef("payer_user_id").notNull(),
     agentId: text("agent_id").notNull(),
-    /** Purchase details (credits amount, escrow milestones) needed to fulfil exactly what was charged. */
+    /** Purchase details needed to fulfil exactly what was charged. */
     intent: jsonb("intent").$type<Record<string, unknown>>().notNull().default({}),
-    amountBrlCents: bigint("amount_brl_cents", { mode: "bigint" }),
-    fxRate: numeric("fx_rate", { precision: 18, scale: 8 }),
-    fxSource: text("fx_source"),
-    tokenAddress: addr("token_address").notNull(),
-    tokenAmount: u64("token_amount").notNull(),
-    gross: u64("gross"),
-    fee: u64("fee"),
-    creatorAmount: u64("creator_amount"),
-    creatorDeferred: boolean("creator_deferred"),
-    txHash: b32("tx_hash"),
-    logIndex: integer("log_index"),
-    /** On-chain ref (tokenId / escrowId / buyer) from purchaseRef. */
-    ref: b32("ref"),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("usd"),
     status: text("status").notNull().default("created"),
     error: text("error"),
     providerPayload: jsonb("provider_payload").$type<Record<string, unknown>>(),
@@ -653,102 +494,50 @@ export const paymentLedger = pgTable(
     fulfilledAt: ts("fulfilled_at"),
     updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [
-    // review fix: purchase ids are scoped by payer on-chain (X22), so the ledger key is (payer, purchaseId).
-    uniqueIndex("payment_ledger_payer_purchase_idx").on(t.payerWallet, t.purchaseId),
-    uniqueIndex("payment_ledger_provider_charge_idx")
-      .on(t.provider, t.providerChargeId)
-      .where(sql`${t.providerChargeId} is not null`),
-    index("payment_ledger_status_idx").on(t.status, t.updatedAt),
-    index("payment_ledger_buyer_idx").on(t.buyerWallet),
-  ],
+  (t) => [index("payment_ledger_status_idx").on(t.status, t.updatedAt), index("payment_ledger_buyer_idx").on(t.buyerUserId)],
 );
 
-/** Mirror of the contracts' `deferred[recipient]` (D5): what each recipient can `claim()` from each contract. */
-export const payoutsDeferred = pgTable(
-  "payouts_deferred",
-  {
-    contract: addr("contract").notNull(),
-    recipient: addr("recipient").notNull(),
-    amount: u64("amount").notNull(),
-    updatedAt: ts("updated_at").notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.contract, t.recipient] })],
-);
+/** Stripe webhook dedupe: one row per event id; `processed_at` is set once the handler finished. */
+export const stripeEvents = pgTable("stripe_events", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  receivedAt: ts("received_at").notNull().defaultNow(),
+  processedAt: ts("processed_at"),
+});
 
-/** Every request the fee-paying relay handled (D3): sponsored, refused or failed. */
-export const relayLog = pgTable(
-  "relay_log",
+// ---- code execution (CreateOS Sandbox) ----
+
+/** One CreateOS sandbox per user session; destroyed when idle (sandbox/jobs.ts). */
+export const sandboxes = pgTable(
+  "sandboxes",
   {
-    id: serial("id").primaryKey(),
-    sender: addr("sender"),
-    ip: text("ip"),
-    method: text("method").notNull(),
-    txHash: b32("tx_hash"),
-    gasLimit: u64("gas_limit"),
-    calls: jsonb("calls").$type<{ to: string; selector: string }[]>(),
-    /** sponsored | refused | failed | reserved (quota held while a fill is being co-signed) */
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: userRef("user_id").notNull(),
+    sessionId: text("session_id"),
+    /** Sandbox id on CreateOS (null while creating, or in simulated mode). */
+    createosId: text("createos_id"),
     status: text("status").notNull(),
-    reason: text("reason"),
-    /** area: auth. Fee-payer sign payload (stable id of the co-signed envelope; fills have no tx hash yet). */
-    signPayload: b32("sign_payload"),
     createdAt: ts("created_at").notNull().defaultNow(),
+    lastUsedAt: ts("last_used_at").notNull().defaultNow(),
+    runs: integer("runs").notNull().default(0),
   },
-  (t) => [
-    index("relay_log_sender_idx").on(t.sender, t.createdAt),
-    index("relay_log_ip_idx").on(t.ip, t.createdAt),
-    // review fix: the global daily budget sums every active row of the last 24 h
-    index("relay_log_created_idx").on(t.createdAt),
-  ],
+  (t) => [index("sandboxes_user_idx").on(t.userId), index("sandboxes_status_idx").on(t.status, t.lastUsedAt)],
 );
 
-/**
- * Journal of server-sent transactions per 2D nonce lane (D3): the hash is written BEFORE broadcast; `validBefore` lets a
- * stuck transaction expire; the next nonce of a lane is recovered from the chain at boot.
- */
-export const sentTxs = pgTable(
-  "sent_txs",
+/** Every command run in a sandbox: a model call (run), a step gate check (verify) or a preview. */
+export const sandboxRuns = pgTable(
+  "sandbox_runs",
   {
-    account: addr("account").notNull(),
-    lane: integer("lane").notNull(),
-    nonce: u64("nonce").notNull(),
-    txHash: b32("tx_hash").notNull(),
-    /** What the transaction does (pix-fulfil, agent-pay-fulfil, mark-passed, usage-batch, admin-...). */
-    kind: text("kind").notNull(),
-    /** Business reference (chargeId, escrowId:index, batchId). */
-    ref: text("ref"),
-    /** pending | confirmed | reverted | expired */
-    status: text("status").notNull().default("pending"),
-    validBefore: ts("valid_before"),
-    error: text("error"),
+    id: uuid("id").primaryKey().defaultRandom(),
+    sandboxId: uuid("sandbox_id").references(() => sandboxes.id),
+    userId: userRef("user_id").notNull(),
+    agentId: text("agent_id"),
+    command: text("command").notNull(),
+    exitCode: integer("exit_code"),
+    execMs: integer("exec_ms"),
+    stdoutBytes: integer("stdout_bytes").notNull().default(0),
+    kind: text("kind").notNull(), // run | verify | preview
     createdAt: ts("created_at").notNull().defaultNow(),
-    updatedAt: ts("updated_at").notNull().defaultNow(),
   },
-  (t) => [
-    // Keyed by hash: an expired, never-included transaction leaves its nonce unused and the next send reuses it,
-    // so (account, lane, nonce) is not unique across the journal.
-    primaryKey({ columns: [t.txHash] }),
-    index("sent_txs_lane_nonce_idx").on(t.account, t.lane, t.nonce),
-    index("sent_txs_status_idx").on(t.status),
-    // review fix: journal lookups by business reference (sentTxsFor(kind, ref)).
-    index("sent_txs_kind_ref_idx").on(t.kind, t.ref),
-  ],
-);
-
-// ---- area: auth ----
-
-/**
- * Wallet linked to a person through a verified Privy identity token (auth/privy.ts): the free trial can count every wallet
- * of the same e-mail as one person (auth/person.ts). Only the hash of the normalized e-mail is stored.
- */
-export const walletPersons = pgTable(
-  "wallet_persons",
-  {
-    wallet: addr("wallet").primaryKey(),
-    personKey: varchar("person_key", { length: 64 }).notNull(),
-    /** Privy user DID (`sub`). */
-    privyUserId: text("privy_user_id").notNull(),
-    linkedAt: ts("linked_at").notNull().defaultNow(),
-  },
-  (t) => [index("wallet_persons_person_idx").on(t.personKey)],
+  (t) => [index("sandbox_runs_sandbox_idx").on(t.sandboxId), index("sandbox_runs_user_idx").on(t.userId, t.createdAt)],
 );

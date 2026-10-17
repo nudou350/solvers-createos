@@ -6,11 +6,11 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { installDeliverable } from "../src/verifier/install.js";
 import { withKeyLock } from "../src/verifier/lock.js";
-import { evaluateReport, planMarkPassed, type EvalInput } from "../src/verifier/report.js";
+import { evaluateReport, type EvalInput } from "../src/verifier/report.js";
 import { dirUsage, readRegularFile, readRegularJson } from "../src/verifier/safe-read.js";
 
-// Verifier: safe reading of what comes back from the container, report validation, per-step mutex
-// and the mark_passed decision. No Docker, database or env.
+// Verifier: safe reading of what comes back from the container, report validation, install with undo and the per-key
+// mutex. No Docker, database or env.
 
 const isWin = process.platform === "win32";
 
@@ -327,25 +327,6 @@ describe("evaluateReport", () => {
       const json = { testResults: [file("src/Own.test.tsx", [pass("trivial")])] };
       assert.equal(evaluateReport(input({ json, acceptanceFiles: acc })).passed, false);
     });
-  });
-});
-
-// ---------- Idempotent mark_passed ----------
-
-describe("planMarkPassed", () => {
-  const h = "ab".repeat(32);
-  it("pending or unknown state: sends", () => {
-    assert.equal(planMarkPassed({ status: 0, deliverableHash: "00".repeat(32) }, h), "send");
-    assert.equal(planMarkPassed(null, h), "send");
-  });
-  it("already Passed with the same hash: does not resend", () => {
-    assert.equal(planMarkPassed({ status: 1, deliverableHash: h }, h), "already");
-    assert.equal(planMarkPassed({ status: 1, deliverableHash: h.toUpperCase() }, h), "already");
-  });
-  it("Passed with another hash, or in another state: conflict", () => {
-    assert.equal(planMarkPassed({ status: 1, deliverableHash: "cd".repeat(32) }, h), "conflict");
-    assert.equal(planMarkPassed({ status: 2, deliverableHash: h }, h), "conflict");
-    assert.equal(planMarkPassed({ status: 3, deliverableHash: h }, h), "conflict");
   });
 });
 

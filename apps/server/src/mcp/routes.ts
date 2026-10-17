@@ -1,12 +1,10 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
-import { and, eq, gt } from "drizzle-orm";
 import { rateLimit } from "express-rate-limit";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { db, schema } from "../db/index.js";
 import { env } from "../env.js";
 import { mcpAudience, verifyToken } from "../auth/jwt.js";
-import { isAgentClient } from "../oauth/rules.js";
+import { activeOAuthToken } from "../auth/middleware.js";
 import { buildMcpServer } from "./tools.js";
 
 const resourceMetadataUrl = () => `${env.PUBLIC_API_URL.replace(/\/$/, "")}/.well-known/oauth-protected-resource/mcp`;
@@ -15,7 +13,7 @@ function challenge(res: Response, error?: string) {
   const parts = [`Bearer resource_metadata="${resourceMetadataUrl()}"`];
   if (error) parts.push(`error="${error}"`);
   res.setHeader("WWW-Authenticate", parts.join(", "));
-  res.status(401).json({ error: error ?? "unauthorized", error_description: "Connect your wallet to Solvers to use the specialists." });
+  res.status(401).json({ error: error ?? "unauthorized", error_description: "Sign in to Solvers to use the specialists." });
 }
 
 /** No valid token: 401 with WWW-Authenticate pointing to the resource metadata (triggers OAuth in the client). */
@@ -25,15 +23,10 @@ async function bearer(req: Request, res: Response, next: NextFunction) {
   try {
     const claims = await verifyToken(auth.slice(7), mcpAudience());
     if (!claims.jti) return challenge(res, "invalid_token");
-    const [tok] = await db
-      .select({ id: schema.oauthTokens.id, clientId: schema.oauthTokens.clientId })
-      .from(schema.oauthTokens)
-      .where(and(eq(schema.oauthTokens.id, claims.jti), eq(schema.oauthTokens.revoked, false), gt(schema.oauthTokens.expiresAt, new Date())));
-    if (!tok) return challenge(res, "invalid_token");
-    req.wallet = claims.sub;
+    const tok = await activeOAuthToken(claims.jti);
+    if (!tok || tok.userId !== claims.sub) return challenge(res, "invalid_token");
+    req.userId = claims.sub;
     req.tokenId = claims.jti;
-    // client_id comes from the token row (source of truth), not from the claim: only the agent's SIWE login issues "agent".
-    res.locals.isAgent = isAgentClient(tok.clientId);
     next();
   } catch {
     challenge(res, "invalid_token");
@@ -41,18 +34,18 @@ async function bearer(req: Request, res: Response, next: NextFunction) {
 }
 
 export function mountMcp(app: Express) {
-  const perWallet = rateLimit({
+  const perUser = rateLimit({
     windowMs: 60_000,
     limit: env.RATE_LIMIT_PER_MINUTE,
     standardHeaders: "draft-8",
     legacyHeaders: false,
-    keyGenerator: (req) => req.wallet ?? "anon",
+    keyGenerator: (req) => req.userId ?? "anon",
     message: { jsonrpc: "2.0", error: { code: -32000, message: "Too many calls per minute. Please wait a moment." }, id: null },
   });
 
   const handler = async (req: Request, res: Response) => {
-    // Stateless mode: one MCP server per request, bound to the token's wallet.
-    const server = buildMcpServer({ wallet: req.wallet!, tokenId: req.tokenId, isAgent: res.locals.isAgent === true });
+    // Stateless mode: one MCP server per request, bound to the token's user.
+    const server = buildMcpServer({ userId: req.userId!, tokenId: req.tokenId });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => {
       void transport.close();
@@ -69,7 +62,7 @@ export function mountMcp(app: Express) {
 
   const mcpCors = cors({ origin: true, exposedHeaders: ["WWW-Authenticate", "Mcp-Session-Id"] });
   app.options("/mcp", mcpCors);
-  app.post("/mcp", mcpCors, express.json({ limit: "1mb" }), bearer, perWallet, handler);
+  app.post("/mcp", mcpCors, express.json({ limit: "1mb" }), bearer, perUser, handler);
   // No stateful sessions: GET (server stream) and DELETE do not apply.
   app.get("/mcp", mcpCors, bearer, (_req, res) => {
     res.status(405).setHeader("Allow", "POST").json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST" }, id: null });

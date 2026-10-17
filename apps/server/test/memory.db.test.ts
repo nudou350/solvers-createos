@@ -3,8 +3,8 @@ import { createCipheriv, randomBytes } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
 // Specialist memory against a real Postgres (PACKAGE_SPEC.md 11): parallel calls lose no data, the original format stays
-// readable, an exceeded limit rolls everything back. Runs only with TEST_DATABASE_URL (a DISPOSABLE migrated database:
-// container solvers-tempo-pg on 5546). Rows use the wallet prefix "memtest" and are deleted at the end.
+// readable, an exceeded limit rolls everything back. Runs only with TEST_DATABASE_URL (a DISPOSABLE migrated database).
+// Users use the e-mail prefix "memtest" and are deleted at the end, with their memories and keys.
 
 const url = process.env.TEST_DATABASE_URL;
 const PREFIX = "memtest";
@@ -15,33 +15,47 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   let db: typeof import("../src/db/index.js").db;
   let schema: typeof import("../src/db/index.js").schema;
   let pool: typeof import("../src/db/index.js").pool;
-  let like: typeof import("drizzle-orm").like;
+  let eq: typeof import("drizzle-orm").eq;
+  let inArray: typeof import("drizzle-orm").inArray;
   let mem: typeof import("../src/memory/crypto.js");
   let HttpError: typeof import("../src/lib/http.js").HttpError;
+  const created: string[] = [];
   let n = 0;
-  const wallet = () => `${PREFIX}-w${++n}-${randomBytes(3).toString("hex")}`;
+  /** A fresh users row (memories reference users.id). */
+  const user = async () => {
+    const [u] = await db
+      .insert(schema.users)
+      .values({ email: `${PREFIX}-${++n}-${randomBytes(3).toString("hex")}@example.test` })
+      .returning({ id: schema.users.id });
+    created.push(u!.id);
+    return u!.id;
+  };
+  const rowsOf = (userId: string) => db.select().from(schema.memories).where(eq(schema.memories.userId, userId));
 
   before(async () => {
     Object.assign(process.env, {
       DATABASE_URL: url,
       JWT_SECRET: process.env.JWT_SECRET ?? "j".repeat(40),
-      SERVER_KEK: process.env.SERVER_KEK ?? Buffer.alloc(32, 7).toString("base64"),
+      MEMORY_KEK: process.env.MEMORY_KEK ?? Buffer.alloc(32, 7).toString("base64"),
     });
     ({ db, schema, pool } = await import("../src/db/index.js"));
-    ({ like } = await import("drizzle-orm"));
+    ({ eq, inArray } = await import("drizzle-orm"));
     mem = await import("../src/memory/crypto.js");
     ({ HttpError } = await import("../src/lib/http.js"));
-    await db.delete(schema.memories).where(like(schema.memories.wallet, `${PREFIX}%`));
   });
 
   after(async () => {
     if (!db) return;
-    await db.delete(schema.memories).where(like(schema.memories.wallet, `${PREFIX}%`));
+    if (created.length) {
+      await db.delete(schema.memories).where(inArray(schema.memories.userId, created));
+      await db.delete(schema.memoryKeys).where(inArray(schema.memoryKeys.userId, created));
+      await db.delete(schema.users).where(inArray(schema.users.id, created));
+    }
     await pool.end();
   });
 
   it("parallel calls on the FIRST write lose nothing (summary + profile + 10 notes)", async () => {
-    const w = wallet();
+    const w = await user();
     await Promise.all([
       mem.saveMemory(w, AGENT, KEY, { kind: "summary", content: "Prefere TypeScript" }),
       mem.saveMemory(w, AGENT, KEY, { kind: "profile", content: '{"perfil":"Equilibrado"}' }),
@@ -52,12 +66,12 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
     assert.deepEqual(m!.profile, { perfil: "Equilibrado" });
     assert.equal(m!.notes.length, 10);
     assert.equal(new Set(m!.notes.map((x) => x.id)).size, 10);
-    // A single row per wallet + specialist.
-    assert.equal((await db.select().from(schema.memories).where(like(schema.memories.wallet, w))).length, 1);
+    // A single row per user + specialist.
+    assert.equal((await rowsOf(w)).length, 1);
   });
 
   it("a new summary keeps the profile and the notes (it used to rewrite only { summary })", async () => {
-    const w = wallet();
+    const w = await user();
     await mem.saveMemory(w, AGENT, KEY, { kind: "profile", content: '{"a":"1"}' });
     await mem.saveMemory(w, AGENT, KEY, { kind: "note", content: "uma nota" });
     await mem.saveMemory(w, AGENT, KEY, { kind: "summary", content: "resumo completo novo" });
@@ -68,7 +82,7 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   });
 
   it("forget removes only the requested note, in parallel with new notes", async () => {
-    const w = wallet();
+    const w = await user();
     const a = await mem.saveMemory(w, AGENT, KEY, { kind: "note", content: "apagar esta" });
     const b = await mem.saveMemory(w, AGENT, KEY, { kind: "note", content: "manter esta" });
     const [found] = await Promise.all([
@@ -83,22 +97,22 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   });
 
   it("forget without any memory: null and no row is created", async () => {
-    const w = wallet();
+    const w = await user();
     assert.equal(await mem.forgetNote(w, AGENT, KEY, "n_x"), null);
-    assert.equal((await db.select().from(schema.memories).where(like(schema.memories.wallet, w))).length, 0);
+    assert.equal((await rowsOf(w)).length, 0);
   });
 
   it("limit exceeded on the first write: 400 and no row is left behind", async () => {
-    const w = wallet();
+    const w = await user();
     await assert.rejects(
       mem.saveMemory(w, AGENT, KEY, { kind: "summary", content: "x".repeat(4001) }),
       (e: unknown) => e instanceof HttpError && e.status === 400,
     );
-    assert.equal((await db.select().from(schema.memories).where(like(schema.memories.wallet, w))).length, 0);
+    assert.equal((await rowsOf(w)).length, 0);
   });
 
   it("the 31st note is refused and the previous 30 remain", async () => {
-    const w = wallet();
+    const w = await user();
     for (let i = 0; i < 30; i++) await mem.saveMemory(w, AGENT, KEY, { kind: "note", content: `nota ${i}` });
     await assert.rejects(mem.saveMemory(w, AGENT, KEY, { kind: "note", content: "a de número 31" }), (e: unknown) => e instanceof HttpError && e.status === 400);
     const [m] = await mem.readMemories(w, KEY, AGENT);
@@ -106,12 +120,12 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   });
 
   it("the original format ({ summary }) is read without migration and accepts a profile and notes on top", async () => {
-    const w = wallet();
+    const w = await user();
     const iv = randomBytes(12);
     const c = createCipheriv("aes-256-gcm", KEY, iv);
     c.setAAD(Buffer.from(`${w}|${AGENT}`));
     const ciphertext = Buffer.concat([c.update(Buffer.from(JSON.stringify({ summary: "texto antigo" }))), c.final()]);
-    await db.insert(schema.memories).values({ id: `mem_${randomBytes(5).toString("hex")}`, wallet: w, agentId: AGENT, ciphertext, iv, tag: c.getAuthTag() });
+    await db.insert(schema.memories).values({ id: `mem_${randomBytes(5).toString("hex")}`, userId: w, agentId: AGENT, ciphertext, iv, tag: c.getAuthTag() });
     const [old] = await mem.readMemories(w, KEY, AGENT);
     assert.equal(old!.summary, "texto antigo");
     assert.equal(old!.profile, null);
@@ -123,7 +137,7 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   });
 
   it("memory with only a profile: empty summary (never undefined)", async () => {
-    const w = wallet();
+    const w = await user();
     await mem.saveMemory(w, AGENT, KEY, { kind: "profile", content: '{"skipped":true}' });
     const [m] = await mem.readMemories(w, KEY, AGENT);
     assert.equal(m!.summary, "");
@@ -131,7 +145,7 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
   });
 
   it("a different key does not overwrite the existing memory (409)", async () => {
-    const w = wallet();
+    const w = await user();
     await mem.saveMemory(w, AGENT, KEY, { kind: "summary", content: "segredo do usuário" });
     await assert.rejects(
       mem.saveMemory(w, AGENT, Buffer.alloc(32, 1), { kind: "summary", content: "outra chave" }),
@@ -140,16 +154,15 @@ describe("memory with a database", { skip: url ? false : "set TEST_DATABASE_URL 
     assert.equal((await mem.readMemories(w, KEY, AGENT))[0]!.summary, "segredo do usuário");
   });
 
-  it("a key derived from the wallet's EIP-191 signature (D8) seals and reopens the memory; it is the same on every login", async () => {
-    const { generatePrivateKey, privateKeyToAccount } = await import("viem/accounts");
-    const a = privateKeyToAccount(generatePrivateKey());
-    const w = `memtest-${a.address.slice(2, 12).toLowerCase()}`;
-    const k1 = await mem.memoryKeyFromSignature(a.address, await a.signMessage({ message: mem.MEMORY_KEY_MESSAGE }));
-    await mem.saveMemory(w, AGENT, k1!, { kind: "summary", content: "prefers short answers" });
-    const k2 = await mem.memoryKeyFromSignature(a.address, await a.signMessage({ message: mem.MEMORY_KEY_MESSAGE }));
-    assert.equal((await mem.readMemories(w, k2!, AGENT))[0]!.summary, "prefers short answers");
-    const b = privateKeyToAccount(generatePrivateKey());
-    const kb = await mem.memoryKeyFromSignature(b.address, await b.signMessage({ message: mem.MEMORY_KEY_MESSAGE }));
-    assert.deepEqual(await mem.readMemories(w, kb!, AGENT), []);
+  it("the per-user data key is created once, reused on every call and opens the memory; another user's key does not", async () => {
+    const w = await user();
+    const k1 = await mem.memoryKeyFor(w);
+    await mem.saveMemory(w, AGENT, k1, { kind: "summary", content: "prefers short answers" });
+    const [k2, k3] = await Promise.all([mem.memoryKeyFor(w), mem.memoryKeyFor(w)]);
+    assert.ok(k1.equals(k2) && k1.equals(k3));
+    assert.equal((await mem.readMemories(w, k2, AGENT))[0]!.summary, "prefers short answers");
+    const other = await mem.memoryKeyFor(await user());
+    assert.ok(!other.equals(k1));
+    assert.deepEqual(await mem.readMemories(w, other, AGENT), []);
   });
 });

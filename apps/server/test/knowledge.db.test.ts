@@ -9,7 +9,8 @@ import { after, before, describe, it } from "node:test";
 
 const url = process.env.TEST_DATABASE_URL;
 const AGENT = "0".repeat(24) + "kn000001";
-const WALLET = "kntest-wallet";
+const USER = "6b6e0000-0000-4000-8000-000000000001";
+const OTHER = "6b6e0000-0000-4000-8000-000000000002";
 
 describe("knowledge with a database", { skip: url ? false : "set TEST_DATABASE_URL (disposable migrated database)" }, () => {
   let db: typeof import("../src/db/index.js").db;
@@ -57,11 +58,12 @@ describe("knowledge with a database", { skip: url ? false : "set TEST_DATABASE_U
     write("legado.md", "# Legado\n\nTexto de pacote antigo sobre reserva de emergência.\n");
     write("ignorado.pdf", "não entra");
     await cleanup();
+    await db.insert(schema.users).values([{ id: USER, email: "kntest-1@example.com" }, { id: OTHER, email: "kntest-2@example.com" }]).onConflictDoNothing();
   });
 
   async function cleanup() {
     await db.delete(schema.knowledgeChunks).where(eq(schema.knowledgeChunks.agentId, AGENT));
-    await db.delete(schema.usageEvents).where(eq(schema.usageEvents.wallet, WALLET));
+    await db.delete(schema.usageEvents).where(eq(schema.usageEvents.userId, USER));
   }
 
   after(async () => {
@@ -188,39 +190,39 @@ describe("knowledge with a database", { skip: url ? false : "set TEST_DATABASE_U
   describe("search_knowledge daily quota", () => {
     const event = (n: number, text: string, ago = 0) =>
       db.insert(schema.usageEvents).values(
-        Array.from({ length: n }, () => ({ wallet: WALLET, agentId: AGENT, tool: "search_knowledge", responseHash: sha256Hex(text), createdAt: new Date(Date.now() - ago) })),
+        Array.from({ length: n }, () => ({ userId: USER, agentId: AGENT, tool: "search_knowledge", responseHash: sha256Hex(text), createdAt: new Date(Date.now() - ago) })),
       );
 
     it("below the quota passes; at the limit returns 'daily limit reached'", async () => {
-      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.wallet, WALLET));
+      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.userId, USER));
       await event(2, "resposta qualquer");
-      assert.equal(await quota.searchQuotaBlock(WALLET, AGENT, 3), null);
+      assert.equal(await quota.searchQuotaBlock(USER, AGENT, 3), null);
       await event(1, "outra resposta");
-      assert.match((await quota.searchQuotaBlock(WALLET, AGENT, 3))!, /Daily limit reached/);
+      assert.match((await quota.searchQuotaBlock(USER, AGENT, 3))!, /Daily limit reached/);
     });
 
     it("quota 0 turns it off", async () => {
-      assert.equal(await quota.searchQuotaBlock(WALLET, AGENT, 0), null);
+      assert.equal(await quota.searchQuotaBlock(USER, AGENT, 0), null);
     });
 
     it("'limit reached' responses do not extend the block", async () => {
-      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.wallet, WALLET));
+      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.userId, USER));
       await event(2, "r1");
       await event(50, rules.quotaText(3));
-      assert.equal(await quota.searchesInWindow(WALLET, AGENT, 3), 2);
-      assert.equal(await quota.searchQuotaBlock(WALLET, AGENT, 3), null);
+      assert.equal(await quota.searchesInWindow(USER, AGENT, 3), 2);
+      assert.equal(await quota.searchQuotaBlock(USER, AGENT, 3), null);
     });
 
-    it("only counts the last 24 hours, this wallet, this specialist and this tool", async () => {
-      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.wallet, WALLET));
+    it("only counts the last 24 hours, this user, this specialist and this tool", async () => {
+      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.userId, USER));
       await event(5, "velho", 25 * 3600 * 1000);
       await db.insert(schema.usageEvents).values([
-        { wallet: WALLET, agentId: "0".repeat(24) + "outro001", tool: "search_knowledge", responseHash: "h" },
-        { wallet: WALLET, agentId: AGENT, tool: "next_step", responseHash: "h" },
-        { wallet: "kntest-outra", agentId: AGENT, tool: "search_knowledge", responseHash: "h" },
+        { userId: USER, agentId: "0".repeat(24) + "outro001", tool: "search_knowledge", responseHash: "h" },
+        { userId: USER, agentId: AGENT, tool: "next_step", responseHash: "h" },
+        { userId: OTHER, agentId: AGENT, tool: "search_knowledge", responseHash: "h" },
       ]);
-      assert.equal(await quota.searchesInWindow(WALLET, AGENT, 3), 0);
-      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.wallet, "kntest-outra"));
+      assert.equal(await quota.searchesInWindow(USER, AGENT, 3), 0);
+      await db.delete(schema.usageEvents).where(eq(schema.usageEvents.userId, OTHER));
     });
   });
 });

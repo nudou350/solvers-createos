@@ -34,13 +34,13 @@ export async function notifyCreator(agentId: string, text: string) {
 }
 
 /** Opens a ticket for the human creator and returns the protocol number. */
-export async function escalate(wallet: string, agentId: string, sessionId: string | null, summary: string) {
+export async function escalate(userId: string, agentId: string, sessionId: string | null, summary: string) {
   const id = `SLV-${randomId(3).toUpperCase()}`;
   const [agent] = await db.select().from(schema.agents).where(eq(schema.agents.id, agentId));
   const notified = await notifyCreator(
     agentId,
-    `Solvers: new help request ${id}\nSolver: ${agent?.name ?? agentId}\nWallet: ${wallet.slice(0, 4)}…${wallet.slice(-4)}\n\n${summary.slice(0, 3000)}`,
+    `Solvers: new help request ${id}\nSolver: ${agent?.name ?? agentId}\nUser: ${userId.slice(0, 8)}\n\n${summary.slice(0, 3000)}`,
   );
-  await db.insert(schema.escalations).values({ id, wallet, agentId, sessionId, summary: summary.slice(0, 8000), notified });
+  await db.insert(schema.escalations).values({ id, userId, agentId, sessionId, summary: summary.slice(0, 8000), notified });
   return { protocol: id, notified };
 }

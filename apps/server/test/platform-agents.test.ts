@@ -91,10 +91,9 @@ describe("platform access: text and availability", () => {
     assert.match(paidAccessLine("license"), /lifetime license/);
   });
 
-  it("retired still serves platform access (it is not a trial); suspended cuts everything", () => {
-    assert.equal(agentCanServe({ status: "active", platformStatus: "active" }, "platform"), true);
-    assert.equal(agentCanServe({ status: "retired", platformStatus: "active" }, "platform"), true);
-    assert.equal(agentCanServe({ status: "active", platformStatus: "suspended" }, "platform"), false);
-    assert.equal(agentCanServe({ status: "retired", platformStatus: "active" }, "trial"), false);
+  it("an active specialist serves platform access; suspended cuts everything", () => {
+    assert.equal(agentCanServe({ platformStatus: "active" }, "platform"), true);
+    assert.equal(agentCanServe({ platformStatus: "suspended" }, "platform"), false);
+    assert.equal(agentCanServe({ platformStatus: "suspended" }, "trial"), false);
   });
 });

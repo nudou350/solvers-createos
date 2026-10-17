@@ -1,35 +1,25 @@
-import { networkLabel } from "@solvers/chain";
 import { env } from "./env.js";
 import { createApp } from "./app.js";
-import { initChain } from "./chain/index.js";
-import { reconcileSentTxs } from "./chain/lanes.js";
 import { runMigrations } from "./db/migrate.js";
 import { pool } from "./db/index.js";
-import { installHooks, mounts, startJobs, stopJobs } from "./modules.js";
+import { mounts, startJobs, stopJobs } from "./modules.js";
 import { warmEmbeddings } from "./knowledge/embeddings.js";
 import { packages } from "./runtime/packages.js";
 
 async function main() {
   await runMigrations();
-  // Boot validation (chain id, token decimals, contract code, treasury, roles): any problem refuses to start.
-  const chain = await initChain({ validate: true });
-  console.log(
-    `[chain] ${networkLabel(env.CHAIN_ID)} (chain ${env.CHAIN_ID}) registry ${chain.deployment.registry} platform ${chain.accounts.platform.address} relay ${chain.accounts.relay.address}`,
-  );
-  // Settle server transactions left pending by a previous run before anything sends on the nonce lanes.
-  await reconcileSentTxs().catch((e: unknown) => console.error("[chain] sent_txs reconcile failed:", (e as Error).message));
 
   const pkgCount = new Set([...packages().values()].map((p) => p.manifest.id)).size;
   console.log(`[runtime] ${pkgCount} Solver packages loaded`);
+  console.log(`[sandbox] SANDBOX_MODE=${env.SANDBOX_MODE} VERIFIER_MODE=${env.VERIFIER_MODE}`);
+  if (env.DEV_LOGIN) console.warn("[auth] DEV_LOGIN=1: magic links are logged and returned by the API (anyone can sign in as any e-mail)");
   warmEmbeddings();
 
-  installHooks();
   const app = createApp(mounts);
-  const server = app.listen(env.PORT, "127.0.0.1", () => {
-    console.log(`[server] listening on 127.0.0.1:${env.PORT} (${env.PUBLIC_API_URL})`);
+  const server = app.listen(env.PORT, env.HOST, () => {
+    console.log(`[server] listening on ${env.HOST}:${env.PORT} (${env.PUBLIC_API_URL})`);
   });
 
-  // The indexer runs as one of the jobs (indexerJob), like payments and the store's jobs.
   startJobs();
 
   let closing = false;
