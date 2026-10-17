@@ -7,8 +7,9 @@ import path from "node:path";
 const I18N_REQUEST = "./src/i18n/request.ts";
 
 // Same origin: the front calls /api/... with relative paths. In dev, Next rewrites the server routes to the local API;
-// in production nginx does it.
-const API_DEV = process.env.API_DEV_URL ?? "http://localhost:3038";
+// in production nginx does it, or Next itself when API_PROXY_URL is set at build time (CreateOS, apps/web/Dockerfile).
+const API_DEV =
+  process.env.API_PROXY_URL || (process.env.NODE_ENV === "production" ? "" : (process.env.API_DEV_URL ?? "http://localhost:3038"));
 const PROXIED = ["/api", "/mcp", "/oauth", "/preview", "/.well-known", "/health"];
 
 const nextConfig: NextConfig = {
@@ -66,7 +67,7 @@ const nextConfig: NextConfig = {
     ]);
   },
   async rewrites() {
-    if (process.env.NODE_ENV === "production") return [];
+    if (!API_DEV) return [];
     return PROXIED.flatMap((p) => [
       { source: p, destination: `${API_DEV}${p}` },
       { source: `${p}/:path*`, destination: `${API_DEV}${p}/:path*` },

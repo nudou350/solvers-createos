@@ -1,0 +1,18 @@
+# Build context of apps/server/Dockerfile and apps/web/Dockerfile (repo root). Secrets never enter an image.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.projects
+.claude
+.agents
+.cursor
+bin
+apps/server/data
+deliverables
+output
