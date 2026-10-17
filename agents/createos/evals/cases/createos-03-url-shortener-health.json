@@ -1,0 +1,66 @@
+{
+  "id": "createos-03-url-shortener-health",
+  "input": "Tiny URL shortener with a health check that I can deploy today.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "/health",
+      "description": "Has a health endpoint"
+    },
+    {
+      "type": "regex",
+      "value": "\\b30[1278]\\b|redirect",
+      "description": "Redirects short codes"
+    },
+    {
+      "type": "regex",
+      "value": "\\b404\\b",
+      "description": "Returns 404 for an unknown code"
+    },
+    {
+      "type": "regex",
+      "value": "0\\.0\\.0\\.0",
+      "description": "Binds to 0.0.0.0"
+    },
+    {
+      "type": "regex",
+      "value": "curl -fsS localhost:3000/health",
+      "description": "Proves health with curl in the sandbox"
+    },
+    {
+      "type": "regex",
+      "value": "Server port|port 3000",
+      "description": "Gives the CreateOS port setting"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Test suite passes in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm test"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Health endpoint answers in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "curl -fsS localhost:3000/health"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

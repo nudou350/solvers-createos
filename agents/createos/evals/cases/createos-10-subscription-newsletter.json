@@ -1,0 +1,61 @@
+{
+  "id": "createos-10-subscription-newsletter",
+  "input": "Paid newsletter: US$ 4 per month to read premium posts. Build the backend.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "mode\\W+subscription",
+      "description": "Uses Checkout in subscription mode"
+    },
+    {
+      "type": "regex",
+      "value": "price_|Price ID|recurring",
+      "description": "Uses a recurring price"
+    },
+    {
+      "type": "contains",
+      "value": "constructEvent",
+      "description": "Verifies the webhook signature"
+    },
+    {
+      "type": "regex",
+      "value": "\\b400\\b",
+      "description": "Amount as integer cents (400)"
+    },
+    {
+      "type": "regex",
+      "value": "sandbox_run",
+      "description": "Runs tests in the sandbox"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Test suite passes in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm test"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Webhook signature tests pass in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm run test:webhook"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

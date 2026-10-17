@@ -1,0 +1,75 @@
+{
+  "id": "createos-01-waitlist-paid-reservation",
+  "input": "Build me a waitlist API where people pay US$ 5 to reserve a spot, and I can see who paid.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "sandbox_run",
+      "description": "Runs the code in the CreateOS sandbox"
+    },
+    {
+      "type": "regex",
+      "value": "unit_amount\\W+500\\b|500 cents",
+      "description": "Price stored as integer cents (500)"
+    },
+    {
+      "type": "contains",
+      "value": "express.raw",
+      "description": "Webhook reads the raw body"
+    },
+    {
+      "type": "contains",
+      "value": "constructEvent",
+      "description": "Verifies the Stripe signature"
+    },
+    {
+      "type": "regex",
+      "value": "/health",
+      "description": "Has a health endpoint"
+    },
+    {
+      "type": "regex",
+      "value": "sandbox_preview|preview URL",
+      "description": "Ends with a live preview URL"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Test suite passes in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm test"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Webhook signature tests pass in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm run test:webhook"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Health endpoint answers in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "curl -fsS localhost:3000/health"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

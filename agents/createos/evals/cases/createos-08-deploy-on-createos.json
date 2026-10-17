@@ -1,0 +1,48 @@
+{
+  "id": "createos-08-deploy-on-createos",
+  "input": "The app runs in the sandbox. How do I put it live on CreateOS with Stripe working?",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "GitHub",
+      "description": "Deploys from GitHub"
+    },
+    {
+      "type": "regex",
+      "value": "npm start",
+      "description": "Run command"
+    },
+    {
+      "type": "regex",
+      "value": "npm ci|npm install",
+      "description": "Build command"
+    },
+    {
+      "type": "regex",
+      "value": "createos env set|Environment variables",
+      "description": "Sets the env vars on CreateOS"
+    },
+    {
+      "type": "regex",
+      "value": "/webhook",
+      "description": "Creates the Stripe webhook endpoint on the live URL"
+    },
+    {
+      "type": "regex",
+      "value": "4242 ?4242 ?4242 ?4242",
+      "description": "Ends with a test payment"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Health endpoint answers in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "curl -fsS localhost:3000/health"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

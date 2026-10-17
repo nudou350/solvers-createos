@@ -1,0 +1,43 @@
+{
+  "id": "createos-05-debug-signature-error",
+  "input": "My Express webhook keeps failing with 'No signatures found matching the expected signature for payload'. Help.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "express\\.json\\(\\)",
+      "description": "Points at express.json() parsing the body first"
+    },
+    {
+      "type": "contains",
+      "value": "express.raw",
+      "description": "Moves the route to express.raw"
+    },
+    {
+      "type": "regex",
+      "value": "\\bbefore\\b",
+      "description": "Registers the webhook route before the JSON parser"
+    },
+    {
+      "type": "regex",
+      "value": "sandbox_run|in the sandbox",
+      "description": "Reproduces and proves the fix in the sandbox"
+    },
+    {
+      "type": "regex",
+      "value": "whsec_",
+      "description": "Mentions the endpoint signing secret"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Webhook signature tests pass in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm run test:webhook"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": "createos-04-paid-download-link",
+  "input": "Sell a PDF guide for US$ 9: after paying, the buyer gets a download link.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "unit_amount\\W+900\\b|900 cents",
+      "description": "Price as integer cents (900)"
+    },
+    {
+      "type": "regex",
+      "value": "webhook",
+      "description": "Unlocks the download from the webhook, not the redirect"
+    },
+    {
+      "type": "regex",
+      "value": "success_url",
+      "description": "Uses a success URL"
+    },
+    {
+      "type": "regex",
+      "value": "\\{CHECKOUT_SESSION_ID\\}",
+      "description": "Passes the session id in the success URL"
+    },
+    {
+      "type": "not_contains",
+      "value": "sk_live_",
+      "description": "Never uses a live key"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Test suite passes in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm test"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Webhook signature tests pass in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm run test:webhook"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

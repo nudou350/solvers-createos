@@ -1,0 +1,38 @@
+{
+  "id": "createos-09-egress-blocked-install",
+  "input": "npm install in the sandbox fails with ETIMEDOUT while downloading Playwright browsers. Retry it?",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "allowlist|egress",
+      "description": "Explains the egress allowlist"
+    },
+    {
+      "type": "regex",
+      "value": "registry\\.npmjs\\.org",
+      "description": "Names what is reachable"
+    },
+    {
+      "type": "regex",
+      "value": "do not retry|don't retry|not retry|retrying (will not|won't)|won't help",
+      "description": "Does not retry in a loop"
+    },
+    {
+      "type": "regex",
+      "value": "replace|remove|without|alternative|PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD",
+      "description": "Proposes a dependency or install change"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

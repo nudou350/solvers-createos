@@ -1,0 +1,57 @@
+{
+  "id": "createos-02-webhook-marks-orders-paid",
+  "input": "I need a webhook that marks orders as paid when Stripe Checkout completes. Orders are already in my app.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "checkout.session.completed",
+      "description": "Handles checkout.session.completed"
+    },
+    {
+      "type": "contains",
+      "value": "payment_status",
+      "description": "Checks payment_status before fulfilling"
+    },
+    {
+      "type": "regex",
+      "value": "async_payment_succeeded",
+      "description": "Handles delayed payment success"
+    },
+    {
+      "type": "regex",
+      "value": "duplicate|redeliver|idempot|already (seen|processed)|event id",
+      "description": "Processes each event once"
+    },
+    {
+      "type": "contains",
+      "value": "generateTestHeaderString",
+      "description": "Tests the signature offline with a signed payload"
+    },
+    {
+      "type": "regex",
+      "value": "wrong (secret|signature)|invalid signature|\\b400\\b",
+      "description": "Tests that a bad signature is rejected"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Dependencies install in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm install --no-audit --no-fund"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Webhook signature tests pass in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm run test:webhook"
+      ],
+      "expectExit": 0
+    }
+  ]
+}

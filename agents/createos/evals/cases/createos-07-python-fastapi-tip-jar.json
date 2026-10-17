@@ -1,0 +1,65 @@
+{
+  "id": "createos-07-python-fastapi-tip-jar",
+  "input": "Make a tip jar API in Python with FastAPI: people tip US$ 3 and I get a list of tips.",
+  "label": "internal team test",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "FastAPI",
+      "description": "Uses FastAPI as asked"
+    },
+    {
+      "type": "regex",
+      "value": "construct_event",
+      "description": "Verifies the webhook signature with the Python library"
+    },
+    {
+      "type": "regex",
+      "value": "request\\.body\\(\\)|raw body",
+      "description": "Uses the raw request body"
+    },
+    {
+      "type": "regex",
+      "value": "\\b300\\b",
+      "description": "Amount as integer cents (300)"
+    },
+    {
+      "type": "regex",
+      "value": "python3|pip install|\\buv\\b",
+      "description": "Runs Python in the sandbox"
+    },
+    {
+      "type": "regex",
+      "value": "package\\.json|npm test",
+      "description": "Keeps npm scripts so the step checks can run"
+    }
+  ],
+  "verify": [
+    {
+      "label": "Sandbox up: node -v exits 0",
+      "command": "node",
+      "args": [
+        "-v"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Test suite passes in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd /workspace/app && npm test"
+      ],
+      "expectExit": 0
+    },
+    {
+      "label": "Health endpoint answers in the sandbox",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "curl -fsS localhost:3000/health"
+      ],
+      "expectExit": 0
+    }
+  ]
+}
