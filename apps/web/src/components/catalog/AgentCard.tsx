@@ -10,11 +10,10 @@ import { gap } from "@/lib/style";
 import { agentHref } from "./data";
 import { useEvalText } from "./eval-text";
 import { DifferentiatorBadges, FreeTag } from "./PlatformBits";
-import { SupplyTag } from "./SupplyTag";
 import { TrialTag } from "./TrialTag";
 
-/** Solver card of the home page ("Top rated"). `symbol` is the payment token (PublicConfig.paymentToken.symbol). */
-export function AgentCard({ agent: a, creatorName, rate, symbol }: { agent: Agent; creatorName?: string; rate: number; symbol?: string }) {
+/** Solver card of the home page ("Top rated"). */
+export function AgentCard({ agent: a, creatorName }: { agent: Agent; creatorName?: string }) {
   const t = useTranslations("catalog.card");
   const f = useFormat();
   const ev = useEvalText();
@@ -41,18 +40,14 @@ export function AgentCard({ agent: a, creatorName, rate, symbol }: { agent: Agen
           <span className="tiny faint">{ev.short(a.evalScore)}</span>
         )}
         {a.trialAvailable ? <TrialTag agentId={a.id} /> : null}
-        <SupplyTag supply={a.supply} />
       </div>
       <DifferentiatorBadges keys={a.differentiators} max={3} />
       <div className="row between wrapx" style={{ marginTop: "auto", paddingTop: 14, borderTop: "1px solid var(--line)" }}>
         {a.platform ? (
           <FreeTag />
         ) : (
-          <div>
-            <div className="bold num" style={{ fontSize: 20 }}>
-              {f.brl0(a.priceUsdc, rate)}
-            </div>
-            {symbol ? <div className="tiny faint">{t("paidIn", { symbol })}</div> : null}
+          <div className="bold num" style={{ fontSize: 20 }}>
+            {f.usd(a.priceCents, true)}
           </div>
         )}
         <span className="btn btn-secondary" style={{ minHeight: 44 }}>

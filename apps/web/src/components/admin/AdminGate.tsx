@@ -1,5 +1,5 @@
 "use client";
-// Review area: admin wallets only (CreatorMe.isAdmin). Anyone else sees "not found", like an address that does not exist.
+// Review area: admin accounts only (CreatorMe.isAdmin). Anyone else sees "not found", like an address that does not exist.
 // The server checks the real permission on every route; this only avoids showing a useless screen.
 import { useTranslations } from "next-intl";
 import { notFound } from "next/navigation";
@@ -25,7 +25,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
     return () => {
       live = false;
     };
-  }, [api, status, me?.wallet]);
+  }, [status, me?.id]);
 
   if (status === "signed-in" && admin === "no") notFound();
   return (

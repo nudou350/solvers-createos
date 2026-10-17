@@ -1,4 +1,4 @@
-/* Additions for the publish flow, submission tracking and review. Same tokens as sv.css. */
+/* Additions for the publish flow, submission tracking and review. Same CSS variables as sv.css. */
 
 /* Steps of the "Publish" flow */
 .steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -16,7 +16,6 @@
 .tl:last-child::before { display: none; }
 .tlDone::before { background: var(--mint); }
 .tlBody { min-width: 0; padding-top: 4px; }
-.tlSkipped { opacity: .6; }
 
 /* ZIP drop zone */
 .zone { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 20px; text-align: center; border: 2px dashed var(--line-strong); border-radius: 20px; background: var(--surface-2); transition: border-color .15s, background .15s; }

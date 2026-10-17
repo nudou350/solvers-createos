@@ -1,4 +1,4 @@
-// Server-side loading of a Solver (and the public config) for the checkout, done and install routes.
+// Server-side loading of a Solver (and the public config) for the checkout and install routes.
 import type { AgentDetail, PublicConfig } from "@solvers/api-client";
 import { getLocale } from "next-intl/server";
 import type { Locale } from "@/i18n/routing";
@@ -19,7 +19,7 @@ export async function loadAgent(slug: string | null): Promise<LoadedAgent> {
   }
 }
 
-/** Public config (payment token, Pix, connector URL...); null when the API is down. */
+/** Public config (connector URL, free trial...); null when the API is down. */
 export async function loadConfig(): Promise<PublicConfig | null> {
   try {
     return await serverApi().getConfig();

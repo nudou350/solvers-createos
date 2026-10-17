@@ -6,8 +6,8 @@ import { Icon } from "./Icon";
 
 export type TechRow = { label: string; value: string; mono?: boolean };
 
-/** "Want to check the technical details?": opens the list of on-network accounts and the explorer link. */
-export function TechCard({ text, rows, explorer, style }: { text: string; rows: TechRow[]; explorer?: string | null; style?: CSSProperties }) {
+/** "Want to check the technical details?": opens a list of identifiers (account id, package id...). */
+export function TechCard({ text, rows, style }: { text: string; rows: TechRow[]; style?: CSSProperties }) {
   const t = useTranslations("common.ui");
   const [open, setOpen] = useState(false);
   const id = useId();
@@ -33,13 +33,6 @@ export function TechCard({ text, rows, explorer, style }: { text: string; rows: 
               <dd className={r.mono ? "mono" : undefined}>{r.value}</dd>
             </div>
           ))}
-          {explorer ? (
-            <dd>
-              <a className="link small" href={explorer} target="_blank" rel="noopener noreferrer">
-                {t("techExplorer")} <Icon name="external" size="s" />
-              </a>
-            </dd>
-          ) : null}
         </dl>
       ) : null}
     </div>

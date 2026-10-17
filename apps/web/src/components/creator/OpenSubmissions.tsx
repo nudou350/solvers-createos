@@ -30,7 +30,7 @@ export function OpenSubmissions() {
     return () => {
       live = false;
     };
-  }, [api, me?.wallet]);
+  }, [me?.id]);
 
   if (!items || items.length === 0) return null;
   return (
@@ -52,9 +52,9 @@ export function OpenSubmissions() {
                   <Untrusted>{it.name || it.slug}</Untrusted>
                 </Link>
                 <span className="tiny faint">v{it.version}</span>
-                <StatusChip status={it.status} nextAction={it.nextAction} />
+                <StatusChip status={it.status} />
               </div>
-              <span className="small muted">{statusInfo(t, it.status, it.nextAction).text}</span>
+              <span className="small muted">{statusInfo(t, it.status).text}</span>
               <span className="tiny faint">
                 {t.rich("open.updated", { updated: () => <Ago iso={it.updatedAt} /> })}
               </span>

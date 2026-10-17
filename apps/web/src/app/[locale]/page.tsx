@@ -22,15 +22,14 @@ export const dynamic = "force-dynamic";
 
 async function loadHome(lang: Locale) {
   const api = serverApi();
-  const [config, categories, creators, top, trending, fresh] = await Promise.all([
-    api.getConfig(),
+  const [categories, creators, top, trending, fresh] = await Promise.all([
     api.getCategories(),
     api.getCreators(lang),
     api.getAgents({ sort: "rating", limit: 4, lang }),
     api.getAgents({ sort: "trend", limit: 5, lang }),
     api.getAgents({ sort: "new", limit: 3, lang }),
   ]);
-  return { config, categories, creators: creatorMap(creators), top: top.slice(0, 4), trending: trending.slice(0, 5), fresh: fresh.slice(0, 3) };
+  return { categories, creators: creatorMap(creators), top: top.slice(0, 4), trending: trending.slice(0, 5), fresh: fresh.slice(0, 3) };
 }
 
 type TFn = Awaited<ReturnType<typeof getTranslations>>;
@@ -53,16 +52,15 @@ export default async function Home() {
         </Empty>
       </section>
     );
-  const { config, categories, creators, top, trending, fresh } = data;
-  const rate = config.brlPerUsd;
+  const { categories, creators, top, trending, fresh } = data;
   // The "Your license" card shows a payment: only for a paid Solver (platform Solvers are free and have no license).
   const hero = top.find((a) => !a.platform);
 
   return (
     <>
-      <SearchHero creators={creators} rate={rate} aside={hero ? <HeroTicket agent={hero} rate={rate} /> : <div className="hide-m" />} />
+      <SearchHero creators={creators} aside={hero ? <HeroTicket agent={hero} /> : <div className="hide-m" />} />
 
-      <CategoryExplorer categories={categories} initialTop={top} creators={creators} rate={rate} symbol={config.paymentToken.symbol} />
+      <CategoryExplorer categories={categories} initialTop={top} creators={creators} />
 
       <section className="wrap" style={{ paddingBottom: 72 }}>
         <div className="g2 gs2" style={gap("48px", { alignItems: "start" })}>
@@ -190,7 +188,7 @@ function TrendRow({ agent: a, rank }: { agent: Agent; rank: number }) {
 }
 
 /** "Your license" hero card, with the top-rated Solver. */
-function HeroTicket({ agent: a, rate }: { agent: Agent; rate: number }) {
+function HeroTicket({ agent: a }: { agent: Agent }) {
   const t = useTranslations("home.ticket");
   const f = useFormat();
   return (
@@ -216,13 +214,13 @@ function HeroTicket({ agent: a, rate }: { agent: Agent; rate: number }) {
           </div>
         </div>
         <div className="row wrapx" style={gap("8px")}>
-          <span className="chip">{t("onNetwork")}</span>
+          <span className="chip">{t("sandbox")}</span>
           <span className="chip">{t("updates")}</span>
         </div>
         <div className="cut" style={{ margin: "22px -26px 16px" }} />
         <div className="row between small">
           <span className="muted">{t("paymentConfirmed")}</span>
-          <b className="num">{f.brl(a.priceUsdc, rate)}</b>
+          <b className="num">{f.usd(a.priceCents)}</b>
         </div>
       </Link>
       <div className="card pad-s row" style={gap("12px", { position: "absolute", left: -28, bottom: 6, transform: "rotate(-3deg)" })}>

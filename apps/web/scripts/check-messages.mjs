@@ -120,12 +120,12 @@ for (const loc of LOCALES) {
     for (const [k, v] of flatten(messages[loc][ns], ns)) flat[loc].set(k, v);
   }
 }
-// Intentional differences: en shows the amount in dollars (1:1 with USDC) and needs neither the conversion nor the rate.
-const PLACEHOLDER_DIFF_OK = new Set(["catalog.card.orUsdc", "checkout.view.summary.rateNote"]);
+// Keys where en and pt may deliberately use different variables (none today).
+const PLACEHOLDER_DIFF_OK = new Set([]);
 for (const [k, v] of flat.en) {
   if (!flat.pt.has(k)) fail(`missing in pt: ${k}`);
   else if (!PLACEHOLDER_DIFF_OK.has(k) && placeholders(v) !== placeholders(flat.pt.get(k)))
-    // Warning only: one language may deliberately skip a variable the other uses (e.g. en shows $ and not the BRL rate).
+    // Warning only: one language may deliberately skip a variable the other uses.
     warn(`different variables in ${k}: en={${placeholders(v)}} pt={${placeholders(flat.pt.get(k))}}`);
 }
 for (const k of flat.pt.keys()) if (!flat.en.has(k)) fail(`missing in en: ${k}`);

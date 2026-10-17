@@ -13,5 +13,4 @@ export const NAMESPACES = [
   "creator",
   "submissions",
   "connect",
-  "devkit",
 ] as const;

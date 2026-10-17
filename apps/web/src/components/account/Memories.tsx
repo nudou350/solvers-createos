@@ -1,7 +1,6 @@
 "use client";
-// "Memories" tab of the library. Memories are encrypted on the server: until the wallet signs the memory-key message
-// (EIP-191, decisions.md D8), the API answers 409 memory_key_required. Only plain wallets (EOAs) can produce the key.
-import { ApiError } from "@solvers/api-client";
+// "Memories" tab of the library. Memories are encrypted on the server and readable with the session; the person can
+// delete one or all of them.
 import type { Memory } from "@solvers/shared";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -9,13 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Loading } from "@/components/ui/Spinner";
 import { Tile } from "@/components/ui/Tile";
-import { Notice, useToast } from "@/components/ui/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
+import { useErrorText } from "@/lib/error-text";
 import { useFormat } from "@/lib/format";
 import { useAgentsIndex } from "@/lib/hooks";
 import { gap } from "@/lib/style";
-import { memoryUnlockFailure } from "./account-rules";
-import { useAccountErrorText, useUnlockMemories } from "./account-tx";
 import { useLibrary } from "./LibraryShell";
 import { LoadError } from "./shared";
 
@@ -28,7 +26,7 @@ function profileLine(profile: Memory["profile"], skipped: string): string {
     .join("; ");
 }
 
-type State = { kind: "loading" } | { kind: "locked" } | { kind: "error" } | { kind: "ok"; items: Memory[] };
+type State = { kind: "loading" } | { kind: "error" } | { kind: "ok"; items: Memory[] };
 
 /** Button with an inline confirmation (no window.confirm). */
 function ConfirmDelete({
@@ -85,14 +83,11 @@ function ConfirmDelete({
 
 export function Memories() {
   const { setMemCount } = useLibrary();
-  const unlockWithWallet = useUnlockMemories();
   const t = useTranslations("account");
   const f = useFormat();
-  const errorText = useAccountErrorText();
+  const errorText = useErrorText();
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
-  const [unlocking, setUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState<string | null>(null);
   const items = state.kind === "ok" ? state.items : [];
   const agents = useAgentsIndex(items.map((m) => m.agentId));
 
@@ -102,24 +97,11 @@ export function Memories() {
       (m) => {
         setState({ kind: "ok", items: [...m].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) });
       },
-      (e: unknown) => setState(e instanceof ApiError && e.code === "memory_key_required" ? { kind: "locked" } : { kind: "error" }),
+      () => setState({ kind: "error" }),
     );
   }, []);
 
   useEffect(load, [load]);
-
-  const unlock = async () => {
-    setUnlocking(true);
-    setUnlockError(null);
-    try {
-      await unlockWithWallet();
-      load();
-    } catch (e) {
-      setUnlockError(unlockErrorText(e));
-    } finally {
-      setUnlocking(false);
-    }
-  };
 
   const removed = (ids: string[]) => {
     setState((s) => (s.kind === "ok" ? { kind: "ok", items: s.items.filter((m) => !ids.includes(m.id)) } : s));
@@ -129,21 +111,6 @@ export function Memories() {
   useEffect(() => {
     if (count != null) setMemCount(count);
   }, [count, setMemCount]);
-
-  // The server refuses signatures it cannot turn into a key (400 memory_signature_refused: another wallet or a
-  // smart-contract wallet): explain instead of a generic error. A 401 is the session ending, not a refused signature.
-  const unlockErrorText = (e: unknown) => {
-    switch (memoryUnlockFailure(e)) {
-      case "refused":
-        return t("memories.unlockRefused");
-      case "session":
-        return t("memories.sessionExpired");
-      case "cancelled":
-        return t("memories.unlockCancelled");
-      default:
-        return errorText(e);
-    }
-  };
 
   const fail = (e: unknown) => {
     toast({ tone: "bad", title: t("memories.deleteFailed"), text: errorText(e) });
@@ -191,27 +158,6 @@ export function Memories() {
 
   if (state.kind === "loading") return <Loading text={t("memories.loading")} />;
   if (state.kind === "error") return <LoadError onRetry={load} text={t("memories.loadError")} />;
-  if (state.kind === "locked")
-    return (
-      <div className="empty card">
-        <span className="empty-ic" style={{ background: "var(--mint-soft)", color: "var(--mint)" }}>
-          <Icon name="lock" />
-        </span>
-        <h3 className="h4">{t("memories.lockedTitle")}</h3>
-        <p className="muted small">{t("memories.lockedText")}</p>
-        <Button icon="key" loading={unlocking} onClick={unlock}>
-          {t("memories.confirmWallet")}
-        </Button>
-        <p className="tiny faint" style={{ maxWidth: 520 }}>
-          {t("memories.smartWalletNote")}
-        </p>
-        {unlockError ? (
-          <Notice tone="bad" role="alert">
-            {unlockError}
-          </Notice>
-        ) : null}
-      </div>
-    );
 
   // One memory per solver, but the grouping handles more.
   const groups = [...new Set(items.map((m) => m.agentId))].map((id) => ({ id, items: items.filter((m) => m.agentId === id) }));

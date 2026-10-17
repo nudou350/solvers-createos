@@ -11,7 +11,6 @@ import { themeScript } from "@/components/layout/ThemeToggle";
 import { ToastProvider } from "@/components/ui/Toast";
 import { routing } from "@/i18n/routing";
 import { SessionProvider } from "@/lib/session";
-import { WalletProvider } from "@/lib/wallet";
 import "@/styles/sv.css";
 import "@/styles/app.css";
 
@@ -56,18 +55,16 @@ export default async function RootLayout({ children, params }: Props) {
           {t("skipToContent")}
         </a>
         <NextIntlClientProvider>
-          <WalletProvider>
-            <SessionProvider>
-              <ToastProvider>
-                <Header />
-                <main id="conteudo" className="app-main">
-                  {children}
-                </main>
-                <Footer />
-                <TabBar />
-              </ToastProvider>
-            </SessionProvider>
-          </WalletProvider>
+          <SessionProvider>
+            <ToastProvider>
+              <Header />
+              <main id="conteudo" className="app-main">
+                {children}
+              </main>
+              <Footer />
+              <TabBar />
+            </ToastProvider>
+          </SessionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

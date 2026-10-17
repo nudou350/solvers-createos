@@ -1,7 +1,7 @@
 // Pieces shared by the creator's tracking screens and the admin review.
 // SECURITY: every text that comes from the creator (name, manifest, messages, files) enters here as React TEXT
 // (escaped). No dangerouslySetInnerHTML, no rendered Markdown and no links built from the content.
-import type { SubmissionStatus, SubmissionView, ValidationReport } from "@solvers/api-client";
+import type { SubmissionStatus, ValidationReport } from "@solvers/api-client";
 import { useTranslations } from "next-intl";
 import { Chip } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
@@ -10,16 +10,16 @@ import { CHIP_TONE, stageInfo, STAGES, stageStates, statusInfo } from "@/lib/sub
 import { gap } from "@/lib/style";
 import s from "./creator.module.css";
 
-export function StatusChip({ status, nextAction }: { status: SubmissionStatus; nextAction?: SubmissionView["nextAction"] }) {
+export function StatusChip({ status }: { status: SubmissionStatus }) {
   const t = useTranslations("submissions");
-  const info = statusInfo(t, status, nextAction);
+  const info = statusInfo(t, status);
   return <Chip tone={CHIP_TONE[info.tone]}>{info.label}</Chip>;
 }
 
 /** Timeline of the PACKAGE_SPEC.md 14.2 states, in plain language. */
-export function Timeline({ status, nextAction }: { status: SubmissionStatus; nextAction?: SubmissionView["nextAction"] }) {
+export function Timeline({ status }: { status: SubmissionStatus }) {
   const t = useTranslations("submissions");
-  const states = stageStates(status, nextAction);
+  const states = stageStates(status);
   return (
     <ol className={s.timeline} aria-label={t("parts.timelineAria")}>
       {STAGES.map((st, i) => {
@@ -27,7 +27,7 @@ export function Timeline({ status, nextAction }: { status: SubmissionStatus; nex
         const info = stageInfo(t, st.key);
         const dot = state === "done" ? "dot dot-ok" : state === "current" ? "dot dot-now" : state === "failed" ? "dot dot-bad" : state === "attention" ? "dot dot-now" : "dot";
         return (
-          <li key={st.key} className={[s.tl, state === "done" ? s.tlDone : "", state === "skipped" ? s.tlSkipped : ""].filter(Boolean).join(" ")} aria-current={state === "current" || state === "attention" ? "step" : undefined}>
+          <li key={st.key} className={[s.tl, state === "done" ? s.tlDone : ""].filter(Boolean).join(" ")} aria-current={state === "current" || state === "attention" ? "step" : undefined}>
             <span className={dot} aria-hidden style={state === "attention" ? { borderColor: "var(--amber)", color: "var(--amber)", background: "var(--amber-soft)" } : undefined}>
               {state === "done" ? <Icon name="check" size="s" /> : state === "failed" ? <Icon name="x" size="s" /> : state === "attention" ? <Icon name="warning" size="s" /> : i + 1}
             </span>

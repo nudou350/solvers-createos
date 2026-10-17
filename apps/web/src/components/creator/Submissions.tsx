@@ -27,7 +27,7 @@ type State = { kind: "loading" } | { kind: "error"; message: string } | { kind: 
 const MOVING = new Set(["submitted", "validating", "publishing"]);
 
 /** Actions with a highlighted button (texts under action.<key>). */
-const ACTION_KEYS: ReadonlySet<SubmissionView["nextAction"]> = new Set(["fix_and_resubmit", "sign_register", "sign_update"]);
+const ACTION_KEYS: ReadonlySet<SubmissionView["nextAction"]> = new Set(["fix_and_resubmit"]);
 
 export function SubmissionsView() {
   const t = useTranslations("submissions");
@@ -51,7 +51,7 @@ export function SubmissionsView() {
 
   useEffect(() => {
     if (status === "signed-in") void load();
-  }, [status, me?.wallet, load]);
+  }, [status, me?.id, load]);
 
   const moving = state.kind === "ok" && state.items.some((i) => MOVING.has(i.status));
   useEffect(() => {
@@ -101,7 +101,7 @@ function List({ items }: { items: SubmissionView[] }) {
         </div>
         <ul>
           {items.map((it) => {
-            const info = statusInfo(t, it.status, it.nextAction);
+            const info = statusInfo(t, it.status);
             const act = ACTION_KEYS.has(it.nextAction) ? t(`action.${it.nextAction}`) : null;
             const errors = it.validation?.errors.length ?? 0;
             return (
@@ -112,7 +112,7 @@ function List({ items }: { items: SubmissionView[] }) {
                       <Untrusted>{it.name || it.slug}</Untrusted>
                     </Link>
                     <span className="tiny faint">v{it.version}</span>
-                    <StatusChip status={it.status} nextAction={it.nextAction} />
+                    <StatusChip status={it.status} />
                   </div>
                   <span className="small muted">{info.text}</span>
                   <span className="tiny faint">

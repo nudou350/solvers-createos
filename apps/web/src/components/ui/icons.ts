@@ -67,7 +67,6 @@ export const ICONS = {
   "upload": "<path d=\"M12 16V4M7 9l5-5 5 5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3\"></path>",
   "user": "<circle cx=\"12\" cy=\"8\" r=\"3.600\"></circle><path d=\"M4.500 20c.8-4 3.800-6 7.500-6s6.700 2 7.500 6\"></path>",
   "users": "<circle cx=\"9\" cy=\"8.5\" r=\"3.2\"></circle><path d=\"M3.5 19c.6-3 2.8-4.7 5.5-4.7s4.9 1.7 5.5 4.7\"></path><path d=\"M16 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.6c1.8.5 3 2 3.5 4.4\"></path>",
-  "wallet": "<path d=\"M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3\"></path><rect x=\"4\" y=\"8\" width=\"16\" height=\"11\" rx=\"2.5\"></rect><circle cx=\"16\" cy=\"13.5\" r=\"1.1\" fill=\"currentColor\"></circle>",
   "warning": "<path d=\"M12 4 2.500 20h19z\"></path><path d=\"M12 10v4.500M12 17.300v.1\"></path>",
   "wrench": "<path d=\"M14.5 6.2a4 4 0 0 0 5 5L10 20.700a2 2 0 0 1-3-3L16.500 8.200\"></path><path d=\"M14.500 6.200 17 8.700\"></path>",
   "x": "<path d=\"M6 6l12 12M18 6 6 18\"></path>",

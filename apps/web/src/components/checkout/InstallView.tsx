@@ -61,7 +61,7 @@ function Ill({ children }: { children: ReactNode }) {
 
 export function InstallView({ detail, connectorUrl }: { detail: AgentDetail | null; connectorUrl: string | null }) {
   const session = useCheckoutSession();
-  const me = session.wallet;
+  const me = session.userId;
   const toast = useToast();
   const t = useTranslations("install");
   const f = useFormat();
@@ -127,7 +127,7 @@ export function InstallView({ detail, connectorUrl }: { detail: AgentDetail | nu
     }
   }
 
-  const doLogin = () => session.signIn().catch((e: unknown) => toast({ tone: "bad", title: t("setup.checklist.loginFailed"), text: errText(e) }));
+  const doLogin = () => session.signIn();
 
   const planReq = agent?.requirements.find((r) => r.type === "plan");
   const connectorReqs = agent?.requirements.filter((r) => r.type === "connector") ?? [];
@@ -188,7 +188,7 @@ export function InstallView({ detail, connectorUrl }: { detail: AgentDetail | nu
               : t("setup.checklist.test.doStep3"),
       actLabel: !logged ? t("setup.checklist.test.actLogin") : t("setup.checklist.test.actTest"),
       act: !logged ? doLogin : () => void test(false),
-      acting: !logged ? session.signingIn : testing,
+      acting: !logged ? false : testing,
     },
   ];
   const required = checks.filter((k) => !k.optional);

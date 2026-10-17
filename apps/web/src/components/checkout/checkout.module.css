@@ -1,14 +1,4 @@
-/* Checkout and install area additions. Same tokens as sv.css. */
-
-.pix { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 24px; align-items: start; }
-.qrBox { position: relative; width: 216px; height: 216px; padding: 8px; border-radius: 18px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; }
-.qrBox img { width: 200px; height: 200px; image-rendering: pixelated; }
-.stamp { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-12deg); padding: 6px 14px; border-radius: 10px; background: var(--amber); color: #fff; font-weight: 800; letter-spacing: .12em; font-size: 15px; box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .35); }
-.status { display: flex; align-items: center; gap: 10px; }
-.counter { align-self: flex-end; }
-.msAmount { white-space: nowrap; }
-.idLine { min-width: 0; }
-.idLine b, .idLine div { overflow-wrap: anywhere; }
+/* Install area additions. Same tokens as sv.css. */
 
 /* Setup illustration: a settings window with the menu on the left and the highlighted button. */
 .illGrid { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); min-height: 150px; }
@@ -24,8 +14,6 @@
   .illSide > :global(.skel):last-child { display: none; }
   .illSide > :global(.ill-hi) { flex: none; }
   .illMain { padding: 14px 12px; }
-  .pix { grid-template-columns: minmax(0, 1fr); justify-items: center; }
-  .pix > :last-child { justify-self: stretch; }
 }
 
 /* Help request to the creator (HelpDialog; the window itself is ui/Dialog). */

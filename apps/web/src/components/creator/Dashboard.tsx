@@ -16,22 +16,13 @@ import { evalMethodNote, hasEvalScore } from "@/lib/eval-label";
 import { useFormat } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { gap } from "@/lib/style";
-import { unitsToNumber } from "@solvers/shared";
-import { useCreatorConfig, useIntlLocale, useMoney, useToken, useTxLink } from "./creator-glue";
-import { kpiHeadline } from "./creator-rules";
+import { useHeadline } from "./creator-glue";
 import { CreatorHead } from "./CreatorHead";
 import { DailyChart } from "./DailyChart";
-import { ManageSolver } from "./ManageSolver";
 import { OpenSubmissions } from "./OpenSubmissions";
 
 type Dash = CreatorDashboard;
 type State = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ok"; data: Dash };
-
-const RESULT: Record<Dash["disputes"][number]["result"], { chip: "warn" | "red" | "ok"; tone: string }> = {
-  open: { chip: "warn", tone: "warn" },
-  buyer: { chip: "red", tone: "bad" },
-  creator: { chip: "ok", tone: "ok" },
-};
 
 /** Creator dashboard (/creator): requires sign-in; without published Solvers it shows how to start. */
 export function CreatorDashboardView() {
@@ -58,7 +49,7 @@ export function CreatorDashboardView() {
 
   useEffect(() => {
     if (status === "signed-in") void load();
-  }, [status, me?.wallet, load]);
+  }, [status, me?.id, load]);
 
   if (status !== "signed-in")
     return (
@@ -101,7 +92,7 @@ export function CreatorDashboardView() {
     <Section>
       <CreatorHead tab="overview" reputation={data.creator.reputationScore} name={data.creator.name} />
       <OpenSubmissions />
-      <Overview data={data} creator={data.creator} reload={() => load(true)} />
+      <Overview data={data} creator={data.creator} />
     </Section>
   );
 }
@@ -152,46 +143,23 @@ function NotCreator({ sharePct }: { sharePct: number }) {
   );
 }
 
-/**
- * Big money figure of a KPI from base units: the payment token is a US-dollar stablecoin, so English shows dollars 1:1
- * and Portuguese an estimate in reais at the configured rate. Display only (the float exists only here, at the edge);
- * the exact token amount is shown below it with `useMoney`.
- */
-function useHeadline(): (units: string) => string {
-  const config = useCreatorConfig();
-  const token = useToken();
-  const locale = useIntlLocale();
-  const lang = useLocale() as Locale;
-  return (units: string) => {
-    if (!token) return "";
-    return kpiHeadline(unitsToNumber(units, token.decimals), { lang, rate: config?.brlPerUsd ?? null, intlLocale: locale });
-  };
-}
-
-function Overview({ data, creator, reload }: { data: Dash; creator: NonNullable<Dash["creator"]>; reload: () => Promise<void> }) {
+function Overview({ data, creator }: { data: Dash; creator: NonNullable<Dash["creator"]> }) {
   const t = useTranslations("creator.dashboard");
   const f = useFormat();
   const lang = useLocale() as Locale;
-  const config = useCreatorConfig();
-  const amount = useMoney();
   const headline = useHeadline();
-  const txLink = useTxLink();
-  const [open, setOpen] = useState<string | null>(null);
-  const lostText = t("reputation.lost", { n: data.totals.disputesLost });
   const kpiN = { fontSize: 44, lineHeight: 1 } as CSSProperties;
   const kpiMoney = { fontSize: 40, lineHeight: 1, whiteSpace: "nowrap" } as CSSProperties;
   // All-time total, only when it differs from the last 30 days.
   const allTime = (total: number, last: number) => (total > last ? t("kpi.allTime", { n: f.int(total) }) : "");
-  const nameOf = new Map(data.agents.map((a) => [a.agentId, a.name]));
-  const platformBps = config?.royalty.platformBps ?? null;
 
   return (
     <>
-      <div className="g5" style={gap(16, { marginBottom: 24 })}>
+      <div className="g3 m1" style={gap(16, { marginBottom: 24 })}>
         <div className="card pad-s col" style={gap(6)}>
           <span className="small muted">{t("kpi.sales30")}</span>
           <span className="display num" style={kpiN}>{f.int(data.last30.sales)}</span>
-          <span className="tiny ok">{t("kpi.newLicenses")}{allTime(data.totals.sales, data.last30.sales)}</span>
+          <span className="tiny ok">{t("kpi.newSales")}{allTime(data.totals.sales, data.last30.sales)}</span>
         </div>
         <div className="card pad-s col" style={gap(6)}>
           <span className="small muted">{t("kpi.uses")}</span>
@@ -200,23 +168,11 @@ function Overview({ data, creator, reload }: { data: Dash; creator: NonNullable<
         </div>
         <div className="card pad-s col" style={gap(6)}>
           <span className="small muted">{t("kpi.revenue")}</span>
-          <span className="display num kpi-n" style={kpiMoney}>{headline(data.last30.revenueUnits)}</span>
+          <span className="display num kpi-n" style={kpiMoney}>{headline(data.last30.revenueCents)}</span>
           <span className="tiny faint">
-            {amount(data.last30.revenueUnits)}
-            {BigInt(data.totals.salesRevenueUnits) > BigInt(data.last30.revenueUnits) ? t("kpi.allTime", { n: amount(data.totals.salesRevenueUnits) }) : ""}
+            {t("kpi.revenueSub", { pct: f.num(data.creatorSharePct, 0, 1) })}
+            {data.totals.salesRevenueCents > data.last30.revenueCents ? t("kpi.allTime", { n: f.usd(data.totals.salesRevenueCents) }) : ""}
           </span>
-        </div>
-        <div className="card pad-s col" style={gap(6)}>
-          <span className="small muted">{t("kpi.royalties")}</span>
-          <span className="display num kpi-n" style={kpiMoney}>{headline(data.totals.royaltiesUnits)}</span>
-          <span className="tiny faint">
-            {amount(data.totals.royaltiesUnits)} · {t("kpi.royaltiesSub")}
-          </span>
-        </div>
-        <div className="card pad-s col" style={gap(6)}>
-          <span className="small muted">{t("kpi.disputes")}</span>
-          <span className="display num" style={kpiN}>{f.int(data.totals.disputesOpened)}</span>
-          <span className={data.totals.disputesOpen ? "tiny warn" : "tiny faint"}>{t("kpi.disputesOpen", { n: f.int(data.totals.disputesOpen) })}</span>
         </div>
       </div>
 
@@ -234,7 +190,6 @@ function Overview({ data, creator, reload }: { data: Dash; creator: NonNullable<
             </div>
             <div className="col grow" style={gap(4)}>
               <RepBadge score={creator.reputationScore} style={{ alignSelf: "flex-start" }} />
-              <span className="small muted">{lostText}</span>
             </div>
           </div>
           <p className="small muted">{t("reputation.text")}</p>
@@ -267,180 +222,50 @@ function Overview({ data, creator, reload }: { data: Dash; creator: NonNullable<
               <span>{t("agents.cols.performance")}</span>
               <span>{t("agents.cols.revenue")}</span>
             </div>
-            {data.agents.map((a) => {
-              const expanded = open === a.agentId;
-              const panelId = `manage-${a.agentId}`;
-              return (
-                <div key={a.agentId}>
-                  <div className="cr-table">
-                    <span className="row" style={gap(12, { minWidth: 0 })}>
-                      <Tile category={a.category} size="s" />
-                      <span className="col" style={gap(4, { minWidth: 0 })}>
-                        <Link className="trunc bold" href={`/solvers/${encodeURIComponent(a.slug)}`} style={{ fontWeight: 700 }}>
-                          {a.name}
-                        </Link>
-                        <span className="tiny faint">
-                          {t("agents.version", { version: a.version, status: t(`agents.status.${a.status}`) })}
-                        </span>
-                        {!a.listed ? (
-                          <span>
-                            <Chip tone="warn" icon="eye">{t("agents.hidden")}</Chip>
-                          </span>
-                        ) : null}
-                        <span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon="sliders"
-                            aria-expanded={expanded}
-                            aria-controls={panelId}
-                            onClick={() => setOpen(expanded ? null : a.agentId)}
-                          >
-                            {expanded ? t("agents.closeManage") : t("agents.manage")}
-                          </Button>
-                        </span>
+            {data.agents.map((a) => (
+              <div key={a.agentId}>
+                <div className="cr-table">
+                  <span className="row" style={gap(12, { minWidth: 0 })}>
+                    <Tile category={a.category} size="s" />
+                    <span className="col" style={gap(4, { minWidth: 0 })}>
+                      <Link className="trunc bold" href={`/solvers/${encodeURIComponent(a.slug)}`} style={{ fontWeight: 700 }}>
+                        {a.name}
+                      </Link>
+                      <span className="tiny faint">
+                        {t("agents.version", { version: a.version, status: t(`agents.status.${a.status}`) })}
                       </span>
-                    </span>
-                    <span className="num">
-                      <span className="only-m tiny faint">{t("agents.cols.sold")} </span>
-                      {f.int(a.sales)}
-                      {a.supply.max != null ? (
-                        <span className={a.supply.left === 0 ? "warn" : "faint"}>
-                          {" / "}
-                          {f.int(a.supply.max)}
-                          {a.supply.left === 0 ? t("agents.soldOut") : ""}
+                      {!a.listed ? (
+                        <span>
+                          <Chip tone="warn" icon="eye">{t("agents.hidden")}</Chip>
                         </span>
-                      ) : (
-                        <span className="faint" title={t("agents.unlimited")}>
-                          {" / ∞"}
-                        </span>
-                      )}
-                    </span>
-                    <span className="num">
-                      <span className="only-m tiny faint">{t("agents.cols.uses")} </span>
-                      {f.int(a.uses)}
-                    </span>
-                    <span className="num">
-                      <span className="only-m tiny faint">{t("agents.cols.rating")} </span>
-                      {a.userRating > 0 ? f.dec1(a.userRating) : "—"}
-                    </span>
-                    <span className={["num", !hasEvalScore(a.evalScore) ? "faint" : a.evalScore >= 80 ? "ok" : "warn"].join(" ")} title={hasEvalScore(a.evalScore) ? evalMethodNote(lang) : undefined}>
-                      <span className="only-m tiny faint">{t("agents.cols.performance")} </span>
-                      {hasEvalScore(a.evalScore) ? `${Math.round(a.evalScore)}%` : t("agents.noEvals")}
-                    </span>
-                    <b className="num">
-                      <span className="only-m tiny faint">{t("agents.cols.revenue")} </span>
-                      {amount(a.revenueUnits)}
-                    </b>
-                  </div>
-                  {expanded ? (
-                    <div id={panelId} role="region" aria-label={t("agents.manageAria", { name: a.name })}>
-                      <ManageSolver agent={a} platformBps={platformBps} onChanged={reload} />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </>
-        )}
-      </div>
-
-      {data.guarantee ? (
-        <div className="card pad-s" style={{ padding: "8px 24px", marginBottom: 24 }}>
-          <div className="row between wrapx" style={{ padding: "14px 0" }}>
-            <h2 className="h3">{t("guarantee.title")}</h2>
-            <span className="small muted">{t("guarantee.subtitle")}</span>
-          </div>
-          <div className="g3 m1" style={gap(16, { padding: "4px 0 18px", borderTop: "1px solid var(--line)" })}>
-            <div className="col" style={gap(4, { paddingTop: 14 })}>
-              <span className="small muted">{t("guarantee.total")}</span>
-              <span className="display num" style={{ fontSize: 34, lineHeight: 1, whiteSpace: "nowrap" }}>{headline(data.guarantee.earnedUnits)}</span>
-              <span className="tiny faint">{amount(data.guarantee.earnedUnits)}</span>
-            </div>
-            <div className="col" style={gap(4, { paddingTop: 14 })}>
-              <span className="small muted">{t("guarantee.last30")}</span>
-              <span className="display num" style={{ fontSize: 34, lineHeight: 1, whiteSpace: "nowrap" }}>{headline(data.guarantee.last30Units)}</span>
-              <span className="tiny faint">{amount(data.guarantee.last30Units)}</span>
-            </div>
-            <div className="col" style={gap(4, { paddingTop: 14 })}>
-              <span className="small muted">{t("guarantee.releases")}</span>
-              <span className="display num" style={{ fontSize: 34, lineHeight: 1 }}>{f.int(data.guarantee.releases)}</span>
-              <span className="tiny faint">{t("guarantee.releasesSub")}</span>
-            </div>
-          </div>
-          {data.guarantee.recent.length === 0 ? (
-            <div style={{ borderTop: "1px solid var(--line)" }}>
-              <Empty bare icon="shield-check" title={t("guarantee.emptyTitle")}>
-                {t("guarantee.emptyText")}
-              </Empty>
-            </div>
-          ) : (
-            data.guarantee.recent.map((r) => {
-              const link = txLink(r.txHash);
-              return (
-                <div key={r.txHash} className="rowline">
-                  <span className="ok">
-                    <Icon name="shield-check" size="s" />
-                  </span>
-                  <div className="grow col" style={gap(2, { minWidth: 0 })}>
-                    <b className="trunc">{(r.agentId && nameOf.get(r.agentId)) || t("guarantee.fallbackTask")}</b>
-                    <span className="tiny faint">
-                      {f.date(r.at)}
-                      {link ? (
-                        <>
-                          {" · "}
-                          <a className="link" href={link} target="_blank" rel="noopener noreferrer">
-                            {t("guarantee.viewTx")}
-                          </a>
-                        </>
                       ) : null}
+                      <span className="tiny faint">{t("agents.price", { price: f.usd(a.priceCents) })}</span>
                     </span>
-                  </div>
-                  <b className="num">{amount(r.amountUnits)}</b>
+                  </span>
+                  <span className="num">
+                    <span className="only-m tiny faint">{t("agents.cols.sold")} </span>
+                    {f.int(a.sales)}
+                  </span>
+                  <span className="num">
+                    <span className="only-m tiny faint">{t("agents.cols.uses")} </span>
+                    {f.int(a.uses)}
+                  </span>
+                  <span className="num">
+                    <span className="only-m tiny faint">{t("agents.cols.rating")} </span>
+                    {a.userRating > 0 ? f.dec1(a.userRating) : "—"}
+                  </span>
+                  <span className={["num", !hasEvalScore(a.evalScore) ? "faint" : a.evalScore >= 80 ? "ok" : "warn"].join(" ")} title={hasEvalScore(a.evalScore) ? evalMethodNote(lang) : undefined}>
+                    <span className="only-m tiny faint">{t("agents.cols.performance")} </span>
+                    {hasEvalScore(a.evalScore) ? `${Math.round(a.evalScore)}%` : t("agents.noEvals")}
+                  </span>
+                  <b className="num">
+                    <span className="only-m tiny faint">{t("agents.cols.revenue")} </span>
+                    {f.usd(a.revenueCents)}
+                  </b>
                 </div>
-              );
-            })
-          )}
-        </div>
-      ) : null}
-
-      <div className="card pad-s" style={{ padding: "8px 24px" }}>
-        <div className="row between wrapx" style={{ padding: "14px 0" }}>
-          <h2 className="h3">{t("disputes.title")}</h2>
-          <span className="small muted">{lostText}</span>
-        </div>
-        {data.disputes.length === 0 ? (
-          <div style={{ borderTop: "1px solid var(--line)" }}>
-            <Empty bare icon="flag" title={t("disputes.emptyTitle")}>
-              {t("disputes.emptyText")}
-            </Empty>
-          </div>
-        ) : (
-          data.disputes.map((d) => {
-            const r = RESULT[d.result];
-            const resultLabel = t(`disputes.result.${d.result}`);
-            return (
-              <div key={`${d.escrowId}-${d.index}`} className="rowline start" style={{ alignItems: "flex-start" }}>
-                <span className={r.tone} style={{ marginTop: 2 }}>
-                  <Icon name="flag" size="s" />
-                </span>
-                <div className="grow col" style={gap(3, { minWidth: 0 })}>
-                  <span className="only-m" style={{ marginBottom: 4 }}><Chip tone={r.chip}>{resultLabel}</Chip></span>
-                  <b>{d.taskTitle}</b>
-                  <div className="small muted">
-                    {nameOf.get(d.agentId) ? `${nameOf.get(d.agentId)} · ` : ""}
-                    {t("disputes.milestone", { n: d.index + 1, title: d.milestoneTitle })}
-                  </div>
-                  <div className="small muted">{t("disputes.criterion", { criterion: d.criterion ?? t("disputes.criterionNone") })}</div>
-                  {d.reason ? <div className="small" style={{ color: "var(--ink-2)" }}>“{d.reason}”</div> : null}
-                  <div className="tiny faint">
-                    {d.openedAt ? f.date(d.openedAt) : t("disputes.dateNone")} · {amount(d.amountUnits)}
-                  </div>
-                </div>
-                <span className="hide-m"><Chip tone={r.chip}>{resultLabel}</Chip></span>
               </div>
-            );
-          })
+            ))}
+          </>
         )}
       </div>
     </>

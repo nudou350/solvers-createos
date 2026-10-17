@@ -27,6 +27,7 @@ function TrialCard({ trial: tr, agent: a }: { trial: MyTrial; agent: Agent | und
   const done = tr.usesLeft <= 0;
   const used = tr.uses - tr.usesLeft;
   const slug = a ? encodeURIComponent(a.slug) : null;
+  // The Solver page opens the Stripe checkout on load with ?buy=1 (and sends to sign-in first when needed).
   return (
     <article className="card pad-s col" style={gap("16px")}>
       <div className="row between wrapx" style={gap("12px")}>
@@ -81,11 +82,11 @@ function TrialCard({ trial: tr, agent: a }: { trial: MyTrial; agent: Agent | und
       {slug ? (
         <div className="row wrapx" style={gap("8px", { justifyContent: "flex-end" })}>
           {done ? null : (
-            <Button variant="secondary" icon="play" href={`/install?agent=${encodeURIComponent(slug)}`}>
+            <Button variant="secondary" icon="play" href={`/install?agent=${slug}`}>
               {t("trials.keepTesting")}
             </Button>
           )}
-          <Button variant={done ? "primary" : "ghost"} href={`/checkout?agent=${encodeURIComponent(slug)}`}>
+          <Button variant={done ? "primary" : "ghost"} href={`/solvers/${slug}?buy=1`}>
             {t("trials.buy")}
           </Button>
         </div>

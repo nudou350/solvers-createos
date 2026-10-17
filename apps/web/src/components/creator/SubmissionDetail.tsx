@@ -1,6 +1,6 @@
 "use client";
 // One submission (/creator/submissions/[id]): timeline, validator errors, the reviewer's note and what is left to do
-// (resubmit a fix, sign the registration or the update, wait, open the live Solver).
+// (resubmit a fix, wait for the review and the publication, open the live Solver).
 import type { SubmissionView } from "@solvers/api-client";
 import { ApiError } from "@solvers/api-client";
 import { useTranslations } from "next-intl";
@@ -21,7 +21,6 @@ import { api } from "@/lib/api";
 import { gap } from "@/lib/style";
 import { canResubmit, loadErrorText, statusInfo, type Tone } from "@/lib/submissions-ui";
 import { CreatorHead } from "./CreatorHead";
-import { CoSign } from "./CoSign";
 import { StatusChip, Timeline, ValidationList } from "./SubmissionParts";
 import { ZipUploader } from "./ZipUploader";
 import s from "./creator.module.css";
@@ -54,10 +53,10 @@ export function SubmissionDetailView({ id }: { id: string }) {
 
   useEffect(() => {
     if (status === "signed-in") void load();
-  }, [status, me?.wallet, load]);
+  }, [status, me?.id, load]);
 
-  // States that move on their own: check again every 6 s (20 s while waiting for the platform's final approval).
-  const watch = state.kind === "ok" ? (MOVING.has(state.sub.status) ? 6000 : state.sub.status === "awaiting_onchain_approval" ? 20000 : 0) : 0;
+  // States that move on their own: check again every 6 s.
+  const watch = state.kind === "ok" && MOVING.has(state.sub.status) ? 6000 : 0;
   useEffect(() => {
     if (!watch) return;
     timer.current = setTimeout(() => void load(true), watch);
@@ -96,7 +95,7 @@ function Detail({ sub, reload }: { sub: SubmissionView; reload: () => Promise<vo
   const t = useTranslations("submissions");
   const f = useFormat();
   const router = useRouter();
-  const info = statusInfo(t, sub.status, sub.nextAction);
+  const info = statusInfo(t, sub.status);
   const errors = sub.validation?.errors.length ?? 0;
   const published = sub.status === "published";
 
@@ -106,7 +105,7 @@ function Detail({ sub, reload }: { sub: SubmissionView; reload: () => Promise<vo
         <div className="col" style={gap(10)}>
           <div className="row wrapx" style={gap(10)}>
             <span className="eyebrow">{t("detail.eyebrow")}</span>
-            <StatusChip status={sub.status} nextAction={sub.nextAction} />
+            <StatusChip status={sub.status} />
           </div>
           <h1 className="display h2s" style={{ overflowWrap: "anywhere" }}>
             <Untrusted>{sub.name || sub.slug}</Untrusted>
@@ -143,9 +142,6 @@ function Detail({ sub, reload }: { sub: SubmissionView; reload: () => Promise<vo
             <span className={s.untrusted}><Untrusted>{sub.error}</Untrusted></span>
           </Notice>
         ) : null}
-
-        {/* Signing, then the platform's final approval: the same card shows the publishing steps throughout. */}
-        {sub.nextAction === "sign_register" || sub.nextAction === "sign_update" || sub.status === "awaiting_onchain_approval" ? <CoSign sub={sub} onDone={reload} /> : null}
 
         {published ? (
           <div className="card pad row between wrapx" style={gap(12, { borderColor: "var(--mint)" })}>
@@ -200,7 +196,7 @@ function Detail({ sub, reload }: { sub: SubmissionView; reload: () => Promise<vo
       <aside className="sticky col" style={gap(16)} aria-label={t("detail.progressAria")}>
         <div className="card pad col" style={gap(18)}>
           <h2 className="h3">{t("detail.progressTitle")}</h2>
-          <Timeline status={sub.status} nextAction={sub.nextAction} />
+          <Timeline status={sub.status} />
         </div>
         <div className="card-flat pad-s small muted">{t("detail.deadline")}</div>
       </aside>

@@ -1,5 +1,5 @@
 "use client";
-// Pieces shared by the account screens (library, memories, guarantees and profile).
+// Pieces shared by the account screens (library, memories and profile).
 // AuthGate lives in components/ui; useAgentsIndex and useNow in lib/hooks.
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";

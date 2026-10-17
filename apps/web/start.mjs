@@ -1,10 +1,10 @@
-// `next start` na porta 4018 (PM2 solvers-tempo-web), respeitando PORT e HOSTNAME.
+// `next start` na porta 3041 por padrão, respeitando PORT e HOSTNAME.
 // Roda o CLI do Next no mesmo processo, para o PM2 acompanhar o processo certo.
 import { setDefaultResultOrder } from "node:dns";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const port = process.env.PORT || "4018";
+const port = process.env.PORT || "3041";
 // Loopback vira "localhost": o proxy (next-intl) reescreve /library -> /en/library com a URL que o Next normaliza para
 // "localhost"; se o servidor subir como 127.0.0.1, a origem difere e o Next trata o rewrite como externo (500 "Failed
 // to proxy"). Com ipv4first, "localhost" continua escutando em 127.0.0.1 (o nginx aponta para lá), mesmo onde o

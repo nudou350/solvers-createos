@@ -1,18 +1,17 @@
-import type { AgentDetail, PublicConfig } from "@solvers/api-client";
+import type { AgentDetail } from "@solvers/api-client";
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
-import { INTL_LOCALE, type Locale } from "@/i18n/routing";
+import type { Locale } from "@/i18n/routing";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache, type CSSProperties } from "react";
 import { BeforeAfterBlock, Reviews, Scores, Versions } from "@/components/catalog/AgentSections";
+import { AutoBuy } from "@/components/catalog/AutoBuy";
 import { BuyBox } from "@/components/catalog/BuyBox";
 import { DifferentiatorBadges } from "@/components/catalog/PlatformBits";
 import { Gallery } from "@/components/catalog/Gallery";
 import { ClampedText } from "@/components/ui/ClampedText";
 import { TrialBlock } from "@/components/catalog/TrialBlock";
-import { brlText, brlValueText, priceUnits, tokenText, usdText } from "@/components/catalog/money";
-import { networkKey } from "@/components/catalog/network";
 import { creatorHref } from "@/components/catalog/data";
 import { Button } from "@/components/ui/Button";
 import { RepBadge } from "@/components/ui/Chip";
@@ -20,7 +19,6 @@ import { Empty } from "@/components/ui/Empty";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Tile } from "@/components/ui/Tile";
 import { ApiError, serverApi } from "@/lib/api";
-import { addressUrl } from "@/lib/explorer";
 import { initials } from "@/lib/format";
 import { getFormat } from "@/lib/format-server";
 import { DIFFERENTIATORS, knownDifferentiators } from "@/lib/differentiators";
@@ -28,21 +26,19 @@ import { gap } from "@/lib/style";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ slug: string; locale: string }> };
+type Props = { params: Promise<{ slug: string; locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Detail + config, fetched once per request (metadata and page). null = not found. */
-const load = cache(async (slug: string, lang: Locale): Promise<{ d: AgentDetail; config: PublicConfig } | null> => {
-  const api = serverApi();
+/** Detail, fetched once per request (metadata and page). null = not found. */
+const load = cache(async (slug: string, lang: Locale): Promise<{ d: AgentDetail } | null> => {
   try {
-    const [d, config] = await Promise.all([api.getAgent(slug, lang), api.getConfig()]);
-    return { d, config };
+    return { d: await serverApi().getAgent(slug, lang) };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
 });
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
   const { slug, locale } = await params;
   const data = await load(slug, locale as Locale).catch(() => null);
   if (!data) return { title: (await getTranslations({ locale, namespace: "catalog.meta" }))("solverFallback") };
@@ -60,8 +56,10 @@ const PACK: { icon: IconName; hue: number }[] = [
 /** Columns of "What's in the package": up to 5 in one row; above that, full rows of 3 or 4. */
 const packCols = (n: number) => (n <= 5 ? Math.max(2, n) : n % 3 === 0 ? 3 : 4);
 
-export default async function AgentPage({ params }: Props) {
+export default async function AgentPage({ params, searchParams }: Props) {
   const { slug, locale } = await params;
+  // ?buy=1: back from the sign-in page in the middle of a purchase; the checkout opens on load.
+  const resumeBuy = (await searchParams).buy === "1";
   const t = await getTranslations("catalog.page");
   const tc = await getTranslations("catalog");
   const f = await getFormat();
@@ -79,31 +77,17 @@ export default async function AgentPage({ params }: Props) {
   }
   if (!data) notFound();
 
-  const { d, config } = data;
+  const { d } = data;
   const a = d.agent;
   const cr = d.creator;
   const lv = f.repLevel(cr.reputationScore);
-  const rate = config.brlPerUsd;
   const req = (t: "client" | "connector" | "plan") => a.requirements.filter((r) => r.type === t);
   const clients = req("client").map((r) => r.label);
   const connectors = req("connector");
   const plan = req("plan")[0]?.label ?? null;
-  const g = d.guarantee;
   const diffs = knownDifferentiators(a.differentiators);
   const catName = f.categoryLabel(a.category);
   const clientList = new Intl.ListFormat(f.locale === "pt" ? "pt-BR" : "en-US", { type: "conjunction" }).format(clients);
-  const token = config.paymentToken;
-  const intl = INTL_LOCALE[locale as Locale] ?? "en-US";
-  // Prices: pt in reais (estimate by the rate), en in dollars 1:1 with the stablecoin; the token amount below them.
-  const localPrice = (n: number) => {
-    const u = priceUnits(n, token.decimals);
-    return u == null ? "—" : f.locale === "pt" ? brlText(u, token.decimals, rate, intl) : usdText(u, token.decimals, intl);
-  };
-  const tokenPrice = (n: number) => {
-    const u = priceUnits(n, token.decimals);
-    return u == null ? "—" : tokenText(u, token, intl);
-  };
-  const licenseUnits = priceUnits(a.priceUsdc, token.decimals);
 
   return (
     <>
@@ -149,7 +133,6 @@ export default async function AgentPage({ params }: Props) {
                   {t("repBadge", { level: lv.label, score: cr.reputationScore })}
                 </span>
               </RepBadge>
-              <span className="small muted">{tc("disputes", { n: cr.disputesLost })}</span>
             </div>
             <Gallery images={d.images} name={a.name} />
             <ClampedText text={a.description} style={{ fontSize: 17, lineHeight: 1.65 }} />
@@ -176,20 +159,8 @@ export default async function AgentPage({ params }: Props) {
           </div>
 
           <aside className="sticky" aria-label={a.platform ? t("asideInstall") : t("asideBuy")}>
-            <BuyBox
-              platform={a.platform}
-              slug={a.slug}
-              name={a.name}
-              priceUnits={licenseUnits == null ? null : licenseUnits.toString()}
-              priceBrl={d.priceBrl}
-              token={{ symbol: token.symbol, decimals: token.decimals }}
-              trial={d.trial}
-              hasGuarantee={!!g}
-              rate={rate}
-              supply={a.supply}
-              royalty={{ creatorBps: a.royaltyBps, platformBps: config.royalty.platformBps }}
-              creatorWallet={d.onchain.creatorWallet}
-            />
+            <BuyBox platform={a.platform} slug={a.slug} name={a.name} priceCents={a.priceCents} trial={d.trial} />
+            {resumeBuy && !a.platform ? <AutoBuy slug={a.slug} /> : null}
           </aside>
         </div>
       </section>
@@ -203,77 +174,8 @@ export default async function AgentPage({ params }: Props) {
         evalScore={a.evalScore}
         version={a.version}
         verifiedUses={a.verifiedUses}
-        tech={{
-          hash: a.versionHash,
-          network: tc(`network.${networkKey(config.chainId)}`),
-          agentId: d.onchain.agentId,
-          registry: d.onchain.registry,
-          explorer: d.onchain.agentId && d.onchain.registry ? addressUrl(d.onchain.registry, config) : null,
-        }}
+        tech={{ hash: a.versionHash, packageId: a.id }}
       />
-
-      {g ? (
-        <section className="wrap" id="garantia" style={{ paddingBottom: 64, scrollMarginTop: 24 }}>
-          <div className="card" style={{ overflow: "hidden" }}>
-            <div className="sol-line" style={{ borderRadius: 0, height: 4 }} />
-            <div className="pad-l col" style={gap("24px")}>
-              <div className="row between end wrapx" style={gap("20px")}>
-                <div className="col" style={gap("8px", { maxWidth: 640 })}>
-                  <span className="chip chip-ok" style={{ alignSelf: "flex-start" }}>
-                    <Icon name="shield-check" size="s" />
-                    {t("guaranteeChip")}
-                  </span>
-                  <h2 className="display h2s">{t("guaranteeTitle")}</h2>
-                  <p className="muted">{t("guaranteeBody", { duration: f.durationText(g.reviewWindowSecs) })}</p>
-                </div>
-                <div className="col" style={gap("12px", { alignItems: "flex-start" })}>
-                  <div className="col" style={gap("2px")}>
-                    <span className="display num" style={{ fontSize: 44, lineHeight: 1 }}>
-                      {f.locale === "pt" ? brlValueText(g.priceBrl, intl) : localPrice(g.priceUsdc)}
-                    </span>
-                    <span className="small faint">{t("perTask", { amount: tokenPrice(g.priceUsdc) })}</span>
-                  </div>
-                  <Button href={`/checkout?agent=${encodeURIComponent(a.slug)}&type=guarantee`} size="lg" iconRight="arrow-right">
-                    {t("hireGuarantee")}
-                  </Button>
-                </div>
-              </div>
-              <ol className={`g${Math.min(3, g.milestones.length)} m1`} style={gap("18px", { listStyle: "none", padding: 0, margin: 0 })}>
-                {g.milestones.map((m, i) => (
-                  <li key={i} className="card-flat pad col" style={gap("14px")}>
-                    <div className="row between start" style={gap("12px")}>
-                      <div className="row grow" style={gap("12px")}>
-                        <span className="dot dot-now" style={{ width: 32, height: 32 } as CSSProperties}>
-                          {i + 1}
-                        </span>
-                        <b style={{ fontSize: 17 }}>{m.title}</b>
-                      </div>
-                      <span className="col flex-none" style={gap("0", { alignItems: "flex-end", textAlign: "right" })}>
-                        <b className="num" style={{ whiteSpace: "nowrap" }}>{localPrice(m.amountUsdc)}</b>
-                        <span className="tiny faint" style={{ whiteSpace: "nowrap" }}>{tokenPrice(m.amountUsdc)}</span>
-                      </span>
-                    </div>
-                    <span className={`chip ${m.verify === "tests" ? "chip-ok" : "chip-brand"}`} style={{ alignSelf: "flex-start" }}>
-                      <Icon name={m.verify === "tests" ? "shield-check" : "eye"} size="s" />
-                      {m.verify === "tests" ? t("verifyTests") : t("verifyReview")}
-                    </span>
-                    <ul className="col small" style={gap("8px")}>
-                      {m.criteria.map((c) => (
-                        <li key={c} className="row start" style={gap("10px")}>
-                          <span className="ok">
-                            <Icon name="check-circle" size="s" />
-                          </span>
-                          <span>{c}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       <BeforeAfterBlock items={d.beforeAfter} name={a.name} />
 

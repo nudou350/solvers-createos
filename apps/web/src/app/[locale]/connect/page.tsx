@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title"), robots: { index: false } };
 }
 
-// Destino do /oauth/authorize do servidor: tela de consentimento do conector.
+// Target of the server's /oauth/authorize: the connector consent screen.
 export default async function ConnectPage({ searchParams }: PageProps<"/[locale]/connect">) {
   const req = (await searchParams).req;
   const id = typeof req === "string" && /^ar_[0-9a-f]+$/.test(req) ? req : null;

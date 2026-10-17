@@ -10,16 +10,13 @@ import { Tabs } from "@/components/ui/Tabs";
 import { api } from "@/lib/api";
 import { hasEvalScore } from "@/lib/eval-label";
 import { useMyAccess } from "@/lib/hooks";
-import { initials, short, starPct, useFormat } from "@/lib/format";
+import { initials, starPct, useFormat } from "@/lib/format";
 import { gap } from "@/lib/style";
 import { ReviewPhotos } from "./Gallery";
 import { useEvalText } from "./eval-text";
 
-/**
- * Technical details of the version: fingerprint, the Solver's id in the registry contract (AgentDetail.onchain.agentId),
- * the registry address and the network.
- */
-export type TechInfo = { hash: string; network: string; agentId: string | null; registry: string | null; explorer: string | null };
+/** Technical details of the version: package fingerprint and package id. */
+export type TechInfo = { hash: string; packageId: string };
 
 /** The three scores (people, internal tests, uses) and the technical details of the version. */
 export function Scores({
@@ -172,25 +169,8 @@ export function Scores({
         <dl className="tech" id="tech" style={{ marginTop: 16 }}>
           <dt>{t("techHash")}</dt>
           <dd className="mono">{tech.hash}</dd>
-          {tech.agentId ? (
-            <>
-              <dt>{t("techRecord")}</dt>
-              <dd className="mono">{tech.agentId}</dd>
-            </>
-          ) : null}
-          {tech.registry ? (
-            <>
-              <dt>{t("techContract")}</dt>
-              <dd className="mono">{tech.registry}</dd>
-            </>
-          ) : null}
-          <dt>{t("techNetwork")}</dt>
-          <dd>{tech.network}</dd>
-          {tech.explorer ? (
-            <a className="link small" href={tech.explorer} target="_blank" rel="noopener noreferrer">
-              {t("openExplorer")} <Icon name="external" size="s" />
-            </a>
-          ) : null}
+          <dt>{t("techRecord")}</dt>
+          <dd className="mono">{tech.packageId}</dd>
         </dl>
       ) : null}
     </section>
@@ -294,10 +274,7 @@ export function Versions({ versions }: { versions: AgentVersion[] }) {
 
 const FIRST = 6;
 
-/**
- * License holders review from their library (the review is a wallet-signed transaction); this page only displays the
- * reviews and points there.
- */
+/** Owners review from their library; this page only displays the reviews and points there. */
 function MyReviewPrompt({ slug }: { slug: string }) {
   const t = useTranslations("catalog.reviews");
   const access = useMyAccess(slug);
@@ -351,13 +328,13 @@ export function Reviews({ slug, initial, total }: { slug: string; initial: Revie
       <div style={{ marginBottom: 18 }}>{mineBox}</div>
       <div className="g2" style={gap("18px")}>
         {list.map((r) => {
-          // Reviewer profile name; without it, the shortened wallet.
-          const who = r.authorName?.trim() || t("buyer", { wallet: short(r.authorWallet) });
+          // Reviewer profile name; without it, a generic "Verified buyer".
+          const who = r.authorName?.trim() || t("buyer");
           return (
             <article key={r.id} className="card pad-s col" style={gap("12px")}>
               <div className="row" style={gap("12px")}>
                 <span className="av" aria-hidden>
-                  {r.authorName?.trim() ? initials(r.authorName) : r.authorWallet.slice(0, 2).toUpperCase()}
+                  {r.authorName?.trim() ? initials(r.authorName) : <Icon name="user" size="s" />}
                 </span>
                 <div className="grow" style={{ minWidth: 0 }}>
                   <b className="trunc" style={{ display: "block" }}>

@@ -1,15 +1,15 @@
 "use client";
-// Review a Solver (stars + text), a wallet-signed transaction built by the server (POST /api/tx/review) and sent with
-// the network fee paid by Solvers. The caller already knows the account holds a license; the contract checks it again.
+// Review a Solver (stars + text), sent to the API (POST /api/agents/:slug/reviews). The caller already knows the account
+// owns the Solver; the server checks it again.
 // One review per account: when it exists, the form opens filled in and "Update" replaces it.
-import { MAX_IMAGE_UPLOAD_BYTES, MAX_REVIEW_IMAGES, sameAddress, type ImageRef } from "@solvers/api-client";
+import { MAX_IMAGE_UPLOAD_BYTES, MAX_REVIEW_IMAGES, type ImageRef } from "@solvers/api-client";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Notice, useToast } from "@/components/ui/Toast";
-import { useCheckoutSession, useErrText, useSendCalls } from "@/components/checkout/glue";
+import { useCheckoutSession, useErrText } from "@/components/checkout/glue";
 import { api, ApiError } from "@/lib/api";
 import { compressImage, ImageCompressError } from "@/lib/image-compress";
 import { gap } from "@/lib/style";
@@ -23,12 +23,12 @@ const PHOTO_MB = MAX_IMAGE_UPLOAD_BYTES / (1024 * 1024);
 type Picked = { key: number; file: File; url: string };
 
 export function ReviewBox({
-  agentId,
   slug,
   compact = false,
   onSaved,
   onCancel,
 }: {
+  /** Solver id (kept for callers; the review is addressed by slug). */
   agentId: string;
   slug: string;
   /** Without the card frame (inside another card, as in the library). */
@@ -39,18 +39,17 @@ export function ReviewBox({
   const t = useTranslations("catalog.review");
   const errorText = useErrText();
   const session = useCheckoutSession();
-  const sendCalls = useSendCalls();
   const toast = useToast();
   const router = useRouter();
-  const [txPending, setTxPending] = useState(false);
-  const [txError, setTxError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const textId = useId();
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
   const [had, setHad] = useState(false);
   const [touched, setTouched] = useState(false);
   const dirty = useRef(false);
-  const wallet = session.wallet;
+  const userId = session.userId;
   const [existing, setExisting] = useState<ImageRef[]>([]);
   const [picked, setPicked] = useState<Picked[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -71,12 +70,12 @@ export function ReviewBox({
 
   // Prefills with my review, when it exists (and the person has not started typing).
   useEffect(() => {
-    if (!wallet) return;
+    if (!userId) return;
     let alive = true;
     api.getReviews(slug).then(
       (list) => {
         if (!alive) return;
-        const m = list.find((r) => sameAddress(r.authorWallet, wallet)) ?? null;
+        const m = list.find((r) => r.authorUserId === userId) ?? null;
         setHad(!!m);
         setExisting(m?.images ?? []);
         if (m && !dirty.current) {
@@ -89,7 +88,7 @@ export function ReviewBox({
     return () => {
       alive = false;
     };
-  }, [slug, wallet]);
+  }, [slug, userId]);
 
   /** Short message, in the page language, for a failed photo upload/removal. */
   function photoErrorText(e: unknown): string {
@@ -99,7 +98,7 @@ export function ReviewBox({
   }
 
   const total = existing.length + picked.length;
-  const busy = txPending || uploading;
+  const busy = sending || uploading;
 
   function addPhotos(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -168,15 +167,15 @@ export function ReviewBox({
   async function publish() {
     setTouched(true);
     if (rating < 1) return;
-    setTxPending(true);
-    setTxError(null);
+    setSending(true);
+    setSendError(null);
     try {
-      await sendCalls(await api.buildReview(agentId, rating, text.trim()));
+      await api.submitReview(slug, rating, text.trim());
     } catch (e) {
-      setTxError(errorText(e));
+      setSendError(errorText(e));
       return;
     } finally {
-      setTxPending(false);
+      setSending(false);
     }
     setHad(true);
     dirty.current = false;
@@ -333,9 +332,9 @@ export function ReviewBox({
         </Notice>
       ) : null}
       <p className="tiny faint">{t("publicNote")}</p>
-      {txError ? (
+      {sendError ? (
         <Notice tone="bad" role="alert" title={t("failedPublish")}>
-          {txError}
+          {sendError}
         </Notice>
       ) : null}
       <div className="row wrapx" style={gap(10)}>

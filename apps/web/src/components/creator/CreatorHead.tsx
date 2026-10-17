@@ -8,18 +8,15 @@ import { useFormat } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { gap } from "@/lib/style";
 
-/** Wallet shortened for display ("0x12ab…cdef"). */
-const shortAddress = (w: string) => (w.length > 12 ? `${w.slice(0, 6)}…${w.slice(-4)}` : w);
-
 /**
  * First name of the signed-in person. Without a name in the profile, the creator's public name (`fallback`) and, last,
- * the shortened wallet.
+ * the part of the email before the @.
  */
 export function useFirstName(fallback?: string | null): string | null {
   const { me } = useSession();
   if (!me) return null;
   const name = me.displayName || fallback;
-  return name ? (name.split(" ")[0] ?? name) : shortAddress(me.wallet);
+  return name ? (name.split(" ")[0] ?? name) : (me.email.split("@")[0] ?? me.email);
 }
 
 /** Creator dashboard header: eyebrow, reputation badge, greeting and the tabs (overview / submissions / publish). */

@@ -10,7 +10,7 @@ export type DialogProps = {
   title: ReactNode;
   onClose: () => void;
   children: ReactNode;
-  /** While true (e.g. signing a transaction), Esc, outside click and the X button do not close it. */
+  /** While true (e.g. while a request is in flight), Esc, outside click and the X button do not close it. */
   locked?: boolean;
   /** Max width in px (default 480). */
   width?: number;

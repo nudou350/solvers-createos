@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Solvers: AI specialists",
-    "description": "AI specialists for the Claude and ChatGPT you already use. Buy once, use anywhere."
+    "title": "Solvers: AI specialists that prove their work",
+    "description": "AI specialists for the Claude and ChatGPT you already use. Each step is proven by running it in a CreateOS sandbox."
   },
   "skipToContent": "Skip to content",
   "notFound": {
@@ -19,8 +19,6 @@
     "exploreShort": "Explore",
     "library": "My library",
     "libraryShort": "Library",
-    "guarantees": "Guarantees",
-    "guaranteesShort": "Guarantees",
     "creators": "For creators",
     "creatorsShort": "Creator"
   },
@@ -29,57 +27,37 @@
     "mainNav": "Main",
     "tabbar": "Navigation",
     "signIn": "Sign in",
-    "signInFailed": "Couldn't sign in",
     "myAccount": "My account: {name}",
-    "testWallet": "Test wallet",
     "yourAccount": "Your account",
     "myProfile": "My profile",
     "myLibrary": "My library",
-    "useOtherTestWallet": "Use another test wallet",
-    "switchWalletFailed": "Couldn't switch wallets",
-    "forgetWalletConfirm": "Wallet {wallet} was created by this browser for testing. Using another one deletes it from here: anything bought with it stops showing up.",
-    "forgetWalletYes": "Delete it and use another",
-    "forgetWalletNo": "Keep this wallet",
     "signOut": "Sign out",
-    "signOutFailed": "Couldn't sign out",
-    "balance": "Balance: {amount}",
-    "getTestFunds": "Get test funds",
-    "fundsSending": "Sending test funds…",
-    "fundsReceived": "You received {amount} in test funds",
-    "fundsRequested": "Test funds requested. They show up in a few seconds."
+    "signOutFailed": "Couldn't sign out"
   },
   "footer": {
-    "tagline": "AI specialists for the Claude and ChatGPT you already use. Buy once, use anywhere.",
+    "tagline": "AI specialists for the Claude and ChatGPT you already use. Each step is proven by running it in a CreateOS sandbox.",
     "explore": "Explore",
     "solvers": "Solvers",
-    "guarantees": "Guarantees",
     "creators": "Creators",
     "publish": "Publish a solver",
     "dashboard": "Creator dashboard",
     "trust": "Trust",
     "profile": "Profile and reputation",
-    "network": "Licenses recorded on the Tempo network"
+    "library": "My library",
+    "proof": "Steps proven in CreateOS sandboxes"
   },
   "theme": {
     "useLight": "Switch to light theme",
     "useDark": "Switch to dark theme"
   },
   "switchAccount": {
-    "label": "Switch account",
-    "group": "Switch test wallet",
-    "newWallet": "New test wallet",
-    "switchFailed": "Couldn't switch wallets",
-    "explain": "In this test version, wallet {wallet} was created by this browser. Using another one deletes the current one from here: anything bought with it stops showing up.",
-    "useOther": "Use another test wallet",
-    "justSignOut": "Just sign out",
-    "cancel": "Cancel"
+    "label": "Switch account"
   },
   "ui": {
     "loading": "Loading…",
     "close": "Close",
     "closeNotice": "Close notice",
     "signIn": "Sign in",
-    "signInFailed": "Couldn't sign in",
     "seeMore": "See more",
     "seeLess": "See less",
     "images": "Images",
@@ -93,20 +71,30 @@
     "ratingLabelWithCount": "Rating {rating} out of 5, {count, plural, one {# review} other {# reviews}}",
     "techTitle": "Want to check the technical details?",
     "techHide": "Hide technical details",
-    "techShow": "See the record on the network",
-    "techExplorer": "Open in the network explorer"
+    "techShow": "Show technical details"
   },
-  "network": {
-    "mainnet": "Tempo",
-    "testnet": "Tempo test network",
-    "local": "Local test network",
-    "testHint": "Test network: balances and purchases here have no real value."
-  },
-  "txError": {
+  "errorNotice": {
     "signIn": "Sign in",
-    "signInFailed": "Couldn't sign in",
-    "retry": "Try again",
-    "getTestFunds": "Get test funds",
-    "fundsSent": "Test funds sent"
+    "retry": "Try again"
+  },
+  "login": {
+    "metaTitle": "Sign in",
+    "title": "Sign in to Solvers",
+    "intro": "Enter your email and we'll send you a sign-in link. No password needed.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "submit": "Email me a sign-in link",
+    "sending": "Sending…",
+    "sentTitle": "Check your email",
+    "sentText": "We sent a sign-in link to {email}. Open it on this device to continue.",
+    "devTitle": "Development sign-in",
+    "devText": "Email delivery is off in this environment, so the link is right here.",
+    "continue": "Continue",
+    "useAnother": "Use another email",
+    "invalidEmail": "Enter a valid email address.",
+    "failed": "Couldn't send the link",
+    "signedInAs": "You're signed in as {email}.",
+    "goOn": "Continue",
+    "terms": "By continuing you agree to use Solvers' specialists in your own AI assistant. Payments are handled by Stripe."
   }
 }

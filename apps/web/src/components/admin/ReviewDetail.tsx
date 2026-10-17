@@ -19,16 +19,13 @@ import { Empty } from "@/components/ui/Empty";
 import { Icon } from "@/components/ui/Icon";
 import { Loading } from "@/components/ui/Spinner";
 import { Notice, useToast } from "@/components/ui/Toast";
-import { useAmount, useCreatorErrorText as useErrorText } from "@/components/creator/creator-glue";
+import { useCreatorErrorText as useErrorText } from "@/components/creator/creator-glue";
 import { useFormat } from "@/lib/format";
 import { api } from "@/lib/api";
 import { gap } from "@/lib/style";
 import { prettyJson, revealHidden } from "@/lib/submissions-ui";
 import { Untrusted } from "@/components/ui/Untrusted";
 import { AdminGate } from "./AdminGate";
-
-/** Wallet shortened for display ("0x12ab…cdef"). */
-const shortAddress = (w: string) => (w.length > 12 ? `${w.slice(0, 6)}…${w.slice(-4)}` : w);
 
 const ACTIONS = ["approve", "request_changes", "reject", "finish", "suspend", "resume"];
 
@@ -125,7 +122,6 @@ function Section({ id, title, aside, children }: { id: string; title: string; as
 function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise<void> }) {
   const t = useTranslations("admin");
   const f = useFormat();
-  const amount = useAmount();
   const sub = d.submission;
   const m = d.manifest;
   const text = (k: string): string | null => {
@@ -133,7 +129,7 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
     return typeof v === "string" || typeof v === "number" ? String(v) : null;
   };
   const pricing = m?.pricing && typeof m.pricing === "object" ? (m.pricing as Record<string, unknown>) : null;
-  const price = pricing && typeof pricing.priceUsdc === "number" ? pricing.priceUsdc : null;
+  const price = pricing && typeof pricing.priceCents === "number" ? pricing.priceCents : null;
   const proven = new Set(d.differentiators.proven);
 
   return (
@@ -143,7 +139,7 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
           <div className="row wrapx" style={gap(8)}>
             <span className="eyebrow">{t("header.eyebrow")}</span>
             <Chip tone={d.isNewAgent ? "brand" : "default"}>{d.isNewAgent ? t("header.newSolver") : t("header.newVersion")}</Chip>
-            <StatusChip status={sub.status} nextAction={sub.nextAction} />
+            <StatusChip status={sub.status} />
           </div>
           <h1 className="display h2s" style={{ overflowWrap: "anywhere" }}>
             <Untrusted>{sub.name || sub.slug}</Untrusted>
@@ -159,9 +155,9 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
               <span style={{ overflowWrap: "anywhere" }}><Untrusted>{d.creator.name || t("summary.noName")}</Untrusted></span>{" "}
               <Chip tone={d.creator.contactVerified ? "ok" : "warn"}>{d.creator.contactVerified ? t("summary.verified") : t("summary.unverified")}</Chip>
             </Row>
-            <Row label={t("summary.wallet")}>
+            <Row label={t("summary.email")}>
               <span className="mono" style={{ overflowWrap: "anywhere" }}>
-                {d.creator.wallet}
+                {d.creator.email ?? t("summary.noEmail")}
               </span>
             </Row>
             {d.creator.bio ? (
@@ -175,7 +171,7 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
                 <span style={{ overflowWrap: "anywhere" }}><Untrusted>{text("tagline")}</Untrusted></span>
               </Row>
             ) : null}
-            {price !== null ? <Row label={t("summary.price")}>{amount(price)}</Row> : null}
+            {price !== null ? <Row label={t("summary.price")}>{f.usd(price)}</Row> : null}
             <Row label={t("summary.differentiators")}>
               {d.differentiators.declared.length === 0 ? (
                 <span className="muted">{t("summary.none")}</span>
@@ -232,7 +228,7 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
                     <div className="row between wrapx" style={gap(8)}>
                       <b>{ACTIONS.includes(r.action) ? t(`history.actions.${r.action}`) : r.action}</b>
                       <span className="tiny faint">
-                        <Ago iso={r.createdAt} /> · <span className="mono">{shortAddress(r.reviewerWallet)}</span>
+                        <Ago iso={r.createdAt} /> · <span className="mono">{r.reviewerUserId.slice(0, 8)}</span>
                       </span>
                     </div>
                     {r.notes ? <p className="small" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><Untrusted>{r.notes}</Untrusted></p> : null}
@@ -251,7 +247,7 @@ function Review({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promise
         <Decision d={d} reload={reload} />
         <div className="card pad col" style={gap(14)}>
           <h2 className="h4">{t("decision.progress")}</h2>
-          <Timeline status={sub.status} nextAction={sub.nextAction} />
+          <Timeline status={sub.status} />
         </div>
       </aside>
     </div>
@@ -534,8 +530,9 @@ function Decision({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promi
 
   const inReview = sub.status === "pending_review";
   const canReject = inReview || sub.status === "changes_requested";
-  const canRevoke = sub.status === "awaiting_creator_signature";
-  const canFinish = sub.status === "awaiting_onchain_approval" || sub.status === "publishing" || sub.status === "publish_failed";
+  // A failed publication can be retried or sent back to the creator.
+  const canRevoke = sub.status === "publish_failed";
+  const canFinish = sub.status === "publishing" || sub.status === "publish_failed";
   const complete = reviewChecklistComplete(checklist);
   const notesOk = notes.trim().length >= 3;
   const noteError = touched && !notesOk ? t("notesError") : null;
@@ -562,9 +559,7 @@ function Decision({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promi
                 ? t("toast.busy")
                 : r.outcome === "failed"
                   ? t("toast.failed", { error: r.error ?? t("toast.internalError") })
-                  : r.step === "await-admin-approval"
-                    ? t("toast.awaitAdmin", { slug: sub.slug })
-                    : t("toast.missingStep", { step: r.step ?? t("toast.missingChain") }),
+                  : t("toast.notReady"),
             durationMs: 12000,
           });
           await reload();
@@ -671,7 +666,7 @@ function Decision({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promi
         ) : null}
         {canFinish ? (
           <>
-            <p className="small muted">{t.rich("finishHelp", { code: (chunks) => <code>{chunks}</code> })}</p>
+            <p className="small muted">{t("finishHelp")}</p>
             <Button size="lg" block icon="check" onClick={() => ask("finish")}>
               {t("finish")}
             </Button>
@@ -679,19 +674,15 @@ function Decision({ d, reload }: { d: AdminSubmissionDetail; reload: () => Promi
         ) : null}
       </div>
       {inReview ? <p className="tiny faint">{t("approveHelp")}</p> : null}
-      {sub.status === "published" ? <Relist agentId={sub.agentId} slug={sub.slug} /> : null}
+      {sub.status === "published" ? <Relist agentId={sub.agentId} /> : null}
 
       {confirm ? <ConfirmDialog action={confirm} busy={busy} onCancel={() => setConfirm(null)} onConfirm={() => void run(confirm)} /> : null}
     </div>
   );
 }
 
-/**
- * Puts a live Solver back in the storefront (after the low-rating delist, for example). It signs nothing on-chain: the
- * server only relists a Solver that is already approved on the network, which the team does with the cold admin key
- * (`cli:approve`), never from the site.
- */
-function Relist({ agentId, slug }: { agentId: string; slug: string }) {
+/** Puts a live Solver back in the storefront (after the low-rating delist, for example). */
+function Relist({ agentId }: { agentId: string }) {
   const t = useTranslations("admin.relist");
   const errorText = useErrorText();
   const toast = useToast();
@@ -705,7 +696,7 @@ function Relist({ agentId, slug }: { agentId: string; slug: string }) {
       const r = await api.adminApprove(agentId);
       toast(r.listed ? { tone: "ok", title: t("listedTitle"), text: t("listedText") } : { tone: "warn", title: t("notListedTitle"), text: t("notListedText"), durationMs: 12000 });
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "onchain_approval_required" ? t("needsOnchain", { slug }) : errorText(e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -714,7 +705,7 @@ function Relist({ agentId, slug }: { agentId: string; slug: string }) {
   return (
     <div className="card-flat pad-s col" style={gap(8)}>
       <b>{t("title")}</b>
-      <p className="small muted">{t.rich("text", { code: (chunks) => <code>{chunks}</code> })}</p>
+      <p className="small muted">{t("text")}</p>
       {error ? (
         <Notice tone="warn" role="alert" title={t("failTitle")}>
           {error}

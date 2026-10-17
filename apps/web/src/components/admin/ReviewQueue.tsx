@@ -19,9 +19,8 @@ import { AdminGate } from "./AdminGate";
 
 const FILTERS: (SubmissionStatus | "all")[] = [
   "pending_review",
-  "awaiting_onchain_approval",
+  "publishing",
   "publish_failed",
-  "awaiting_creator_signature",
   "changes_requested",
   "published",
   "all",
@@ -122,7 +121,7 @@ function Queue() {
                       <Untrusted>{r.creatorName || t("noName")}</Untrusted>
                     </span>
                     <span className="tiny faint mono" style={{ overflowWrap: "anywhere" }}>
-                      {r.creatorWallet}
+                      {r.creatorEmail ?? ""}
                     </span>
                   </div>
                   <div className="col" style={gap(4)}>

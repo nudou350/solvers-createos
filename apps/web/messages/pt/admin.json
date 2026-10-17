@@ -14,8 +14,6 @@
     "pending_review": "Na fila da revisão",
     "changes_requested": "Mudanças pedidas",
     "rejected": "Recusado",
-    "awaiting_creator_signature": "Falta a sua confirmação",
-    "awaiting_onchain_approval": "Aprovação final",
     "publishing": "Publicando",
     "publish_failed": "Publicação travou",
     "published": "No ar",
@@ -37,12 +35,11 @@
     "filterLabel": "Filtrar por estado",
     "filters": {
       "pending_review": "Na fila",
-      "awaiting_onchain_approval": "Aprovação final",
       "publish_failed": "Publicação travada",
-      "awaiting_creator_signature": "Esperando o criador",
       "changes_requested": "Mudanças pedidas",
       "published": "Publicados",
-      "all": "Todos"
+      "all": "Todos",
+      "publishing": "Publicando"
     },
     "loading": "Carregando a fila…",
     "errorTitle": "Não deu para carregar a fila",
@@ -85,7 +82,6 @@
     "noName": "Sem nome",
     "verified": "Contato verificado",
     "unverified": "Contato não verificado",
-    "wallet": "Carteira",
     "bio": "Bio",
     "category": "Categoria",
     "tagline": "Frase curta",
@@ -95,7 +91,9 @@
     "proven": " (comprovado)",
     "notProven": " (não comprovado)",
     "description": "Descrição enviada",
-    "descriptionAria": "Descrição enviada pelo criador"
+    "descriptionAria": "Descrição enviada pelo criador",
+    "email": "E-mail",
+    "noEmail": "Sem e-mail"
   },
   "validator": {
     "title": "Validador",
@@ -202,10 +200,10 @@
     "requestChanges": "Pedir mudanças",
     "reject": "Recusar",
     "revoke": "Revogar aprovação",
-    "revokeHelp": "O criador ainda não assinou: revogar volta o envio para “mudanças pedidas” (a nota é obrigatória) e libera a correção na mesma versão.",
+    "revokeHelp": "A publicação falhou: revogar volta o envio para “mudanças pedidas” (a nota é obrigatória) e libera a correção na mesma versão.",
     "finish": "Concluir publicação",
-    "finishHelp": "Especialista novo: antes disto, a aprovação on-chain precisa ser feita na máquina da equipe (<code>cli:approve</code>); este botão não assina nada. Use aqui só se o evento da cadeia não chegou sozinho: conclui o catálogo e coloca o especialista no ar.",
-    "approveHelp": "Aprovar no site não assina nada na cadeia: libera o criador para confirmar. A aprovação final, em especialista novo, é feita à parte com a carteira fria.",
+    "finishHelp": "A publicação começa sozinha depois da aprovação. Use isto para tentar de novo uma publicação que travou ou falhou.",
+    "approveHelp": "Aprovar trava o conteúdo, o preço e a versão e publica o especialista na hora.",
     "back": "Voltar",
     "checklistItems": {
       "promiseDelivered": "A promessa é entregue pelas etapas.",
@@ -219,20 +217,18 @@
       "busy": "Outra finalização está em andamento. Espere um minuto e confira de novo.",
       "failed": "A publicação falhou: {error}",
       "internalError": "erro interno",
-      "awaitAdmin": "Falta a aprovação on-chain com a carteira fria. Na máquina da equipe: pnpm --filter @solvers/server cli:approve {slug}",
-      "missingStep": "Falta: {step}.",
-      "missingChain": "um passo na cadeia",
       "approved": "Aprovado",
       "changesRequested": "Mudanças pedidas",
       "rejected": "Envio recusado",
       "revoked": "Aprovação revogada",
       "finished": "Publicação concluída",
-      "approvedText": "O criador já pode confirmar com a conta dele. Nada foi assinado na cadeia."
+      "approvedText": "A publicação começou. O especialista entra na vitrine em instantes.",
+      "notReady": "Este envio ainda não está pronto para publicar. Recarregue a página para ver o status."
     },
     "confirm": {
       "approve": {
         "title": "Aprovar este envio?",
-        "text": "A versão aprovada (conteúdo, preço e versão) fica gravada e o criador passa a poder confirmar o cadastro. Depois disso, o conteúdo não pode mais ser trocado.",
+        "text": "A versão aprovada (conteúdo, preço e versão) fica travada e é publicada na vitrine na hora. Depois disso, o conteúdo não pode mais mudar.",
         "label": "Aprovar"
       },
       "request_changes": {
@@ -247,25 +243,24 @@
       },
       "revoke": {
         "title": "Revogar a aprovação?",
-        "text": "O criador ainda não assinou: o envio volta para “mudanças pedidas” com a sua nota, e a versão aprovada deixa de valer.",
+        "text": "A publicação desta versão falhou: o envio volta para “mudanças pedidas” com a sua nota, e a versão aprovada deixa de valer.",
         "label": "Revogar"
       },
       "finish": {
-        "title": "Concluir a publicação?",
-        "text": "O especialista entra na vitrine agora. Confira se a aprovação na cadeia já aconteceu.",
-        "label": "Concluir"
+        "title": "Tentar publicar de novo?",
+        "text": "O servidor tenta publicar de novo a versão aprovada. O especialista entra na vitrine se der certo.",
+        "label": "Tentar de novo"
       }
     }
   },
   "relist": {
     "title": "Voltar à vitrine",
-    "text": "Coloca o especialista de volta na vitrine (por exemplo, depois de ter sido escondido por nota baixa). Não assina nada na rede: o especialista precisa já estar aprovado lá, o que a equipe faz com a chave de admin fora do site (<code>cli:approve</code>), nunca pelo site.",
+    "text": "Coloca o especialista de volta na vitrine (por exemplo, depois de ter sido escondido por nota baixa).",
     "button": "Mostrar na vitrine de novo",
     "listedTitle": "De volta à vitrine",
     "listedText": "O especialista voltou a aparecer.",
     "notListedTitle": "Continua escondido",
     "notListedText": "A nota ainda está abaixo do mínimo, então o especialista seria escondido de novo. Ele fica fora da vitrine.",
-    "needsOnchain": "Este especialista não está aprovado na rede. Na máquina da equipe: pnpm --filter @solvers/server cli:approve {slug}",
     "failTitle": "Não deu para voltar à vitrine"
   }
 }

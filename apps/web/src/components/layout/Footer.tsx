@@ -17,8 +17,8 @@ export function Footer() {
             <Link href="/" className="muted">
               {t("solvers")}
             </Link>
-            <Link href="/guarantees" className="muted">
-              {t("guarantees")}
+            <Link href="/library" className="muted">
+              {t("library")}
             </Link>
           </div>
           <div className="col small" style={{ "--gap": "10px" } as React.CSSProperties}>
@@ -37,7 +37,7 @@ export function Footer() {
             </Link>
             <span className="sol-chip">
               <i />
-              {t("network")}
+              {t("proof")}
             </span>
           </div>
         </div>

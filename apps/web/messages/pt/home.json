@@ -27,7 +27,7 @@
     "step1Title": "Escolha um especialista",
     "step1Body": "Compare notas de usuários, os testes da equipe e o antes e depois. Muitos têm teste grátis para você experimentar antes de decidir.",
     "step2Title": "Pague uma vez",
-    "step2Body": "Você recebe uma licença só sua. Se a tarefa tiver garantia, o pagamento fica guardado e só é liberado quando o resultado passa nos critérios.",
+    "step2Body": "Um pagamento pela Stripe dá acesso vitalício. Cada etapa que o solver entrega é comprovada rodando num sandbox do CreateOS.",
     "step3Title": "Use na sua IA",
     "step3Body": "Copie um endereço, cole no Claude ou no ChatGPT e pronto. Um passo a passo com ilustrações leva menos de cinco minutos.",
     "guide": "Ver o passo a passo",
@@ -40,14 +40,14 @@
   },
   "ticket": {
     "view": "Ver {name}",
-    "yourLicense": "Sua licença",
+    "yourLicense": "Seu solver",
     "active": "Ativa",
-    "permanent": "Licença permanente",
+    "permanent": "Acesso vitalício",
     "updates": "Atualizações incluídas",
     "paymentConfirmed": "Pagamento confirmado",
     "tested": "Testado pela equipe",
     "casesSolved": "{score}% dos casos de teste internos resolvidos",
     "noReviews": "Sem avaliações ainda",
-    "onNetwork": "Registrada na rede Tempo"
+    "sandbox": "Etapas comprovadas num sandbox do CreateOS"
   }
 }

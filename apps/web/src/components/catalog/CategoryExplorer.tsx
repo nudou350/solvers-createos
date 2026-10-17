@@ -16,19 +16,15 @@ const TOP = 4;
 
 type Cat = { category: string; count: number };
 
-/** Categories (a click filters) + "Top rated" from getAgents({ sort: "rating", category }). `symbol`: payment token. */
+/** Categories (a click filters) + "Top rated" from getAgents({ sort: "rating", category }). */
 export function CategoryExplorer({
   categories,
   initialTop,
   creators,
-  rate,
-  symbol,
 }: {
   categories: Cat[];
   initialTop: Agent[];
   creators: CreatorMap;
-  rate: number;
-  symbol?: string;
 }) {
   const t = useTranslations("catalog.explorer");
   const f = useFormat();
@@ -137,7 +133,7 @@ export function CategoryExplorer({
         ) : (
           <div className="g4 rail" style={gap("20px", { opacity: loading ? 0.55 : 1, transition: "opacity .2s" })}>
             {top.map((a) => (
-              <AgentCard key={a.id} agent={a} creatorName={creators[a.creatorId]?.name} rate={rate} symbol={symbol} />
+              <AgentCard key={a.id} agent={a} creatorName={creators[a.creatorId]?.name} />
             ))}
           </div>
         )}

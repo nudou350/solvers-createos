@@ -8,7 +8,6 @@
     "none": "Sem avaliações ainda",
     "note": "Teste interno da equipe (checagens automáticas), não uma verificação independente."
   },
-  "disputes": "{n, plural, =0 {Nenhuma contestação perdida} one {# contestação perdida} other {# contestações perdidas}}",
   "diff": {
     "aria": "Diferenciais comprovados",
     "memory": {
@@ -36,10 +35,6 @@
     "title": "Gratuito",
     "included": "Incluído na plataforma"
   },
-  "supply": {
-    "soldOut": "Esgotado",
-    "left": "Restam {left} de {max}"
-  },
   "trialTag": {
     "free": "Teste grátis",
     "exhausted": "Teste esgotado",
@@ -48,8 +43,7 @@
   "card": {
     "by": "por {name}",
     "noReviews": "Ainda sem avaliações",
-    "details": "Ver detalhes",
-    "paidIn": "Pago em {symbol}"
+    "details": "Ver detalhes"
   },
   "scores": {
     "usersTitle": "O que as pessoas acharam",
@@ -67,15 +61,12 @@
     "noEvalTitle": "Sem avaliações ainda",
     "noEvalBody": "Esta versão ({version}) ainda não tem nota de testes. A nota só aparece quando houver uma avaliação.",
     "hideTech": "Ocultar detalhes técnicos",
-    "showTech": "Conferir na rede",
+    "showTech": "Detalhes técnicos",
     "provenUse": "Uso comprovado",
     "verifiedUses": "{count, plural, one {uso verificado} other {usos verificados}}",
     "verifiedUsesNote": "Contamos apenas usos confirmados pelo conector. Não dá para inflar o número.",
     "techHash": "Impressão digital desta versão",
-    "techNetwork": "Rede",
-    "openExplorer": "Abrir no explorador da rede",
-    "techRecord": "Identificador do especialista na rede",
-    "techContract": "Contrato de registro do Solvers"
+    "techRecord": "Id do pacote"
   },
   "beforeAfter": {
     "title": "Antes e depois",
@@ -94,13 +85,13 @@
     "showAll": "Ver histórico completo ({count, plural, one {# versão} other {# versões}})"
   },
   "reviews": {
-    "buyer": "Comprador {wallet}",
+    "buyer": "Comprador verificado",
     "verifiedPurchase": "Compra verificada",
     "ratingAria": "{rating} de 5",
     "loadFailed": "Não deu para carregar as outras avaliações agora.",
     "seeAll": "Ver todas as {count} avaliações",
     "empty": "Ainda não há avaliações. Só quem compra pode avaliar, então elas chegam com as primeiras compras.",
-    "reviewInLibrary": "Você tem esta licença. Avalie o especialista pela sua biblioteca.",
+    "reviewInLibrary": "Você tem este solver. Avalie-o pela sua biblioteca.",
     "goLibrary": "Ir para a biblioteca"
   },
   "trial": {
@@ -113,19 +104,19 @@
     "noSearches": "Sem consultas à base do especialista",
     "limits": "Limites do teste",
     "toolLimit": "{name}: {limit}×",
-    "licenseOnly": "Só com a licença",
-    "owned": "Você tem a licença: use sem esses limites.",
+    "licenseOnly": "Só depois da compra",
+    "owned": "Você tem este solver: use sem esses limites.",
     "leftTitle": "O que resta para você",
     "usesLeft": "{left} de {uses}",
     "searchesLeft": "{n, plural, one {# consulta} other {# consultas}} à base do especialista",
     "toolLeft": "{name}: {left} de {limit}×",
-    "over": "Seu teste grátis acabou. Para continuar, compre a licença.",
+    "over": "Seu teste grátis acabou. Para continuar, compre o solver.",
     "tryFree": "Testar grátis"
   },
   "buy": {
     "platformTitle": "Incluído na plataforma",
     "free": "Gratuito",
-    "noPurchase": "Sem compra, sem licença e sem pagamento.",
+    "noPurchase": "Nada a comprar e nenhum pagamento.",
     "install": "Instalar na minha IA",
     "step1": "Copie o endereço do conector do Solvers.",
     "step2": "Cole no Claude ou no ChatGPT e autorize com a sua conta.",
@@ -133,31 +124,21 @@
     "check1": "O mesmo conector serve para todos os especialistas que você tiver.",
     "check2": "Você só precisa entrar na sua conta do Solvers.",
     "ownedTitle": "Você já tem este especialista",
-    "ownedBody": "Sua licença permanente está ativa. Conecte à sua IA para usar.",
+    "ownedBody": "O acesso vitalício está ativo. Conecte-o à sua IA para usar.",
     "goInstall": "Ir para a instalação",
     "library": "Minha biblioteca",
-    "permanent": "Licença permanente",
+    "permanent": "Acesso vitalício",
     "oneTime": "pagamento único",
-    "rate": "Cobrado como {amount} (1 {symbol} = US$ 1)",
-    "supplyLeft": "<b>Restam {left} de {max} licenças.</b> O limite atual vale na rede; o criador pode aumentá-lo, nunca reduzi-lo.",
-    "soldOut": "Esgotado",
-    "buy": "Comprar licença",
+    "buy": "Comprar com Stripe",
     "tryFree": "Testar grátis",
     "trialTry": "{uses} para experimentar.",
     "trialLeft": "Restam {left} de {uses}.",
     "trialOver": "Seu teste grátis acabou.",
     "seeTrial": "Ver o que o teste inclui",
-    "onChain": "A licença fica registrada na rede, na sua carteira.",
     "trialInAi": "O teste grátis acontece na sua IA, pelo conector.",
-    "withGuarantee": "Garantia de resultado disponível para tarefas.",
-    "noGuarantee": "Sem garantia de resultado para este especialista.",
-    "guaranteeAsk": "Prefere pagar só pelo resultado?",
-    "guaranteeTask": "Tarefa com garantia",
-    "soldOutText": "Todas as licenças disponíveis agora já foram vendidas. O criador pode aumentar o limite; volte depois para conferir.",
-    "transfer": "Transferível: passar a licença para outra pessoa custa {pct} do preço original ({amount}): {creator} para o criador e {platform} para o Solvers.",
-    "creatorTitle": "Este especialista é seu",
-    "creatorBody": "Quem cria não pode comprar a licença do próprio especialista. Acompanhe as vendas no seu painel de criador.",
-    "creatorPanel": "Abrir meu painel de criador"
+    "sandboxProof": "Cada etapa é comprovada rodando num sandbox do CreateOS antes de seguir.",
+    "stripeSecure": "Pagamento único em dólares americanos, processado com segurança pela Stripe.",
+    "redirecting": "Abrindo o checkout seguro da Stripe…"
   },
   "explorer": {
     "title": "Explore por categoria",
@@ -186,7 +167,7 @@
   "search": {
     "chip": "Especialistas para a IA que você já usa",
     "h1": "Peça a quem entende, direto no seu <em>Claude</em> ou <em>ChatGPT</em>.",
-    "lead": "Escolha um especialista, pague uma vez e conecte à sua IA. Ele lembra de você e pode entregar com garantia de resultado.",
+    "lead": "Especialistas de IA que comprovam cada etapa rodando num sandbox do CreateOS. Escolha um, pague uma vez e conecte à sua IA.",
     "label": "Descreva o que você precisa",
     "placeholder": "Ex.: preciso criar as telas do meu app no Figma",
     "submit": "Encontrar especialista",
@@ -258,13 +239,6 @@
     "connector": "Conector: {name}",
     "asideInstall": "Instalar",
     "asideBuy": "Comprar",
-    "guaranteeChip": "Tarefa com garantia",
-    "guaranteeTitle": "Pague só quando o resultado passar nos critérios",
-    "guaranteeBody": "Você descreve a tarefa. O pagamento fica guardado e cada etapa só é liberada quando a entrega cumpre os critérios definidos pelo criador. Depois de cada entrega você tem {duration} para revisar ou contestar.",
-    "perTask": "{amount} por tarefa",
-    "hireGuarantee": "Contratar com garantia",
-    "verifyTests": "Verificada por testes no servidor",
-    "verifyReview": "Você revisa a entrega",
     "diffTitle": "O que torna este especialista diferente",
     "diffBody": "Estes pontos foram conferidos pela equipe do Solvers antes de o especialista entrar na vitrine.",
     "reqTitle": "O que você precisa para usar",
@@ -307,16 +281,8 @@
     "versionTrial": "Versão {version} · teste grátis",
     "ratingAria": "Nota {rating} de 5",
     "levelsTitle": "Níveis de reputação",
-    "levelsNote": "O selo aparece no perfil, na página de cada especialista e nas garantias.",
-    "techText": "As vendas e as avaliações dos especialistas deste criador ficam registradas na rede, e qualquer pessoa pode conferir.",
-    "wallet": "Carteira",
-    "network": "Rede",
+    "levelsNote": "O selo aparece no perfil e na página de cada solver.",
     "notFoundTitle": "Criador não encontrado",
     "notFoundBody": "Este endereço não corresponde a nenhum criador com especialistas na vitrine."
-  },
-  "network": {
-    "mainnet": "Tempo",
-    "testnet": "Tempo Moderato (rede de testes)",
-    "local": "Rede de testes local"
   }
 }

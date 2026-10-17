@@ -1,6 +1,5 @@
 // Catalog types and helpers (home, Solver and creator pages).
-// Formatting, reputation badge and durations in lib/format; explorer links in lib/explorer; --gap in lib/style.
-// The lost-disputes text lives in messages/<locale>/catalog.json (key "disputes").
+// Formatting, reputation badge and durations in lib/format; --gap in lib/style.
 import type { Creator } from "@solvers/api-client";
 
 /** Short creator for the cards: name and reputation (from getCreators()). */

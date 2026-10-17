@@ -22,7 +22,7 @@ const DEBOUNCE_MS = 450;
 type Result = { status: "idle" } | { status: "loading"; q: string } | { status: "done"; q: string; agents: Agent[] } | { status: "error"; q: string };
 
 /** Hero with the search by need (search(need) returns the best 3) and the suggestions section. */
-export function SearchHero({ creators, rate, aside }: { creators: CreatorMap; rate: number; aside: ReactNode }) {
+export function SearchHero({ creators, aside }: { creators: CreatorMap; aside: ReactNode }) {
   const t = useTranslations("catalog.search");
   const tc = useTranslations("catalog.card");
   const f = useFormat();
@@ -170,7 +170,7 @@ export function SearchHero({ creators, rate, aside }: { creators: CreatorMap; ra
                     ) : null}
                     <div className="row between wrapx" style={{ marginTop: "auto" }}>
                       {a.reviewsCount > 0 ? <Stars rating={a.userRating} showValue /> : <span className="tiny faint">{tc("noReviews")}</span>}
-                      {a.platform ? <FreeInline /> : <b className="num">{f.brl0(a.priceUsdc, rate)}</b>}
+                      {a.platform ? <FreeInline /> : <b className="num">{f.usd(a.priceCents, true)}</b>}
                     </div>
                   </Link>
                 ))}

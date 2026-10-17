@@ -1,23 +1,18 @@
 // Formatting and presentation helpers, ported from design/solver-lib.js.
-// The rate comes from getConfig().brlPerUsd: pass `rate` (or use useRate() from lib/config). Token amounts in base
-// units are formatted by lib/format-money.ts (exact, no float math).
+// Prices are integer USD cents, formatted by `usd` here or <Price cents /> (lib/format-money.ts).
 //
 // i18n: use useFormat() (client or synchronous server component) or await getFormat() from lib/format-server (async server
 // component). Both return the same formatters in the page language, with the texts in messages/<locale>/format.json.
 import { useLocale, useTranslations } from "next-intl";
 import type { IconName } from "@/components/ui/icons";
 import { INTL_LOCALE, type Locale } from "@/i18n/routing";
+import { formatUsd } from "./format-money";
 
 export function initials(name: string): string {
   const p = String(name).trim().split(/\s+/).filter(Boolean);
   if (!p.length) return "?";
   return ((p[0]?.[0] ?? "") + (p.length > 1 ? (p[p.length - 1]?.[0] ?? "") : "")).toUpperCase();
 }
-
-/** Shortened address: "0x976E…0aa9". */
-export const short = (w?: string | null) => (w ? `${w.slice(0, w.startsWith("0x") ? 6 : 4)}…${w.slice(-4)}` : "");
-
-export type Countdown = { text: string; clock: string; h: number; m: number; s: number; urgent: boolean; done: boolean };
 
 /** Rating 0..5 → percentage for the star bar. */
 export const starPct = (r: number) => Math.round((r / 5) * 100);
@@ -141,15 +136,8 @@ export function makeFormat(locale: Locale, t: T) {
     locale,
     /** Number with fixed decimals in the language (1,234.50 / 1.234,50). */
     num,
-    /** Display-only local price from a stablecoin amount. pt: BRL by the rate ("R$ 129,90"); en: dollars ("$24.99"). */
-    brl: (amount: number, rate: number) => (locale === "pt" ? `R$ ${num(amount * rate, 2)}` : `$${num(amount, 2)}`),
-    /** Same as brl, rounded without cents (cards). */
-    brl0: (amount: number, rate: number) =>
-      locale === "pt" ? `R$ ${num(Math.round(amount * rate), 0)}` : `$${num(Math.round(amount), 0)}`,
-    /** Amount already in BRL (e.g. AgentDetail.priceBrl). Only meaningful in pt. */
-    brlValue: (reais: number, digits = 2) => `R$ ${num(reais, digits)}`,
-    /** Basis points as a percentage: 500 -> "5%", 750 -> "7.5%". */
-    bpsPct: (bps: number) => `${num(bps / 100, 0, 2)}%`,
+    /** Integer USD cents -> "$24.99" ("US$ 24,99" in pt). `round` drops the cents (cards). */
+    usd: (cents: number, round = false) => formatUsd(cents, intl, { round }) ?? "",
     int: (n: number) => Number(n).toLocaleString(intl),
     dec1: (n: number) => num(n, 1),
     /** Signed change: "+3.2%", "−1.0%". */
@@ -171,16 +159,6 @@ export function makeFormat(locale: Locale, t: T) {
       if (h >= 1) return t("ago.hours", { n: h });
       return t("ago.justNow");
     },
-    /** Countdown to `iso` (e.g. autoReleaseAt). */
-    countdown: (iso: string, now = Date.now()): Countdown => {
-      const ms = new Date(iso).getTime() - now;
-      if (ms <= 0) return { text: t("countdown.releasing"), clock: "00:00:00", h: 0, m: 0, s: 0, urgent: true, done: true };
-      const h = Math.floor(ms / 3600000);
-      const m = Math.floor((ms % 3600000) / 60000);
-      const sec = Math.floor((ms % 60000) / 1000);
-      const pad = (x: number) => (x < 10 ? `0${x}` : `${x}`);
-      return { text: t("countdown.text", { h, m: pad(m) }), clock: `${pad(h)}:${pad(m)}:${pad(sec)}`, h, m, s: sec, urgent: h < 24, done: false };
-    },
     /** Reputation level (0..100) with the design's text and tone. */
     repLevel: (score: number): RepLevel => {
       const key = levelKey(score);
@@ -188,8 +166,6 @@ export function makeFormat(locale: Locale, t: T) {
     },
     /** Reputation bands ("Reputation levels" table). */
     repLevels: () => REP_LEVELS.map((l) => ({ ...l, name: t(`rep.${l.key}`), range: t(`repRange.${l.key}`) })),
-    /** Buyer guarantee level (getMyGuarantee().level). */
-    guaranteeLevel: (level: "none" | "limited" | "full") => t(`guaranteeLevel.${level}`),
     /** Readable duration: "2 minutes", "48 hours", "3 days" (days only from 2 on, when exact). */
     durationText: (secs: number) => {
       if (secs >= 172800 && secs % 86400 === 0) return t("duration.days", { n: secs / 86400 });

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Solvers: especialistas de IA",
-    "description": "Especialistas de IA para usar com o Claude e o ChatGPT que você já tem. Compre uma vez e use onde quiser."
+    "title": "Solvers: especialistas de IA que provam o trabalho",
+    "description": "Especialistas de IA para usar com o Claude e o ChatGPT que você já tem. Cada etapa é comprovada rodando num sandbox do CreateOS."
   },
   "skipToContent": "Pular para o conteúdo",
   "notFound": {
@@ -19,8 +19,6 @@
     "exploreShort": "Explorar",
     "library": "Minha biblioteca",
     "libraryShort": "Biblioteca",
-    "guarantees": "Garantias",
-    "guaranteesShort": "Garantias",
     "creators": "Para criadores",
     "creatorsShort": "Criador"
   },
@@ -29,57 +27,37 @@
     "mainNav": "Principal",
     "tabbar": "Navegação",
     "signIn": "Entrar",
-    "signInFailed": "Não deu para entrar",
     "myAccount": "Minha conta: {name}",
-    "testWallet": "Carteira de teste",
     "yourAccount": "Sua conta",
     "myProfile": "Meu perfil",
     "myLibrary": "Minha biblioteca",
-    "useOtherTestWallet": "Usar outra carteira de teste",
-    "switchWalletFailed": "Não deu para trocar de carteira",
-    "forgetWalletConfirm": "A carteira {wallet} foi criada por este navegador para testes. Usar outra apaga ela daqui: o que foi comprado com ela deixa de aparecer.",
-    "forgetWalletYes": "Apagar e usar outra",
-    "forgetWalletNo": "Manter esta carteira",
     "signOut": "Sair",
-    "signOutFailed": "Não deu para sair",
-    "balance": "Saldo: {amount}",
-    "getTestFunds": "Receber fundos de teste",
-    "fundsSending": "Enviando fundos de teste…",
-    "fundsReceived": "Você recebeu {amount} em fundos de teste",
-    "fundsRequested": "Fundos de teste pedidos. Eles aparecem em alguns segundos."
+    "signOutFailed": "Não deu para sair"
   },
   "footer": {
-    "tagline": "Especialistas de IA para usar com o Claude e o ChatGPT que você já tem. Compre uma vez e use onde quiser.",
+    "tagline": "Especialistas de IA para usar com o Claude e o ChatGPT que você já tem. Cada etapa é comprovada rodando num sandbox do CreateOS.",
     "explore": "Explorar",
     "solvers": "Especialistas",
-    "guarantees": "Garantias",
     "creators": "Criadores",
     "publish": "Publicar especialista",
     "dashboard": "Painel do criador",
     "trust": "Confiança",
     "profile": "Perfil e reputação",
-    "network": "Licenças registradas na rede Tempo"
+    "library": "Minha biblioteca",
+    "proof": "Etapas comprovadas em sandboxes do CreateOS"
   },
   "theme": {
     "useLight": "Usar tema claro",
     "useDark": "Usar tema escuro"
   },
   "switchAccount": {
-    "label": "Trocar conta",
-    "group": "Trocar de carteira de teste",
-    "newWallet": "Nova carteira de teste",
-    "switchFailed": "Não deu para trocar de carteira",
-    "explain": "Nesta versão de teste, a carteira {wallet} foi criada por este navegador. Usar outra apaga a atual daqui: o que foi comprado com ela deixa de aparecer.",
-    "useOther": "Usar outra carteira de teste",
-    "justSignOut": "Só sair",
-    "cancel": "Cancelar"
+    "label": "Trocar conta"
   },
   "ui": {
     "loading": "Carregando…",
     "close": "Fechar",
     "closeNotice": "Fechar aviso",
     "signIn": "Entrar",
-    "signInFailed": "Não deu para entrar",
     "seeMore": "Ver mais",
     "seeLess": "Ver menos",
     "images": "Imagens",
@@ -93,20 +71,30 @@
     "ratingLabelWithCount": "Nota {rating} de 5, {count, plural, one {# avaliação} other {# avaliações}}",
     "techTitle": "Quer conferir os detalhes técnicos?",
     "techHide": "Ocultar detalhes técnicos",
-    "techShow": "Ver o registro na rede",
-    "techExplorer": "Abrir no explorador da rede"
+    "techShow": "Ver detalhes técnicos"
   },
-  "network": {
-    "mainnet": "Tempo",
-    "testnet": "Rede de teste Tempo",
-    "local": "Rede de teste local",
-    "testHint": "Rede de teste: saldos e compras aqui não têm valor real."
-  },
-  "txError": {
+  "errorNotice": {
     "signIn": "Entrar",
-    "signInFailed": "Não deu para entrar",
-    "retry": "Tentar de novo",
-    "getTestFunds": "Receber fundos de teste",
-    "fundsSent": "Fundos de teste enviados"
+    "retry": "Tentar de novo"
+  },
+  "login": {
+    "metaTitle": "Entrar",
+    "title": "Entrar no Solvers",
+    "intro": "Digite seu e-mail e enviamos um link de acesso. Sem senha.",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "voce@exemplo.com",
+    "submit": "Enviar link de acesso",
+    "sending": "Enviando…",
+    "sentTitle": "Confira seu e-mail",
+    "sentText": "Enviamos um link de acesso para {email}. Abra neste aparelho para continuar.",
+    "devTitle": "Acesso de desenvolvimento",
+    "devText": "O envio de e-mail está desligado neste ambiente, então o link está aqui.",
+    "continue": "Continuar",
+    "useAnother": "Usar outro e-mail",
+    "invalidEmail": "Digite um e-mail válido.",
+    "failed": "Não deu para enviar o link",
+    "signedInAs": "Você entrou como {email}.",
+    "goOn": "Continuar",
+    "terms": "Ao continuar, você concorda em usar os especialistas do Solvers no seu próprio assistente de IA. Os pagamentos são feitos pela Stripe."
   }
 }

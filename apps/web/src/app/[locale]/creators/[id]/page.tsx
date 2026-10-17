@@ -1,21 +1,18 @@
-import { checksumAddress, type CreatorProfile, type PublicConfig } from "@solvers/api-client";
+import type { CreatorProfile } from "@solvers/api-client";
 import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache, type CSSProperties } from "react";
-import { networkKey } from "@/components/catalog/network";
 import { agentHref } from "@/components/catalog/data";
 import { Button } from "@/components/ui/Button";
 import { RepBadge } from "@/components/ui/Chip";
 import { Empty } from "@/components/ui/Empty";
 import { Icon } from "@/components/ui/Icon";
-import { TechCard } from "@/components/ui/TechCard";
 import { Tile } from "@/components/ui/Tile";
 import { ApiError, serverApi } from "@/lib/api";
 import { hasEvalScore } from "@/lib/eval-label";
-import { addressUrl } from "@/lib/explorer";
 import { initials, starPct } from "@/lib/format";
 import { getFormat } from "@/lib/format-server";
 import { gap } from "@/lib/style";
@@ -23,22 +20,6 @@ import { gap } from "@/lib/style";
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ id: string; locale: string }> };
-
-/**
- * Creator wallet and network for the "check it on the network" block. The public profile has no wallet; it comes from
- * AgentDetail.onchain.creatorWallet (of any published Solver). null when there is none.
- */
-async function loadTech(p: CreatorProfile, lang: Locale): Promise<{ wallet: string; config: PublicConfig } | null> {
-  const first = p.agents[0];
-  if (!first) return null;
-  const api = serverApi();
-  try {
-    const [d, config] = await Promise.all([api.getAgent(first.slug, lang), api.getConfig()]);
-    return d.onchain.creatorWallet ? { wallet: d.onchain.creatorWallet, config } : null;
-  } catch {
-    return null;
-  }
-}
 
 const load = cache(async (id: string, lang: Locale): Promise<CreatorProfile | null> => {
   try {
@@ -78,7 +59,6 @@ export default async function CreatorPage({ params }: Props) {
   const lv = f.repLevel(c.reputationScore);
   const score = Math.round(c.reputationScore);
   const uses = p.agents.reduce((s, a) => s + a.verifiedUses, 0);
-  const tech = await loadTech(p, locale as Locale);
 
   return (
     <section className="wrap" style={{ paddingTop: 44, paddingBottom: 56 }}>
@@ -114,7 +94,6 @@ export default async function CreatorPage({ params }: Props) {
           </div>
           <div className="col" style={gap("6px")}>
             <b style={{ fontSize: 17 }}>{t("seal")}</b>
-            <span className="small muted">{tc("disputes", { n: c.disputesLost })}</span>
             <span className="small muted">{t("verifiedUses", { count: uses })}</span>
           </div>
         </div>
@@ -186,17 +165,6 @@ export default async function CreatorPage({ params }: Props) {
         </div>
       </div>
 
-      {tech ? (
-        <TechCard
-          style={{ marginTop: 24 }}
-          text={t("techText")}
-          rows={[
-            { label: t("wallet"), value: checksumAddress(tech.wallet), mono: true },
-            { label: t("network"), value: tc(`network.${networkKey(tech.config.chainId)}`) },
-          ]}
-          explorer={addressUrl(tech.wallet, tech.config)}
-        />
-      ) : null}
     </section>
   );
 }

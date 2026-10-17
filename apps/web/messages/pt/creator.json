@@ -22,7 +22,7 @@
     "retry": "Tentar de novo",
     "gate": {
       "title": "Entre para ver seu painel",
-      "text": "Vendas, usos, receita e contestações dos seus especialistas ficam aqui.",
+      "text": "Vendas, usos e receita dos seus especialistas ficam aqui.",
       "howTo": "Como publicar"
     },
     "notCreator": {
@@ -37,30 +37,26 @@
       },
       "share": {
         "title": "Você recebe {pct}% de cada venda",
-        "text": "O valor cai na sua carteira a cada licença vendida. A taxa da plataforma já está descontada."
+        "text": "Os compradores pagam com cartão pela Stripe. A taxa da plataforma já sai descontada da sua parte."
       },
       "quality": {
-        "title": "Qualidade pela bateria de testes",
-        "text": "Cada pacote passa por uma conferência automática e pela revisão da equipe. Quando houver nota dos testes internos da equipe, ela aparece para os compradores."
+        "title": "Etapas comprovadas na execução",
+        "text": "As etapas podem declarar verificações (verify) que rodam num sandbox do CreateOS, então cada etapa é comprovada antes de seguir. Cada pacote também passa por uma conferência automática e pela revisão da equipe."
       }
     },
     "kpi": {
       "sales30": "Vendas em 30 dias",
-      "newLicenses": "licenças novas",
       "allTime": " · {n} no total",
       "uses": "Usos verificados",
       "usesSub": "nos últimos 30 dias",
       "revenue": "Receita de vendas",
-      "royalties": "Royalties de transferências",
-      "royaltiesSub": "sua parte quando uma licença muda de dono",
-      "disputes": "Contestações",
-      "disputesOpen": "{n} em análise"
+      "newSales": "vendas novas",
+      "revenueSub": "sua parte de {pct}%, paga pela Stripe"
     },
     "reputation": {
       "title": "Seu selo de reputação",
-      "text": "A reputação sobe com boas notas, testes aprovados e contestações resolvidas a favor do comprador. Contestações perdidas descontam pontos e reduzem a visibilidade.",
-      "profile": "Ver meu perfil público",
-      "lost": "{n, plural, =0 {Nenhuma contestação perdida} one {# contestação perdida} other {# contestações perdidas}}"
+      "text": "A reputação sobe com boas notas e testes aprovados. Notas baixas descontam pontos e reduzem a visibilidade.",
+      "profile": "Ver meu perfil público"
     },
     "agents": {
       "title": "Seus especialistas",
@@ -69,7 +65,7 @@
       "emptyText": "Publique o primeiro: é grátis.",
       "cols": {
         "agent": "Especialista",
-        "sold": "Vendidas / Teto",
+        "sold": "Vendidas",
         "uses": "Usos",
         "rating": "Nota",
         "performance": "Desempenho",
@@ -83,38 +79,8 @@
         "retired": "Aposentado"
       },
       "hidden": "Fora da vitrine (nota baixa)",
-      "soldOut": " esgotado",
-      "unlimited": "Sem limite de licenças",
       "noEvals": "Sem avaliações ainda",
-      "manage": "Gerenciar",
-      "closeManage": "Fechar configurações",
-      "manageAria": "Configurações de {name}"
-    },
-    "guarantee": {
-      "title": "Ganhos de tarefas com garantia",
-      "subtitle": "Já sem a taxa da plataforma, à parte das vendas",
-      "total": "Recebido no total",
-      "last30": "Últimos 30 dias",
-      "releases": "Etapas liberadas",
-      "releasesSub": "aprovadas pelo comprador, automáticas ou a seu favor",
-      "emptyTitle": "Nenhum pagamento de garantia ainda",
-      "emptyText": "Quando uma etapa de tarefa com garantia for liberada para você, ela aparece aqui.",
-      "fallbackTask": "Tarefa com garantia",
-      "viewTx": "Ver transação"
-    },
-    "disputes": {
-      "title": "Contestações recentes",
-      "emptyTitle": "Nenhuma contestação até agora",
-      "emptyText": "Quando um comprador contestar uma etapa de garantia, o critério e o motivo aparecem aqui.",
-      "milestone": "Etapa {n}: {title}",
-      "criterion": "Critério apontado: {criterion}",
-      "criterionNone": "não informado",
-      "dateNone": "Data não informada",
-      "result": {
-        "open": "Em análise",
-        "buyer": "Favorável ao comprador",
-        "creator": "Favorável ao criador"
-      }
+      "price": "Licença {price}"
     }
   },
   "chart": {
@@ -154,7 +120,6 @@
         "text": "Veja onde o envio está e o que falta."
       }
     },
-    "loginFail": "Não deu para entrar",
     "linked": {
       "title": "Telegram vinculado",
       "text": "Seu contato foi confirmado."
@@ -179,9 +144,8 @@
       "alreadyIn": "Você já entrou",
       "account": "Conta: {email}.",
       "accountActive": "Sua conta está ativa.",
-      "noWallet": "Não precisa de carteira nem de saldo: o Solvers cuida disso.",
       "next": "Continuar para o cadastro",
-      "p1": "Entre com o seu e-mail. Mandamos um código de acesso e criamos a sua conta na hora.",
+      "p1": "Entre com o seu e-mail. Mandamos um link de acesso e criamos a sua conta na hora.",
       "p2": "Publicar é grátis, sem mensalidade.",
       "p3": "Cada versão passa pela conferência automática e pela revisão da equipe antes de ir ao ar.",
       "login": "Entrar"
@@ -189,7 +153,7 @@
     "build": {
       "toolTitle": "Use o Criador de Solvers",
       "toolSub": "Especialista gratuito, incluído na plataforma",
-      "toolText": "Ele conversa com você em sete etapas: a promessa e o público, os diferenciais, o processo, o conhecimento, as ferramentas, a primeira conversa e os casos de teste. No fim, entrega o pacote pronto e já conferido pelo mesmo validador do site.",
+      "toolText": "Ele conversa com você em sete etapas: a promessa e o público, os diferenciais, o processo, o conhecimento, as ferramentas, a primeira conversa e os casos de teste. As etapas podem declarar verificações (comandos que precisam passar num sandbox do CreateOS), então o especialista comprova cada etapa rodando. No fim, entrega o pacote pronto e já conferido pelo mesmo validador do site.",
       "install": "Instalar na minha IA",
       "learn": "Conhecer o Criador de Solvers",
       "installNote": "Instalar leva uns dois minutos e vale para o Claude e o ChatGPT. Depois é só pedir: “Use o Criador de Solvers para montar um especialista de [o seu tema]”.",
@@ -245,7 +209,7 @@
       "title": "Resumo do que você aceita",
       "b1": "Você é responsável pelo conteúdo do pacote e tem o direito de usar tudo o que está nele. Conteúdo de terceiros precisa de fonte e permissão.",
       "b2": "A equipe revisa cada versão antes de ir ao ar e pode pedir mudanças, recusar, suspender ou retirar um especialista.",
-      "b3": "A taxa da plataforma sai de cada venda. O restante vai para a sua carteira.",
+      "b3": "A taxa da plataforma sai de cada venda; o restante é a sua parte.",
       "b4": "O especialista não pode prometer resultado financeiro, jurídico ou médico sem ressalvas, nem agir contra o usuário ou mandar os dados dele para fora."
     },
     "terms": "Li o resumo e aceito os termos para criadores do Solvers.",
@@ -307,202 +271,9 @@
     "cancel": "Cancelar envio",
     "note": "O servidor confere o pacote de novo, mesmo que você já tenha validado no seu computador. Se houver erros, você vê tudo na tela de acompanhamento e nada vai para a revisão da equipe."
   },
-  "cosign": {
-    "button": {
-      "register-agent": "Assinar e publicar",
-      "update-version": "Assinar a atualização",
-      "update-pricing": "Assinar o novo preço"
-    },
-    "toast": {
-      "title": "Assinado e confirmado",
-      "text": "A rede registrou a sua confirmação. Acompanhe os próximos passos por aqui."
-    },
-    "planFailTitle": "Não deu para ver o que falta",
-    "retry": "Tentar de novo",
-    "checking": "Conferindo o que falta para publicar…",
-    "blockedTitle": "Este especialista está bloqueado na rede",
-    "blockedText": "Ele está suspenso ou registrado por outra conta. Fale com a equipe.",
-    "awaitTitle": "Falta a aprovação final da plataforma",
-    "awaitText": "Você assinou e a rede confirmou. Agora a equipe do Solvers faz a aprovação final com uma chave separada, fora do site (nunca pelo site). Depois disso o especialista entra na vitrine. Você não precisa fazer nada.",
-    "doneTitle": "Tudo certo na rede",
-    "doneText": "A publicação está sendo concluída. Esta página se atualiza sozinha.",
-    "title": {
-      "register": "Assine para publicar o seu especialista",
-      "pricing": "Assine o novo preço",
-      "version": "Assine a nova versão"
-    },
-    "text": {
-      "register": "A equipe aprovou o pacote. Assine uma única vez com a sua conta para registrar o especialista como seu, com o preço, o royalty e o limite de licenças aprovados.",
-      "pricing": "A versão já está na rede. Assine uma vez para aplicar o preço e as condições aprovados.",
-      "version": "A equipe aprovou a nova versão. Assine uma vez para publicar a atualização."
-    },
-    "li": {
-      "oneSignature": "Tudo vai numa confirmação só: você assina uma vez.",
-      "fee": "A taxa da rede é do Solvers.",
-      "approved": "Preço, nome e versão vêm do que a equipe aprovou ({name} v{version}, {price}). Você não precisa digitar nada.",
-      "approvedShort": "Preço, nome e versão vêm do que a equipe aprovou. Você não precisa digitar nada.",
-      "deposit": "O cadastro pede um depósito de {stake}, que pode ser devolvido. Seu saldo: {balance}.",
-      "afterRegister": "Depois que a rede confirmar, a equipe faz a aprovação final e o especialista entra na vitrine.",
-      "afterUpdate": "Depois que a rede confirmar, a nova versão entra no ar."
-    },
-    "lowTitle": "Saldo insuficiente para o depósito",
-    "lowText": "O depósito é de {stake} e o seu saldo é {balance}.",
-    "faucet": "Receber saldo de teste",
-    "failTitle": "A confirmação não foi concluída",
-    "retryBtn": "Tentar de novo",
-    "signing": "Confirme na janela do seu login…",
-    "confirming": "Esperando a rede confirmar…",
-    "footnote": "Uma janela do seu login pode abrir para você confirmar. A confirmação vale por poucos minutos: se demorar, é só tentar de novo.",
-    "phases": {
-      "aria": "Etapas da publicação",
-      "viewTx": "Ver a transação",
-      "state": {
-        "done": "feito",
-        "current": "em andamento",
-        "todo": "a fazer",
-        "skipped": "não precisa",
-        "blocked": "bloqueado"
-      },
-      "sign": {
-        "title": "Você assina",
-        "text": "Uma confirmação com a sua conta. A taxa é do Solvers."
-      },
-      "confirmed": {
-        "title": "Confirmado na rede",
-        "text": "A rede registra o cadastro ou a atualização."
-      },
-      "approval": {
-        "title": "Aprovação final da plataforma",
-        "text": "Só para especialista novo: a equipe do Solvers aprova com uma chave separada, fora do site."
-      },
-      "live": {
-        "title": "No ar",
-        "text": "O especialista aparece na vitrine com a versão aprovada."
-      }
-    }
-  },
-  "manage": {
-    "intro": "Cada mudança é uma confirmação com a sua conta. A taxa da rede é do Solvers. O preço da licença e a versão só mudam por um novo envio.",
-    "done": "Mudança confirmada",
-    "viewTx": "Ver no explorador",
-    "failTitle": "A mudança não foi concluída",
-    "doneText": {
-      "pricing": "O novo preço por uso já vale.",
-      "royalty": "A sua parte do royalty de transferência foi atualizada.",
-      "supply": "O novo limite de licenças já vale.",
-      "metadata": "Os dados públicos na rede foram atualizados.",
-      "contest": "A sua contestação foi registrada. A equipe lê antes de decidir.",
-      "stakeTopUp": "O seu depósito foi reforçado.",
-      "stakeExit": "O especialista parou de vender. Você pode retirar o depósito depois de 30 dias.",
-      "stakeCancelExit": "A saída foi cancelada. A equipe revisa o especialista antes de ele voltar a vender.",
-      "stakeWithdraw": "O depósito foi enviado para a sua carteira."
-    },
-    "pricing": {
-      "title": "Preço por uso",
-      "text": "Além da licença, quem compra pode pagar por uso. Não pode passar do preço da licença. Digite 0 para desligar.",
-      "label": "Preço por uso ({symbol})",
-      "hint": "Por exemplo 0,50.",
-      "submit": "Salvar preço por uso",
-      "current": "Agora: {perUse} por uso · licença {price}.",
-      "off": "Agora: o pagamento por uso está desligado · licença {price}."
-    },
-    "royalty": {
-      "title": "Sua parte quando uma licença é transferida",
-      "text": "Quando alguém passa a licença para outra pessoa, paga um royalty sobre o preço original: a sua parte mais a da plataforma, de {platform}. Juntas, não passam de {max}.",
-      "textNoPlatform": "Quando alguém passa a licença para outra pessoa, paga um royalty sobre o preço original: a sua parte mais a da plataforma. Juntas, não passam de {max}.",
-      "label": "Sua parte (%)",
-      "hint": "Até {max}.",
-      "submit": "Salvar a minha parte",
-      "locked": "Este especialista já vendeu uma licença, então a sua parte agora é fixa.",
-      "current": "Sua parte agora: {pct}."
-    },
-    "supply": {
-      "title": "Limite de licenças",
-      "text": "Você pode limitar quantas licenças são vendidas. Dá para aumentar depois, nunca diminuir.",
-      "unlimited": "Sem limite agora · {sold} vendidas.",
-      "current": "{sold} de {max} vendidas.",
-      "label": "Novo limite",
-      "hint": "No mínimo {min}.",
-      "submit": "Salvar limite"
-    },
-    "metadata": {
-      "title": "Dados públicos na rede",
-      "text": "Aponta o registro do especialista na rede para os dados públicos atuais. Use depois de mudar o nome ou a descrição.",
-      "submit": "Atualizar dados públicos",
-      "current": "Aponta agora para: {uri}",
-      "none": "Ainda não definido na rede.",
-      "unknown": "Não conseguimos ler o link atual agora."
-    },
-    "stake": {
-      "title": "Depósito",
-      "text": "O depósito garante o seu especialista. Você pode reforçar, ou parar de vender: quem já comprou continua com acesso e, depois de 30 dias, você retira o depósito.",
-      "retiredText": "Você pediu para parar de vender. O depósito pode ser retirado 30 dias depois do pedido (a equipe pode estender o prazo se houver uma pendência).",
-      "amountLabel": "Valor a acrescentar ({symbol})",
-      "topUp": "Reforçar o depósito",
-      "exit": "Parar de vender",
-      "cancelExit": "Cancelar e manter o especialista",
-      "withdraw": "Retirar o depósito",
-      "cancelNote": "Ao cancelar, o especialista fica em espera até a equipe revisar de novo.",
-      "confirm": {
-        "title": "Parar de vender este especialista?",
-        "p1": "O especialista sai da vitrine na hora e ninguém compra licenças ou usos novos.",
-        "p2": "Quem já comprou continua com acesso.",
-        "p3": "Você pode retirar o depósito depois de 30 dias.",
-        "label": "Parar de vender",
-        "back": "Voltar"
-      },
-      "current": "Depósito agora: {amount}",
-      "unknownTitle": "Estado atual indisponível",
-      "unknown": "Não conseguimos ler o estado atual do depósito agora. Você ainda pode tentar: cada ação é conferida antes da sua confirmação.",
-      "exitAt": "Você pode retirar o depósito a partir de {date}.",
-      "extended": "A equipe estendeu o prazo {n, plural, one {uma vez} other {# vezes}} por causa de uma pendência, então a saída não pode mais ser cancelada.",
-      "slashTitle": "Penalidade proposta sobre este depósito",
-      "slashPending": "A equipe propôs tirar {amount}. Ela pode ser aplicada de {from} até {until}; enquanto isso o depósito não pode ser retirado.",
-      "slashContested": "Você já contestou; a equipe lê antes de decidir.",
-      "noExit": "Não há pedido de saída registrado, então não há nada para retirar ou cancelar."
-    },
-    "contest": {
-      "title": "Contestar um desconto no depósito",
-      "text": "Se a equipe propôs tirar parte do seu depósito, você pode contestar uma vez, com os seus motivos. A equipe lê antes de decidir.",
-      "label": "Seus motivos",
-      "hint": "{count} caracteres · entre {min} e {max}.",
-      "submit": "Enviar contestação",
-      "failTitle": "A contestação não foi enviada"
-    },
-    "errors": {
-      "empty": "Digite um valor.",
-      "invalid": "Digite um número, por exemplo 2 ou 2,50.",
-      "too_many_decimals": "Use no máximo {decimals} casas decimais.",
-      "zero": "Digite um valor maior que zero.",
-      "pctInvalid": "Digite uma porcentagem, por exemplo 5 ou 2,5.",
-      "pctTooPrecise": "Use no máximo duas casas decimais.",
-      "royaltyTooHigh": "A sua parte pode ser de no máximo {max}.",
-      "supplyInvalid": "Digite um número inteiro de licenças.",
-      "supplyBelow": "O limite precisa ser de no mínimo {min}.",
-      "supplyTooHigh": "Esse limite é alto demais.",
-      "contestShort": "Escreva pelo menos {min} caracteres."
-    }
-  },
-  "txErrors": {
-    "not_registered": "Este especialista ainda não está na rede. Conclua a publicação primeiro.",
-    "invalid_price": "O preço por uso não pode passar do preço da licença.",
-    "royalty_locked": "Este especialista já vendeu uma licença, então a sua parte agora é fixa.",
-    "royalty_too_high": "A sua parte e a da plataforma, juntas, não podem passar de 25%.",
-    "supply_unchanged": "O limite de licenças já tem esse valor.",
-    "supply_lower": "O limite de licenças só pode aumentar.",
-    "supply_below_sold": "O limite de licenças não pode ser menor que as licenças já vendidas.",
-    "supply_invalid": "Digite um número inteiro de licenças.",
-    "metadata_unchanged": "Os dados públicos na rede já estão atualizados.",
-    "uri_too_long": "O endereço dos dados públicos é longo demais para a rede.",
-    "invalid_amount": "Digite um valor maior que zero.",
-    "agent_retired": "Este especialista já parou de vender: o depósito só pode ser retirado.",
-    "no_stake_exit": "Não há saída em andamento para este especialista.",
-    "stake_exit_extended": "A equipe estendeu esta saída, então ela não pode mais ser cancelada. Fale com a equipe.",
-    "stake_exit_not_reached": "Ainda não passaram os 30 dias desde o pedido para parar de vender.",
-    "publication_blocked": "Este especialista está bloqueado na rede (suspenso ou registrado por outra conta). Fale com a equipe.",
-    "wrong_step": "Algo mudou nesse meio tempo. Recarregue a página para ver o passo atual.",
-    "submission_state": "Esta versão não está esperando a sua confirmação agora.",
+  "errors": {
+    "submission_state": "Esta versão não pode fazer isso agora. Recarregue a página para ver em que pé está.",
     "not_approved": "Esta versão ainda não foi aprovada na revisão.",
-    "price_too_low": "O preço aprovado está abaixo do mínimo da rede. Fale com a equipe."
+    "price_too_low": "O preço está abaixo do mínimo de US$ 5,00. Ajuste pricing.priceCents no manifest.json e reenvie."
   }
 }

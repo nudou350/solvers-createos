@@ -25,8 +25,6 @@ const STATUS_TONE: Record<SubmissionStatus, Tone> = {
   pending_review: "brand",
   changes_requested: "warn",
   rejected: "bad",
-  awaiting_creator_signature: "warn",
-  awaiting_onchain_approval: "brand",
   publishing: "brand",
   publish_failed: "warn",
   published: "ok",
@@ -35,12 +33,9 @@ const STATUS_TONE: Record<SubmissionStatus, Tone> = {
   withdrawn: "plain",
 };
 
-/** Short label (chip) and explanation of each state. `nextAction` only changes the signature text. */
-export function statusInfo(t: Tr, status: SubmissionStatus, nextAction?: SubmissionView["nextAction"]): StatusInfo {
+/** Short label (chip) and explanation of each state. */
+export function statusInfo(t: Tr, status: SubmissionStatus): StatusInfo {
   const tone = STATUS_TONE[status];
-  if (status === "awaiting_creator_signature") {
-    return { label: t(`status.${status}.label`), text: t(nextAction === "sign_update" ? `status.${status}.textUpdate` : `status.${status}.textRegister`), tone };
-  }
   if (status === "pending_review") return { label: t(`status.${status}.label`), text: t(`status.${status}.text`, { sla: reviewSlaText(t) }), tone };
   return { label: t(`status.${status}.label`), text: t(`status.${status}.text`), tone };
 }
@@ -48,17 +43,17 @@ export function statusInfo(t: Tr, status: SubmissionStatus, nextAction?: Submiss
 export const CHIP_TONE: Record<Tone, "ok" | "warn" | "red" | "brand" | "default"> = { ok: "ok", warn: "warn", bad: "red", brand: "brand", plain: "default" };
 
 /** Timeline stages in the order they happen (texts under stages.<key>.title/text). */
-export const STAGES = [{ key: "sent" }, { key: "check" }, { key: "review" }, { key: "sign" }, { key: "final" }, { key: "publish" }] as const;
+export const STAGES = [{ key: "sent" }, { key: "check" }, { key: "review" }, { key: "publish" }] as const;
 
 /** Title and text of a timeline stage. */
 export function stageInfo(t: Tr, key: (typeof STAGES)[number]["key"]): { title: string; text: string } {
   return { title: t(`stages.${key}.title`), text: key === "review" ? t("stages.review.text", { sla: reviewSlaText(t) }) : t(`stages.${key}.text`) };
 }
 
-export type StageState = "done" | "current" | "attention" | "failed" | "todo" | "skipped";
+export type StageState = "done" | "current" | "attention" | "failed" | "todo";
 
-/** State of each timeline stage for a submission. */
-export function stageStates(status: SubmissionStatus, nextAction?: SubmissionView["nextAction"]): StageState[] {
+/** State of each timeline stage for a submission. Approval publishes right away (the server does it, no extra step). */
+export function stageStates(status: SubmissionStatus): StageState[] {
   // Position of the current stage and how it stands.
   let at = 0;
   let mode: "current" | "attention" | "failed" = "current";
@@ -84,18 +79,11 @@ export function stageStates(status: SubmissionStatus, nextAction?: SubmissionVie
       at = 2;
       mode = "failed";
       break;
-    case "awaiting_creator_signature":
-      at = 3;
-      mode = "attention";
-      break;
-    case "awaiting_onchain_approval":
-      at = 4;
-      break;
     case "publishing":
-      at = 5;
+      at = 3;
       break;
     case "publish_failed":
-      at = 5;
+      at = 3;
       mode = "attention";
       break;
     case "published":
@@ -105,10 +93,7 @@ export function stageStates(status: SubmissionStatus, nextAction?: SubmissionVie
       at = STAGES.length;
       break;
   }
-  // An update of an already approved Solver skips the platform's final approval (PACKAGE_SPEC.md 14.2).
-  const skipFinal = nextAction === "sign_update";
   return STAGES.map((_, i) => {
-    if (i === 4 && skipFinal) return "skipped";
     if (i < at) return "done";
     if (i === at) return mode;
     return "todo";

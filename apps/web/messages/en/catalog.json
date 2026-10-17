@@ -8,7 +8,6 @@
     "none": "No ratings yet",
     "note": "Internal team test (automated checks), not an independent verification."
   },
-  "disputes": "{n, plural, =0 {No lost disputes} one {# lost dispute} other {# lost disputes}}",
   "diff": {
     "aria": "What sets it apart",
     "memory": {
@@ -36,10 +35,6 @@
     "title": "Free",
     "included": "Included in the platform"
   },
-  "supply": {
-    "soldOut": "Sold out",
-    "left": "{left} of {max} left"
-  },
   "trialTag": {
     "free": "Free trial",
     "exhausted": "Trial used up",
@@ -48,8 +43,7 @@
   "card": {
     "by": "by {name}",
     "noReviews": "No reviews yet",
-    "details": "View details",
-    "paidIn": "Paid in {symbol}"
+    "details": "View details"
   },
   "scores": {
     "usersTitle": "What people thought",
@@ -67,15 +61,12 @@
     "noEvalTitle": "No ratings yet",
     "noEvalBody": "This version ({version}) has no test score yet. The score only appears once it has been evaluated.",
     "hideTech": "Hide technical details",
-    "showTech": "Check it on the network",
+    "showTech": "Technical details",
     "provenUse": "Proven use",
     "verifiedUses": "{count, plural, one {verified use} other {verified uses}}",
     "verifiedUsesNote": "We only count uses confirmed by the connector. The number can't be inflated.",
     "techHash": "Fingerprint of this version",
-    "techNetwork": "Network",
-    "openExplorer": "Open in the network explorer",
-    "techRecord": "Solver id on the network",
-    "techContract": "Solvers registry contract"
+    "techRecord": "Package id"
   },
   "beforeAfter": {
     "title": "Before and after",
@@ -94,13 +85,13 @@
     "showAll": "See full history ({count, plural, one {# version} other {# versions}})"
   },
   "reviews": {
-    "buyer": "Buyer {wallet}",
+    "buyer": "Verified buyer",
     "verifiedPurchase": "Verified purchase",
     "ratingAria": "{rating} out of 5",
     "loadFailed": "Couldn't load the other reviews right now.",
     "seeAll": "See all {count} reviews",
     "empty": "No reviews yet. Only buyers can leave one, so they arrive with the first purchases.",
-    "reviewInLibrary": "You have this license. Review this solver from your library.",
+    "reviewInLibrary": "You own this solver. Review it from your library.",
     "goLibrary": "Go to my library"
   },
   "trial": {
@@ -113,19 +104,19 @@
     "noSearches": "No searches in the solver's knowledge base",
     "limits": "Trial limits",
     "toolLimit": "{name}: {limit}×",
-    "licenseOnly": "License only",
-    "owned": "You have the license: use it without these limits.",
+    "licenseOnly": "After purchase only",
+    "owned": "You own this solver: use it without these limits.",
     "leftTitle": "What you have left",
     "usesLeft": "{left} of {uses}",
     "searchesLeft": "{n, plural, one {# search} other {# searches}} in the solver's knowledge base",
     "toolLeft": "{name}: {left} of {limit}×",
-    "over": "Your free trial is over. To continue, buy the license.",
+    "over": "Your free trial is over. To continue, buy the solver.",
     "tryFree": "Try it free"
   },
   "buy": {
     "platformTitle": "Included in the platform",
     "free": "Free",
-    "noPurchase": "No purchase, no license and no payment.",
+    "noPurchase": "Nothing to buy and no payment.",
     "install": "Install on my AI",
     "step1": "Copy the Solvers connector address.",
     "step2": "Paste it into Claude or ChatGPT and authorize it with your account.",
@@ -133,31 +124,21 @@
     "check1": "The same connector works for every solver you have.",
     "check2": "You only need to sign in to your Solvers account.",
     "ownedTitle": "You already have this solver",
-    "ownedBody": "Your permanent license is active. Connect it to your AI to use it.",
+    "ownedBody": "Lifetime access is active. Connect it to your AI to use it.",
     "goInstall": "Go to installation",
     "library": "My library",
-    "permanent": "Permanent license",
+    "permanent": "Lifetime access",
     "oneTime": "one-time payment",
-    "rate": "Charged as {amount} (1 {symbol} = US$ 1)",
-    "supplyLeft": "<b>{left} of {max} licenses left.</b> The current limit is enforced on the network; the creator can raise it, never lower it.",
-    "soldOut": "Sold out",
-    "buy": "Buy license",
+    "buy": "Buy with Stripe",
     "tryFree": "Try it free",
     "trialTry": "{uses} to try it out.",
     "trialLeft": "{left} of {uses} left.",
     "trialOver": "Your free trial is over.",
     "seeTrial": "See what the trial includes",
-    "onChain": "The license is recorded on the network, in your wallet.",
     "trialInAi": "The free trial happens in your AI, through the connector.",
-    "withGuarantee": "Result guarantee available for tasks.",
-    "noGuarantee": "No result guarantee for this solver.",
-    "guaranteeAsk": "Prefer to pay only for the result?",
-    "guaranteeTask": "Task with guarantee",
-    "soldOutText": "All the licenses available right now have been sold. The creator can raise the limit, so check back later.",
-    "transfer": "Transferable: passing the license to someone else costs {pct} of the original price ({amount}): {creator} to the creator and {platform} to Solvers.",
-    "creatorTitle": "This is your solver",
-    "creatorBody": "Creators can't buy a license of their own solver. Follow its sales in your creator panel.",
-    "creatorPanel": "Open my creator panel"
+    "sandboxProof": "Each step is proven by running it in a CreateOS sandbox before it moves on.",
+    "stripeSecure": "One-time payment in US dollars, processed securely by Stripe.",
+    "redirecting": "Opening the secure Stripe checkout…"
   },
   "explorer": {
     "title": "Explore by category",
@@ -186,7 +167,7 @@
   "search": {
     "chip": "Specialists for the AI you already use",
     "h1": "Ask the people who know, right inside your <em>Claude</em> or <em>ChatGPT</em>.",
-    "lead": "Pick a solver, pay once and connect it to your AI. It remembers you and can deliver with a result guarantee.",
+    "lead": "AI specialists that prove each step by running it in a CreateOS sandbox. Pick one, pay once and connect it to your AI.",
     "label": "Describe what you need",
     "placeholder": "E.g. I need to design my app's screens in Figma",
     "submit": "Find a solver",
@@ -258,13 +239,6 @@
     "connector": "Connector: {name}",
     "asideInstall": "Install",
     "asideBuy": "Buy",
-    "guaranteeChip": "Task with guarantee",
-    "guaranteeTitle": "Pay only when the result passes the criteria",
-    "guaranteeBody": "You describe the task. The payment is held, and each step is only released when the delivery meets the criteria set by the creator. After each delivery you have {duration} to review or dispute it.",
-    "perTask": "{amount} per task",
-    "hireGuarantee": "Hire with guarantee",
-    "verifyTests": "Verified by tests on the server",
-    "verifyReview": "You review the delivery",
     "diffTitle": "What makes this solver different",
     "diffBody": "These points were checked by the Solvers team before the solver went on the storefront.",
     "reqTitle": "What you need to use it",
@@ -307,16 +281,8 @@
     "versionTrial": "Version {version} · free trial",
     "ratingAria": "Rating {rating} out of 5",
     "levelsTitle": "Reputation levels",
-    "levelsNote": "The badge shows on the profile, on each solver's page and on guarantees.",
-    "techText": "Sales and reviews of this creator's solvers are recorded on the network, and anyone can check them.",
-    "wallet": "Wallet",
-    "network": "Network",
+    "levelsNote": "The badge shows on the profile and on each solver's page.",
     "notFoundTitle": "Creator not found",
     "notFoundBody": "This address doesn't match any creator with solvers on the storefront."
-  },
-  "network": {
-    "mainnet": "Tempo",
-    "testnet": "Tempo Moderato (test network)",
-    "local": "Local test network"
   }
 }

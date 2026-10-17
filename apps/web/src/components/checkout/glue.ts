@@ -1,15 +1,13 @@
 "use client";
-// Glue between the storefront/checkout screens and the app foundation (session, wallet, transactions, error text,
-// explorer links). Every foundation call of this area goes through here, so an interface change is fixed in one place.
-import type { PublicConfig, TxResponse } from "@solvers/api-client";
-import { useLocale, useTranslations } from "next-intl";
+// Glue between the storefront/checkout screens and the app foundation (session, error text, Stripe Checkout). Every
+// foundation call of this area goes through here, so an interface change is fixed in one place.
+import { useLocale } from "next-intl";
 import { useCallback, useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { INTL_LOCALE, type Locale } from "@/i18n/routing";
-import { errorText, type TxErrorInfo } from "@/lib/error-text";
-import { addressUrl, txUrl } from "@/lib/explorer";
+import { useErrorInfo, useErrorText, type ErrorInfo } from "@/lib/error-text";
 import { useSession } from "@/lib/session";
-import { ensureSigner, runTx, useTxErrorInfo } from "@/lib/tx";
-import { useWallet } from "@/lib/wallet";
+import { checkoutFailure, isCheckoutUrl, resumeBuyPath } from "./rules";
 
 /** Page locale and its Intl form ("en-US", "pt-BR"). */
 export function usePageLocale(): { locale: Locale; intl: string } {
@@ -20,77 +18,58 @@ export function usePageLocale(): { locale: Locale; intl: string } {
 export type CheckoutSession = {
   /** "loading" until the session is known. */
   status: "loading" | "signed-out" | "signed-in";
-  /** Session wallet (lowercase or checksummed, compare with `sameAddress`); null when signed out. */
-  wallet: string | null;
-  /** "privy" (email login with an embedded wallet) or "dev" (local test wallet); decides the sign-in texts. */
-  walletKind: string | null;
-  signingIn: boolean;
-  signIn: () => Promise<void>;
+  /** User id of the session; null when signed out. */
+  userId: string | null;
+  /** Sends the person to the sign-in page and back here (or to `next`). */
+  signIn: (next?: string) => void;
   signOut: () => Promise<void>;
 };
 
 /** Session state for the storefront and checkout screens. */
 export function useCheckoutSession(): CheckoutSession {
-  const session = useSession();
-  const wallet = useWallet();
-  const [signingIn, setSigningIn] = useState(false);
-  const signIn = useCallback(async () => {
-    setSigningIn(true);
-    try {
-      await session.signIn();
-    } finally {
-      setSigningIn(false);
-    }
-  }, [session]);
-  const signOut = useCallback(async () => {
-    await session.signOut();
-  }, [session]);
-  const status = session.status;
-  return {
-    status,
-    wallet: status === "signed-in" ? (session.wallet ?? null) : null,
-    walletKind: (wallet.kind as string | null | undefined) ?? null,
-    signingIn: signingIn || !!session.signingIn,
-    signIn,
-    signOut,
-  };
+  const { status, userId, signIn, signOut } = useSession();
+  return { status, userId: status === "signed-in" ? userId : null, signIn, signOut };
 }
+
+export type StripeCheckout = {
+  /** Creates the Checkout Session and leaves for Stripe's hosted page. */
+  start: () => Promise<void>;
+  /** True from the click until the browser leaves for Stripe (or the call fails). */
+  pending: boolean;
+  error: ErrorInfo | null;
+};
 
 /**
- * Sends a call batch built by the server (purchase intent, review...) from the session wallet; the platform relay pays
- * the network fee and the server confirms it. Resolves with the transaction hash; throws when the wallet refuses, the
- * connected wallet is not the session wallet, or the transaction fails.
+ * "Buy with Stripe" for one Solver: `POST /api/checkout { agentSlug }` with the session cookie, then the browser goes to
+ * the returned Stripe URL. Signed out (401): sign in first and come back to the Solver page with `?buy=1`. Already
+ * owned (409): the library.
  */
-export function useSendCalls(): (tx: TxResponse) => Promise<`0x${string}`> {
-  const wallet = useWallet();
-  const session = useSession();
-  return useCallback(
-    async (tx: TxResponse) => {
-      await ensureSigner(session, wallet);
-      const r = await runTx(tx, wallet);
-      return r.hash as `0x${string}`;
-    },
-    [wallet, session],
-  );
+export function useStripeCheckout(slug: string): StripeCheckout {
+  const { signIn, api } = useSession();
+  const router = useRouter();
+  const info = useErrorInfo();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<ErrorInfo | null>(null);
+  const start = useCallback(async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const { url } = await api.createCheckout(slug);
+      if (!isCheckoutUrl(url, window.location.origin)) throw new Error("unexpected checkout url");
+      window.location.assign(url);
+      // Stays pending: the page is leaving.
+    } catch (e) {
+      setPending(false);
+      const failure = checkoutFailure(e);
+      if (failure === "login") signIn(resumeBuyPath(slug));
+      else if (failure === "owned") router.push("/library");
+      else setError(info(e));
+    }
+  }, [slug, api, signIn, router, info]);
+  return { start, pending, error };
 }
 
-/** Title, text and suggested action (faucet, login, retry) of any error, in the page language. */
-export function useErrInfo(): (e: unknown) => TxErrorInfo {
-  return useTxErrorInfo();
-}
-
-/** Error text in the page language (API codes translated by the foundation's errors.json). */
+/** Error text in the page language (`errors` namespace). */
 export function useErrText(): (e: unknown) => string {
-  const t = useTranslations("errors");
-  return useCallback((e: unknown) => errorText(e, t as unknown as Parameters<typeof errorText>[1]), [t]);
-}
-
-/** Explorer link of a transaction; null without an explorer (local chain). */
-export function txLink(hash: string, config?: PublicConfig | null): string | null {
-  return config === undefined ? txUrl(hash) : txUrl(hash, config);
-}
-
-/** Explorer link of an address (wallet or contract); null without an explorer (local chain). */
-export function addressLink(address: string, config?: PublicConfig | null): string | null {
-  return config === undefined ? addressUrl(address) : addressUrl(address, config);
+  return useErrorText();
 }

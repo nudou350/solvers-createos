@@ -33,7 +33,7 @@ export function PublishFlow() {
   const t = useTranslations("creator.publish");
   const tSub = useTranslations("submissions");
   const errorText = useErrorText();
-  const { status, me: user, signIn, signingIn } = useSession();
+  const { status, me: user, signIn } = useSession();
   const toast = useToast();
   const router = useRouter();
   const [load, setLoad] = useState<Load>({ kind: "idle" });
@@ -53,7 +53,7 @@ export function PublishFlow() {
       setLoad({ kind: "error", message: loadMsg.current(e) });
       return null;
     }
-  }, [api]);
+  }, []);
 
   useEffect(() => {
     if (status !== "signed-in") {
@@ -62,7 +62,7 @@ export function PublishFlow() {
     }
     setLoad({ kind: "loading" });
     void fetchMe();
-  }, [status, user?.wallet, fetchMe]);
+  }, [status, user?.id, fetchMe]);
 
   const creator = load.kind === "ok" ? load.me : null;
   // Step suggested by the server state; clicking an unlocked step takes over.
@@ -74,7 +74,7 @@ export function PublishFlow() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const doLogin = () => signIn().catch((e: unknown) => toast({ tone: "bad", title: t("loginFail"), text: errorText(e) }));
+  const doLogin = () => signIn();
 
   async function recheck() {
     setRechecking(true);
@@ -135,7 +135,7 @@ export function PublishFlow() {
           <p className="muted">{t(`steps.${info}.text`)}</p>
         </div>
 
-        {step === 1 ? <StepSignIn authed={status === "signed-in"} loading={status === "loading"} loggingIn={signingIn} onLogin={doLogin} email={user?.email ?? null} onNext={() => go(2)} /> : null}
+        {step === 1 ? <StepSignIn authed={status === "signed-in"} loading={status === "loading"} onLogin={doLogin} email={user?.email ?? null} onNext={() => go(2)} /> : null}
 
         {step >= 2 && step <= 4 && load.kind === "loading" ? <Loading text={t("loadingProfile")} /> : null}
         {step >= 2 && step <= 4 && load.kind === "error" ? (
@@ -146,7 +146,7 @@ export function PublishFlow() {
 
         {step === 2 && creator ? (
           <CreatorProfileForm
-            key={`${creator.wallet}-${creator.hasProfile}`}
+            key={`${creator.userId}-${creator.hasProfile}`}
             creator={creator}
             rechecking={rechecking}
             onRecheck={() => void recheck()}
@@ -190,14 +190,14 @@ export function PublishFlow() {
   );
 }
 
-function StepSignIn({ authed, loading, loggingIn, onLogin, email, onNext }: { authed: boolean; loading: boolean; loggingIn: boolean; onLogin: () => void; email: string | null; onNext: () => void }) {
+function StepSignIn({ authed, loading, onLogin, email, onNext }: { authed: boolean; loading: boolean; onLogin: () => void; email: string | null; onNext: () => void }) {
   const t = useTranslations("creator.publish.signIn");
   if (loading) return <Loading />;
   if (authed)
     return (
       <div className="col" style={gap(16)}>
         <Notice tone="ok" title={t("alreadyIn")}>
-          {email ? t("account", { email }) : t("accountActive")} {t("noWallet")}
+          {email ? t("account", { email }) : t("accountActive")}
         </Notice>
         <div>
           <Button size="lg" iconRight="arrow-right" onClick={onNext}>
@@ -214,7 +214,7 @@ function StepSignIn({ authed, loading, loggingIn, onLogin, email, onNext }: { au
         <Point icon="shield-check">{t("p3")}</Point>
       </ul>
       <div>
-        <Button size="lg" loading={loggingIn} onClick={onLogin}>
+        <Button size="lg" onClick={onLogin}>
           {t("login")}
         </Button>
       </div>

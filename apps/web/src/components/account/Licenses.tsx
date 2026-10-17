@@ -1,7 +1,9 @@
 "use client";
-// "Solvers" tab of the library: lifetime licenses with the last 8 weeks of usage, free trials, reviews and the license
-// transfer (with royalty) to another wallet.
-import type { License, MyTrial, UsageSummary } from "@solvers/shared";
+// "Solvers" tab of the library: the Solvers the person owns, with the last 8 weeks of usage, free trials and reviews.
+// After a Stripe payment the buyer lands here with `?bought=<slug>`: a banner confirms the purchase, re-reading the list
+// for a few seconds while the payment webhook records it.
+import type { MyTrial, UsageSummary } from "@solvers/shared";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { ReviewBox } from "@/components/catalog/ReviewBox";
@@ -11,64 +13,97 @@ import { Empty } from "@/components/ui/Empty";
 import { Icon } from "@/components/ui/Icon";
 import { Loading } from "@/components/ui/Spinner";
 import { Tile } from "@/components/ui/Tile";
-import { useToast } from "@/components/ui/Toast";
+import { Notice } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
 import { spark, useFormat } from "@/lib/format";
 import { useAgentsIndex } from "@/lib/hooks";
 import { gap } from "@/lib/style";
+import { BOUGHT_POLL, boughtSlug, boughtState } from "./account-rules";
 import { useLibrary } from "./LibraryShell";
 import { LoadError } from "./shared";
-import { TransferLicenseDialog } from "./TransferLicenseDialog";
 import { TrialsSection } from "./TrialsSection";
 
+/** Banner after a Stripe payment (`?bought=<slug>`): confirming while the payment is recorded, then done. */
+function BoughtBanner({ slug }: { slug: string }) {
+  const { licenses, reloadLicenses } = useLibrary();
+  const t = useTranslations("account.bought");
+  const list = Array.isArray(licenses) ? licenses : [];
+  const agents = useAgentsIndex(list.map((l) => l.agentId));
+  const owned = list.map((l) => agents.get(l.agentId)?.slug).filter((x): x is string => !!x);
+  // Until the Solver names load, the state is not known yet: say "confirming" (never a false "done").
+  const state = boughtState(slug, owned);
+  const name = list.map((l) => agents.get(l.agentId)).find((a) => a?.slug.toLowerCase() === slug)?.name ?? slug;
+  const [tries, setTries] = useState(0);
+
+  useEffect(() => {
+    if (state === "done" || tries >= BOUGHT_POLL.attempts || !Array.isArray(licenses)) return;
+    const id = setTimeout(() => {
+      setTries((n) => n + 1);
+      reloadLicenses({ quiet: true });
+    }, BOUGHT_POLL.intervalMs);
+    return () => clearTimeout(id);
+  }, [state, tries, licenses, reloadLicenses]);
+
+  if (state === "done")
+    return (
+      <Notice tone="ok" role="status" title={t("doneTitle")}>
+        {t("doneText", { name })}
+      </Notice>
+    );
+  const gaveUp = tries >= BOUGHT_POLL.attempts;
+  return (
+    <Notice
+      tone={gaveUp ? "warn" : "info"}
+      role="status"
+      title={t("confirmingTitle")}
+      actions={
+        gaveUp ? (
+          <Button size="sm" variant="secondary" icon="refresh" onClick={() => (setTries(0), reloadLicenses({ quiet: true }))}>
+            {t("refresh")}
+          </Button>
+        ) : undefined
+      }
+    >
+      {gaveUp ? t("slowText") : t("confirmingText")}
+    </Notice>
+  );
+}
+
 export function Licenses() {
-  const { licenses, reloadLicenses, reloadWallet } = useLibrary();
+  const { licenses, reloadLicenses } = useLibrary();
   const t = useTranslations("account");
   const f = useFormat();
-  const toast = useToast();
+  const bought = boughtSlug(useSearchParams().get("bought"));
   const [usage, setUsage] = useState<Map<string, UsageSummary>>(new Map());
   // Free trials in progress; if the call fails, the license list still stands on its own.
   const [trials, setTrials] = useState<MyTrial[] | null>(null);
   // License with the review form open.
   const [reviewing, setReviewing] = useState<string | null>(null);
-  const [transferring, setTransferring] = useState<License | null>(null);
   const list = Array.isArray(licenses) ? licenses : [];
   const agents = useAgentsIndex([...list.map((l) => l.agentId), ...(trials ?? []).map((tr) => tr.agentId)]);
-  // After a transfer the list reloads and the clicked button is gone: focus moves to the list.
   const listRef = useRef<HTMLDivElement>(null);
-  const refocus = useRef(false);
 
   useEffect(() => {
     api.getMyUsage().then((u) => setUsage(new Map(u.map((x) => [x.agentId, x]))), () => {});
     api.getMyTrials().then(setTrials, () => setTrials([]));
   }, []);
 
-  useEffect(() => {
-    if (!refocus.current || !Array.isArray(licenses)) return;
-    refocus.current = false;
-    listRef.current?.focus();
-  }, [licenses]);
-
-  const transferred = () => {
-    toast({ tone: "ok", title: t("licenses.transferredTitle"), text: t("licenses.transferredText") });
-    refocus.current = true;
-    reloadLicenses();
-    reloadWallet();
-  };
-
-  if (licenses === "error") return <LoadError onRetry={reloadLicenses} text={t("licenses.loadError")} />;
+  const banner = bought ? <BoughtBanner slug={bought} /> : null;
+  if (licenses === "error") return <LoadError onRetry={() => reloadLicenses()} text={t("licenses.loadError")} />;
   if (licenses === null || trials === null) return <Loading text={t("licenses.loading")} />;
   if (!list.length && !trials.length)
     return (
-      <Empty icon="library" title={t("licenses.emptyTitle")} action={<Button href="/">{t("licenses.explore")}</Button>}>
-        {t("licenses.emptyText")}
-      </Empty>
+      <div className="col" style={gap(18)}>
+        {banner}
+        <Empty icon="library" title={t("licenses.emptyTitle")} action={<Button href="/">{t("licenses.explore")}</Button>}>
+          {t("licenses.emptyText")}
+        </Empty>
+      </div>
     );
-
-  const transferAgent = transferring ? agents.get(transferring.agentId) : undefined;
 
   return (
     <div ref={listRef} tabIndex={-1} role="region" aria-label={t("licenses.region")} className="col" style={gap(18, { outline: "none" })}>
+      {banner}
       {trials.length ? <TrialsSection trials={trials} agents={agents} /> : null}
       {trials.length && list.length ? <h2 className="h4">{t("licenses.heading")}</h2> : null}
       {list.map((l) => {
@@ -127,9 +162,6 @@ export function Licenses() {
                     </Button>
                   </>
                 ) : null}
-                <Button variant="ghost" icon="arrow-up-right" onClick={() => setTransferring(l)}>
-                  {t("licenses.transfer")}
-                </Button>
               </div>
             </div>
             {a && reviewing === l.id ? (
@@ -144,15 +176,6 @@ export function Licenses() {
           </article>
         );
       })}
-      {list.length ? (
-        <p className="small faint row" style={gap(8, { marginTop: 4 })}>
-          <Icon name="info" size="s" />
-          {t("licenses.transferNote")}
-        </p>
-      ) : null}
-      {transferring ? (
-        <TransferLicenseDialog license={transferring} agent={transferAgent} onClose={() => setTransferring(null)} onTransferred={transferred} />
-      ) : null}
     </div>
   );
 }
