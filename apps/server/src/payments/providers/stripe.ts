@@ -36,7 +36,8 @@ export class StripeProvider extends PlatformProvider {
       { idempotencyKey: row.id },
     );
     if (!session.url) throw new Error(`stripe: Checkout Session ${session.id} has no url`);
-    return { providerRef: session.id, payload: { checkoutUrl: session.url } };
+    // webUrl: the session returns the buyer there, so only a server with the same web origin may hand it out again.
+    return { providerRef: session.id, payload: { checkoutUrl: session.url, webUrl: env.PUBLIC_WEB_URL } };
   }
 
   protected override paymentView(row: LedgerRow): Record<string, unknown> | null {

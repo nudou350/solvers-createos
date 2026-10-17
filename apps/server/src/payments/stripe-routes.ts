@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { requireUser } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
+import { env } from "../env.js";
 import { h, parse, unauthorized } from "../lib/http.js";
 import { initPayments, stripeProvider } from "./index.js";
 import { prepareCheckout } from "./intent.js";
@@ -58,7 +59,7 @@ checkoutRouter.post(
       )
       .orderBy(desc(schema.paymentLedger.createdAt))
       .limit(1);
-    const reuse = open ? payloadOf(open).checkoutUrl : undefined;
+    const reuse = open && payloadOf(open).webUrl === env.PUBLIC_WEB_URL ? payloadOf(open).checkoutUrl : undefined;
     if (typeof reuse === "string") return { url: reuse };
 
     const [user] = await db.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
