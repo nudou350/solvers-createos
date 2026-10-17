@@ -31,7 +31,18 @@ describe("session sandbox", () => {
     assert.deepEqual(box.egress, [...BASE_EGRESS]);
     assert.ok(port.calls.some((c) => c.op === "run" && c.cmd === "mkdir" && c.args?.includes("/workspace")));
     assert.equal((await store.active(U, "s1"))?.createosId, a.boxId);
-    await pool.session(U, "s2");
+  });
+
+  it("a new session of the same user takes over the earlier box, reset, instead of creating one", async () => {
+    const { port, store, pool } = setup();
+    const a = await pool.session(U, "s1");
+    const b = await pool.session(U, "s2");
+    assert.equal(b.boxId, a.boxId);
+    assert.equal(port.created, 1);
+    assert.ok(port.calls.some((c) => c.op === "run" && c.cmd === "bash" && c.args?.some((x) => x.includes("find /workspace -mindepth 1 -delete"))));
+    assert.equal((await store.active(U, "s2"))?.createosId, a.boxId);
+    assert.equal(await store.active(U, "s1"), null);
+    await pool.session("22222222-2222-4222-8222-222222222222", "s3");
     assert.equal(port.created, 2);
   });
 
@@ -58,12 +69,14 @@ describe("session sandbox", () => {
   it("at the plan cap: reclaims a box idle for 5+ minutes, else a clear 429", async () => {
     const { port, store, pool, clock } = setup({ maxConcurrent: 1 });
     const a = await pool.session(U, "s1");
-    await assert.rejects(pool.session(U, "s2"), (e) => {
+    // Another user: the same user's new session would take over its own box instead of creating one.
+    const V = "22222222-2222-4222-8222-222222222222";
+    await assert.rejects(pool.session(V, "s2"), (e) => {
       const h = sandboxHttpError(e);
       return h instanceof HttpError && h.status === 429 && /busy/.test(h.message);
     });
     clock.t += 6 * 60_000;
-    const b = await pool.session(U, "s2");
+    const b = await pool.session(V, "s2");
     assert.notEqual(b.boxId, a.boxId);
     assert.equal((await store.get(a.row.id))?.status, "destroyed");
   });

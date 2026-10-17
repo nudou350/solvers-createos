@@ -172,6 +172,11 @@ export class MemorySandboxStore implements SandboxStore {
     return all.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null;
   }
 
+  async latestActive(userId: string) {
+    const all = [...this.rows.values()].filter((r) => r.userId === userId && r.status === "active");
+    return all.sort((a, b) => b.lastUsedAt.getTime() - a.lastUsedAt.getTime())[0] ?? null;
+  }
+
   async get(id: string) {
     return this.rows.get(id) ?? null;
   }
@@ -187,10 +192,11 @@ export class MemorySandboxStore implements SandboxStore {
     return created;
   }
 
-  async update(id: string, patch: { status?: SandboxRowStatus; lastUsedAt?: Date; addRuns?: number }) {
+  async update(id: string, patch: { status?: SandboxRowStatus; sessionId?: string; lastUsedAt?: Date; addRuns?: number }) {
     const r = this.rows.get(id);
     if (!r) return;
     if (patch.status) r.status = patch.status;
+    if (patch.sessionId) r.sessionId = patch.sessionId;
     if (patch.lastUsedAt) r.lastUsedAt = patch.lastUsedAt;
     if (patch.addRuns) r.runs += patch.addRuns;
   }

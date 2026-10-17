@@ -234,6 +234,7 @@ export async function runInBox(port: SandboxPort, boxId: string, files: Files, a
 /** No rows for verifier boxes: they live only inside one call (`ephemeral` destroys them in finally). */
 const noStore: SandboxStore = {
   active: async () => null,
+  latestActive: async () => null,
   get: async () => null,
   list: async () => [],
   insert: async () => {

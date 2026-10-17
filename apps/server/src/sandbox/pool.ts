@@ -38,10 +38,12 @@ export type RunLog = {
 
 export interface SandboxStore {
   active(userId: string, sessionId: string): Promise<SandboxRow | null>;
+  /** The user's most recent active box from any session (reused by a new session instead of creating one). */
+  latestActive(userId: string): Promise<SandboxRow | null>;
   get(id: string): Promise<SandboxRow | null>;
   list(userId: string, sessionId: string, status: SandboxRowStatus): Promise<SandboxRow[]>;
   insert(row: { id?: string; userId: string; sessionId: string | null; createosId: string | null; status: SandboxRowStatus }): Promise<SandboxRow>;
-  update(id: string, patch: { status?: SandboxRowStatus; lastUsedAt?: Date; addRuns?: number }): Promise<void>;
+  update(id: string, patch: { status?: SandboxRowStatus; sessionId?: string; lastUsedAt?: Date; addRuns?: number }): Promise<void>;
   /** Rows not destroyed and unused since `before`, longest idle first. */
   idle(before: Date): Promise<SandboxRow[]>;
   logRun(r: RunLog): Promise<void>;
@@ -61,6 +63,8 @@ const FORK_RETRY_MS = 10 * 60_000;
 
 /** Saves /workspace as a tarball in the box (Free-plan checkpoint). */
 export const snapshotScript = (id: string) => `mkdir -p ${SNAPSHOT_DIR} && tar -czf ${SNAPSHOT_DIR}/${id}.tgz -C ${WORKSPACE} .`;
+/** Readies a box for a new session: stops leftover app processes, empties /workspace and drops old snapshots. */
+export const resetScript = `pkill -x node; pkill -x npm; pkill -x bun; find ${WORKSPACE} -mindepth 1 -delete; rm -rf ${SNAPSHOT_DIR} /tmp/solvers-*.log; mkdir -p ${WORKSPACE}`;
 /** Empties /workspace and unpacks the tarball back into it. */
 export const restoreScript = (id: string) => `find ${WORKSPACE} -mindepth 1 -delete && tar -xzf ${SNAPSHOT_DIR}/${id}.tgz -C ${WORKSPACE}`;
 
@@ -119,7 +123,28 @@ export function createPool(deps: { port: SandboxPort; store: SandboxStore; now?:
     }
   }
 
-  /** The session's box: reconnects (resuming a paused one) or creates it, with ingress on for sandbox_preview. */
+  /**
+   * A new session takes over the user's box from an earlier session instead of creating one (each creation counts
+   * against the plan's daily quota). The box is reset first: leftover app processes stopped, /workspace and old
+   * snapshots emptied, so the new session starts clean.
+   */
+  async function adopt(userId: string, sessionId: string): Promise<Lease | null> {
+    const prev = await store.latestActive(userId);
+    if (!prev?.createosId) return null;
+    try {
+      await port.connect(prev.createosId);
+      const reset = await port.run(prev.createosId, "bash", ["-lc", `${resetScript}; true`], { timeoutMs: 60_000 });
+      if (reset.exitCode !== 0) return null;
+    } catch (e) {
+      if (toSandboxError(e).code !== "not_found") throw e;
+      await store.update(prev.id, { status: "destroyed" });
+      return null;
+    }
+    await store.update(prev.id, { sessionId, lastUsedAt: now() });
+    return { row: { ...prev, sessionId }, boxId: prev.createosId };
+  }
+
+  /** The session's box: reconnects (resuming a paused one), takes over the user's earlier box, or creates one. */
   function session(userId: string, sessionId: string, egressExtras: readonly string[] = []): Promise<Lease> {
     return withKeyLock(`sandbox:${userId}:${sessionId}`, async () => {
       const row = await store.active(userId, sessionId);
@@ -133,6 +158,8 @@ export function createPool(deps: { port: SandboxPort; store: SandboxStore; now?:
           await store.update(row.id, { status: "destroyed" });
         }
       }
+      const adopted = await adopt(userId, sessionId);
+      if (adopted) return adopted;
       const box = await createBox({ egress: egressFor(egressExtras), ingress: true, autoPauseSeconds: AUTO_PAUSE_SECONDS });
       try {
         await port.run(box.id, "mkdir", ["-p", WORKSPACE], { timeoutMs: 30_000 });

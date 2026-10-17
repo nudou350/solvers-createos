@@ -16,6 +16,15 @@ export function dbSandboxStore(): SandboxStore {
         .limit(1);
       return row ?? null;
     },
+    async latestActive(userId) {
+      const [row] = await db
+        .select()
+        .from(t)
+        .where(and(eq(t.userId, userId), eq(t.status, "active")))
+        .orderBy(desc(t.lastUsedAt))
+        .limit(1);
+      return row ?? null;
+    },
     async get(id) {
       // Ids come from the model: anything that is not a uuid is simply unknown.
       if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
