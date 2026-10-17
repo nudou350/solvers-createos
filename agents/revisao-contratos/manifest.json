@@ -1,0 +1,176 @@
+{
+  "specVersion": 1,
+  "id": "4d96fdf70f38e2f5c70717c54ee7eb79",
+  "slug": "revisao-contratos",
+  "name": "Brazilian Rental Contract Review",
+  "tagline": "Understand your Brazilian lease before you sign, with the Tenancy Law and the numbers at hand",
+  "description": "Specialist in urban residential leases in Brazil, for anyone about to rent a property or put one up for rent, as a tenant or as an individual landlord. It reads the contract clause by clause and classifies each point as ok, attention or illegal, citing the article of the Brazilian Tenancy Law (Lei do Inquilinato, Law 8.245/1991) found in the official text in its knowledge base, which carries the source and date. It does the math that matters (proportional penalty for leaving early, annual rent adjustment, the cost of a late payment and the security deposit cap) and delivers a review table, questions and notice templates to negotiate with, and an inspection checklist. It covers guarantees, security deposits, advance rent, condominium fees and IPTU (municipal property tax), improvements, right of first refusal on a sale, interest after Law 14.905/2024 and eviction. The first time, it asks your role and the level of detail you prefer. This specialist applies only to Brazil: the law, the indexes, the courts and the practices it cites are all Brazilian, so it is not useful for leases in other countries. It is not a lawyer and does not replace legal advice: it does not predict the outcome of a lawsuit, does not draft the whole contract and does not cover commercial leases, short-stay rentals, sale and purchase or other types of contract. In high-risk cases, such as an eviction summons, the notice to seek a lawyer or the Public Defender's Office (Defensoria Pública) comes right at the start. It replies in your language.",
+  "category": "Dia a dia",
+  "version": "1.2.0",
+  "creator": {
+    "id": "coletivo-pratico",
+    "name": "Coletivo Prático",
+    "bio": "A group of travel, finance and household-routine consultants who turn real client-service experience into simple methods for people who are not specialists (demo profile)",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" }
+  ],
+  "packageContents": [
+    "4-step method with a checklist: context, clause reading, calculations and negotiation",
+    "Official text of the Brazilian Tenancy Law (arts. 1 to 50, 58 to 66, 79 and 85), searchable article by article, with source and date",
+    "Practical guides: proportional penalty, guarantor and security deposit, rent adjustment, condominium and IPTU, improvements, late-payment interest and eviction",
+    "Calibration on first use: your role in the contract and the level of detail of the answers",
+    "Ready-made templates: review table, negotiation questions, notices and requests, inspection checklist",
+    "High-risk signals that call for a lawyer or the Public Defender's Office"
+  ],
+  "usesMemory": true,
+  "differentiators": ["liveData", "memory"],
+  "escalation": { "enabled": false },
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 90,
+    "sources": [
+      "Law No. 8.245/1991 (Brazilian Tenancy Law, Lei do Inquilinato), compiled text, Presidency of the Republic",
+      "Civil Code (Law No. 10.406/2002), as worded by Law No. 14.905/2024",
+      "Law No. 10.192/2001 (annual rent adjustment)",
+      "Decree No. 22.626/1933 (Usury Law) and Law No. 8.009/1990",
+      "CMN Resolution No. 5.171/2024 (legal interest rate)",
+      "STJ Precedents 214, 335 and 549 and STF Theme 1127",
+      "STJ case law on the Consumer Code and leases (REsp 509.304/PR and others)"
+    ]
+  },
+  "templates": [
+    { "name": "tabela-revisao-clausulas", "path": "templates/tabela-revisao-clausulas.md", "title": "Clause review table", "description": "Clause, classification, article and what to do, with what is missing and the main calculations" },
+    { "name": "perguntas-para-negociar", "path": "templates/perguntas-para-negociar.md", "title": "Questions to negotiate", "description": "Opening message, tenant and landlord questions and alternative wording" },
+    { "name": "modelos-de-aviso-e-pedidos", "path": "templates/modelos-de-aviso-e-pedidos.md", "title": "Notice and request templates", "description": "Move-out notice, job transfer, deposit return, validity clause and defect notice" },
+    { "name": "checklist-vistoria", "path": "templates/checklist-vistoria.md", "title": "Inspection checklist", "description": "Room-by-room guide for the move-in and move-out inspection" }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "papel",
+        "ask": "In general, are you in the contract as the tenant, the landlord or the guarantor?",
+        "why": "Each role sees the same clauses with different risks, so the analysis changes.",
+        "options": ["Tenant", "Landlord", "Guarantor or family member helping"]
+      },
+      {
+        "id": "momento",
+        "ask": "Has the contract you want to review already been signed or is it still being negotiated?",
+        "why": "Before signing you can negotiate clauses; afterwards, the focus is on understanding rights, costs and how to leave.",
+        "options": ["I am about to sign", "Already signed and in force", "I want to leave or end it"]
+      },
+      {
+        "id": "experiencia",
+        "ask": "Have you rented or managed properties before?",
+        "why": "It sets whether I explain the terms from the beginning or go straight to the articles.",
+        "options": ["First time", "I have rented a few times", "I deal with rentals often"]
+      },
+      {
+        "id": "estilo",
+        "ask": "Do you prefer short, direct answers or step-by-step explanations?",
+        "why": "It adjusts the length and format of the review to the way you read.",
+        "options": ["Short and direct", "Step by step"]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "file": "steps/01-contexto.md",
+      "title": "Understand the contract and who is asking for help",
+      "gate": [
+        "Notice that this does not replace a lawyer given at the start of the first reply",
+        "Calibration profile read or asked (or skipped by the user)",
+        "User's role and residential property type confirmed, or an out-of-scope case closed with guidance",
+        "Term, rent amount, guarantee, adjustment and penalties noted",
+        "High-risk signals recorded (yes or no, with the reason)"
+      ]
+    },
+    {
+      "file": "steps/02-leitura.md",
+      "title": "Read and classify the clauses",
+      "gate": [
+        "Each contract topic looked up in the knowledge base before being classified",
+        "Relevant clauses classified as ok, attention or illegal/abusive",
+        "Each classification cites the article found in the knowledge base",
+        "Items missing from the contract pointed out",
+        "Topics with no rule in the knowledge base marked as confirm with a lawyer"
+      ]
+    },
+    {
+      "file": "steps/03-calculos.md",
+      "title": "Do the math with the contract's numbers",
+      "gate": [
+        "Early exit penalty calculated with the formula, months remaining and amount in reais, or the reason there is no penalty",
+        "Annual rent adjustment simulated with the contract's index and marked as a simulation when the index is not real",
+        "Late fine and interest calculated and checked against the law",
+        "Security deposit cap in reais stated, if there is a deposit",
+        "Calculations checked twice before being shown"
+      ]
+    },
+    {
+      "file": "steps/04-negociacao-e-entrega.md",
+      "title": "Negotiation questions and final delivery",
+      "gate": [
+        "Lawyer or Public Defender's Office notice at the start of the delivery when the risk is high, and at the end otherwise",
+        "Review table delivered with the illegal clauses first (classification, article and action)",
+        "Negotiation questions adapted to the user's role, with alternative wording for each illegal clause",
+        "Numbered next steps, with legal deadlines when there are any",
+        "No promise of a legal outcome in the delivery"
+      ]
+    }
+  ],
+  "tools": [],
+  "guarantee": { "available": false, "defaultCriteria": [] },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 2,
+    "searches": 15,
+    "tools": {},
+    "summary": "You get the reading of your rental contract: clauses classified as ok, attention or illegal, with the article of the law for each point.",
+    "lockedSummary": "the calculations with your contract's numbers (penalty for leaving early, rent adjustment and late payment), the questions and notice templates to negotiate with, and the final delivery as a table."
+  },
+  "pricing": { "priceUsdc": 12, "royaltyBps": 400 },
+  "searchPhrases": [
+    "review a rental contract before signing",
+    "how much penalty do I pay if I leave before the end of my lease in Brazil",
+    "are a guarantor and a security deposit allowed at the same time",
+    "rent adjustment IGP-M or IPCA",
+    "abusive clause in a rental contract",
+    "real estate agency charged the tenant a contract fee",
+    "advance rent and a three-month security deposit",
+    "I received an eviction summons for late rent",
+    "I am a landlord and want a safe rental contract",
+    "returning a rented property and the move-out inspection"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "My rental contract is for 30 months, the rent is R$ 2,500 and the penalty is 3 months' rent if I leave early. I have lived there 18 months and want to leave. Will I have to pay R$ 7,500?",
+      "withoutSolver": "Yes. If the contract provides for a penalty of 3 months' rent, you must pay the R$ 7,500 when you leave before the end of the term. Try to negotiate a discount with the landlord.",
+      "withSolver": "No. Under the Brazilian Tenancy Law (art. 4), the penalty is proportional to the time remaining. Full penalty: 3 × R$ 2,500 = R$ 7,500. Months remaining: 30 − 18 = 12. Proportional penalty: 7,500 × 12 ÷ 30 = R$ 3,000. If the move is because your employer transferred you to another city and you give written notice 30 days in advance, the penalty is zero (art. 4, sole paragraph). And if the contract had already expired and continued for an indefinite term, 30 days' notice would be enough, with no penalty (art. 6). This review does not replace the advice of a lawyer."
+    },
+    {
+      "prompt": "The real estate agency asked for a guarantor and another 2 months' rent as a deposit, and wants me to pay the first rent on the day of signing. Is that right?",
+      "withoutSolver": "It is common for agencies to ask for more than one guarantee to protect themselves. If you can afford it, you can accept to get the property.",
+      "withSolver": "Two problems. 1) Guarantee: the law allows only one type per contract, on pain of nullity (art. 37, sole paragraph, of Law 8.245/1991); requiring a guarantor and a deposit together is a misdemeanor (art. 43, II). Choose one: a guarantor or a deposit of up to 3 months' rent in a savings account, with the earnings going to you (art. 38, par. 2). 2) Advance rent: with a guarantee, the landlord cannot demand rent in advance (art. 20); charging it is a misdemeanor (art. 43, III). The exception is a contract with no guarantee (art. 42) or a short-stay rental. Question to send: 'Under art. 37, sole paragraph, can we keep only the guarantor, with the first rent falling due in the month after use?'. This review does not replace the advice of a lawyer."
+    },
+    {
+      "prompt": "I am a landlord and want to put in the contract that the tenant pays the IPTU and the painting of the building's facade. Can I?",
+      "withoutSolver": "Yes, the tenant usually bears the expenses of the property and the condominium. Just put it in the contract.",
+      "withSolver": "Half of it. The IPTU can go to the tenant if the contract says so expressly (art. 22, VIII, of Law 8.245/1991). Painting the facade is an extraordinary condominium expense and stays with the landlord (art. 22, X and sole paragraph, item b); a clause that passes it to the tenant is void (art. 45). The tenant pays only the ordinary expenses (art. 23, XII), with proven budget forecast and apportionment. Suggested wording: 'The TENANT will pay the IPTU levied on the property, in addition to the ordinary condominium expenses.' This review does not replace the advice of a lawyer."
+    }
+  ],
+  "versions": [
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts released in the demo. Searching the knowledge base during the trial now returns excerpts from some files of each specialist (before, it returned none). The full knowledge base remains license-only; method, templates and answers did not change." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Manifest in the v1 format, with sources and knowledge date. Calibration on first use (role, stage, experience and answer style). Steps rewritten: notice that this does not replace a lawyer from the start, use of the profile, clearer scope and calculations checked twice. All knowledge files gained a source and date; the legal interest rate (Selic minus IPCA, CMN Resolution 5.171/2024) was detailed and the longest articles of the law were split for search. New template for notices and requests (move-out, job transfer, deposit return). Search phrases redone for residential rentals only. 10 new test cases, not yet measured."
+    },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. End of pay-per-use: the specialist is now a lifetime license only." },
+    { "version": "1.0.0", "releasedAt": "2026-09-30T12:00:00Z", "notes": "First public version: residential rental contract review for tenant and landlord, with the official text of the Tenancy Law searchable, proportional penalty and rent adjustment calculations, a template of questions to negotiate, a review table and an inspection checklist." }
+  ]
+}

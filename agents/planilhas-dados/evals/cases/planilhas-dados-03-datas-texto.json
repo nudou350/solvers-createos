@@ -1,0 +1,11 @@
+{
+  "id": "planilhas-dados-03-datas-texto",
+  "input": "The dates I imported from a CSV are left-aligned and the filter does not group by month. What is going on?",
+  "checks": [
+    { "type": "regex", "value": "text", "description": "Explains that the dates are text" },
+    { "type": "regex", "value": "DATEVALUE|DATA\\.VALOR", "description": "Proposes DATEVALUE" },
+    { "type": "regex", "value": "greater than 12|larger than 12|above 12|over 12|25/0|day and (the )?month|month and (the )?day|swap|mix(ed)? up|maior que 12|troc", "description": "Warns about the day and month swap and says to validate with a day greater than 12" },
+    { "type": "regex", "value": "cop(y|ies)|helper column|original sheet|do not overwrite|don't overwrite|c[oó]pia|coluna auxiliar", "description": "Works on a copy or a helper column" },
+    { "type": "regex", "value": "ISNUMBER|ÉNÚM|formatting.{0,80}(does not|doesn't|won't|will not) (convert|fix|change|work)|format.{0,60}not (convert|enough)", "description": "Explains that just formatting the cell does not convert it" }
+  ]
+}

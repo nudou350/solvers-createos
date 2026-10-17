@@ -1,0 +1,21 @@
+{
+  "id": "02-influenciadora-skincare",
+  "input": "I'm an influencer. A skincare brand sent me products and is going to pay me for an Instagram post about its new moisturizer. Can you write the caption?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "#publi|#publicidade|paid partnership|#parceriapaga",
+      "description": "Includes advertising disclosure (#publi, #publicidade or the paid partnership label)"
+    },
+    {
+      "type": "regex",
+      "value": "CONAR",
+      "description": "Grounds the answer in CONAR (influencer guide)"
+    },
+    {
+      "type": "regex",
+      "value": "first line|start of the (caption|text)|before the .?see more|without (needing|depending)|not depend",
+      "description": "Advises that the disclosure appear immediately, not depending on the see more"
+    }
+  ]
+}

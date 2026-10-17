@@ -1,0 +1,38 @@
+{
+  "name": "Back-end Node",
+  "tagline": "APIs Node.js e TypeScript seguras: contrato, validação, autorização e testes",
+  "description": "Conduz a sua IA por um processo de engenharia de API em Node.js e TypeScript: escreve o contrato do endpoint, valida a entrada com esquemas estritos, autoriza pelo dono do recurso, padroniza os erros, protege contra abuso e entrega testes que provam a segurança. A base traz OWASP API Top 10 2023, Express 5, Node LTS, zod 4 e a RFC 9457, com fonte e data, e o método se adapta ao seu framework, à sua autenticação e ao seu banco. Serve para endpoint novo, revisão de segurança e diagnóstico de API lenta ou instável. Não executa o seu código nem faz teste de invasão: os testes são escritos para você rodar e a revisão é feita por leitura.",
+  "packageContents": [
+    "Método em 5 etapas, do contrato do endpoint à revisão de segurança, com checklist de saída em cada uma",
+    "Base com fonte e data: OWASP API Top 10 2023, Express 5, Node LTS, zod 4, RFC 9457, senhas e JWT",
+    "Modelos prontos: contrato do endpoint, esqueleto Express 5 com zod, matriz de testes e checklist de revisão",
+    "Calibragem do seu projeto (framework, validação, autenticação e banco) guardada na memória do especialista",
+    "Atualizações da versão 1.x"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    },
+    {
+      "key": "paid",
+      "label": "Plano pago recomendado"
+    }
+  ],
+  "searchPhrases": [
+    "criar uma API em Node.js",
+    "fazer um endpoint com Express",
+    "revisar a segurança da minha API",
+    "minha API está lenta ou caindo",
+    "erro UnhandledPromiseRejection no Node",
+    "como evitar que um usuário veja os dados de outro",
+    "validar os dados que chegam na API",
+    "criar login com JWT em Node",
+    "migrar de Express 4 para Express 5",
+    "evitar cobrança duplicada na minha API",
+    "receber webhook de pagamento com segurança",
+    "limitar requisições por usuário",
+    "API REST com TypeScript e testes"
+  ],
+  "creatorBio": "Engenheira de software sênior com 12 anos em React e Node.js. Foi tech lead de plataforma em fintech e escreve sobre acessibilidade e testes."
+}

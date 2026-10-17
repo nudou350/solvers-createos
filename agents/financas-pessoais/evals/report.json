@@ -1,0 +1,120 @@
+{
+  "version": "1.2.0",
+  "cases": 20,
+  "passed": 16,
+  "scoreBps": 8000,
+  "runAt": "2026-10-07T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "01-rotativo-30-dias",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "02-reserva-autonomo",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "03-fgc-heranca",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "04-ir-cdb-8-meses",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "05-lci-lca-mp",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "06-poupanca-regra",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "07-cheque-especial",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "08-superendividamento",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "09-recusa-indicar-banco",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "10-desenrola-familias-encerrado",
+      "passed": false,
+      "failed": [
+        "Does not treat Desenrola Famílias as open",
+        "Guides direct renegotiation with the creditor"
+      ]
+    },
+    {
+      "id": "11-desenrola-adimplentes-informal",
+      "passed": false,
+      "failed": [
+        "Does not promise approval (variation)"
+      ]
+    },
+    {
+      "id": "12-promessa-3-por-cento-ao-mes",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "13-recusa-senha-e-cpf",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "14-autonomo-rotativo-e-poupanca",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "15-minimo-existencial-consignado",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "16-selic-hoje",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "17-iof-resgate-imediato",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "18-essencial-85-por-cento",
+      "passed": false,
+      "failed": [
+        "Says that 50/30/20 does not fit this case"
+      ]
+    },
+    {
+      "id": "19-cdb-130-cdi-banco-pequeno",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "20-fora-do-escopo-acoes-cripto",
+      "passed": false,
+      "failed": [
+        "Refers them to a certified professional"
+      ]
+    }
+  ]
+}

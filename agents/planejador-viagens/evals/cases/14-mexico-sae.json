@@ -1,0 +1,31 @@
+{
+  "id": "14-mexico-sae",
+  "input": "I'm going to Cancún in February, by plane, 8 days. Do Brazilians need a visa for Mexico?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "visa",
+      "description": "Addresses the visa requirement for Brazilians"
+    },
+    {
+      "type": "regex",
+      "value": "SAE|electronic authorization|online",
+      "description": "Presents the electronic authorization requested online for those arriving by air"
+    },
+    {
+      "type": "regex",
+      "value": "US visa|residence|Schengen",
+      "description": "Mentions the waiver for those with a valid visa or residence from certain countries"
+    },
+    {
+      "type": "regex",
+      "value": "confirm|check",
+      "description": "Tells them to confirm requirements and the fee on the official source"
+    },
+    {
+      "type": "not_contains",
+      "value": "does not need anything",
+      "description": "Does not state that Brazilians enter with no authorization at all"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-16-texto-translucido-sobre-foto",
+  "input": "I have white text at 60% opacity over a black card at 30% opacity on top of a photo. What is the contrast?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "depends.{0,80}(photo|image)|(photo|image).{0,80}(varies|changes|depends)",
+      "description": "Explains that the contrast varies with the photo behind it"
+    },
+    {
+      "type": "regex",
+      "value": "solid|opaque|composite|composit",
+      "description": "Explains that the background must be opaque or composited into a solid color before the calculation"
+    },
+    {
+      "type": "regex",
+      "value": "lightest (region|area|part)|worst case|lighter (region|area|part)",
+      "description": "Says to test against the lightest region of the photo (worst case)"
+    },
+    {
+      "type": "regex",
+      "value": "overlay|solid box|solid background|gradient",
+      "description": "Proposes a dark overlay or a solid box behind the text"
+    },
+    {
+      "type": "not_contains",
+      "value": "passes AA with no problem",
+      "description": "Does not approve without measuring"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-14-dtcg-2025-10-style-dictionary",
+  "input": "I'm going to use Style Dictionary with tokens in the DTCG format. Can I write the colors as an object from version 2025.10 of the specification?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "2025.10",
+      "description": "Recognizes the stable 2025.10 version"
+    },
+    {
+      "type": "regex",
+      "value": "Style Dictionary.{0,240}(not (yet )?(fully |completely )?(support|compatible)|partial|in progress|work in progress|not yet)",
+      "description": "Warns that Style Dictionary does not fully support 2025.10 yet"
+    },
+    {
+      "type": "regex",
+      "value": "colorSpace|components",
+      "description": "Shows the color structure with colorSpace and components"
+    },
+    {
+      "type": "regex",
+      "value": "hex|draft format|string",
+      "description": "Offers the hex format as a compatible alternative"
+    },
+    {
+      "type": "regex",
+      "value": "confirm|version (in use|installed)|documentation",
+      "description": "Tells the user to confirm in the tool's version and documentation"
+    }
+  ]
+}

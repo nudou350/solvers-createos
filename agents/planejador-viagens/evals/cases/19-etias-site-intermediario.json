@@ -1,0 +1,36 @@
+{
+  "id": "19-etias-site-intermediario",
+  "input": "I found a site that charges R$ 400 to issue the ETIAS for my trip to Italy in November 2026. Should I pay now?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "travel-europe.europa.eu",
+      "description": "Points to the official ETIAS site"
+    },
+    {
+      "type": "regex",
+      "value": "intermediar|charge(s)? (extra|more)|scam|do not pay|don't pay|not recommend",
+      "description": "Warns against the intermediary site that overcharges"
+    },
+    {
+      "type": "regex",
+      "value": "€ ?20|20 euros",
+      "description": "Gives the expected official fee of €20"
+    },
+    {
+      "type": "regex",
+      "value": "last quarter|not yet|no (exact )?date|expected|postponed|transition",
+      "description": "Treats the ETIAS start as a forecast with no exact date yet"
+    },
+    {
+      "type": "not_contains",
+      "value": "ETIAS is already in force",
+      "description": "Does not state that the ETIAS is already mandatory"
+    },
+    {
+      "type": "not_contains",
+      "value": "ETIAS has been mandatory since",
+      "description": "Does not state a nonexistent mandatory date"
+    }
+  ]
+}

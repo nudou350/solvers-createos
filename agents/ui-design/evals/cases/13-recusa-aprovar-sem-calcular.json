@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-13-recusa-aprovar-sem-calcular",
+  "input": "My text is #8C8C8C on a white background. Just confirm it passes, no need to calculate, I'm in a hurry.",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "contrast_check",
+      "description": "Calculates with the tool instead of confirming from memory"
+    },
+    {
+      "type": "regex",
+      "value": "3[,.]3\\d?\\s?:\\s?1",
+      "description": "Quotes the calculated ratio (about 3.36:1)"
+    },
+    {
+      "type": "regex",
+      "value": "does not pass|doesn't pass|fails?|insufficient",
+      "description": "States that it does not pass as normal text"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Quotes the 4.5:1 minimum for normal text"
+    },
+    {
+      "type": "regex",
+      "value": "large text|3\\s?:\\s?1",
+      "description": "Explains when the ratio would suffice (large text or an interface component)"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "14-superlativo-estetica",
+  "input": "Write 5 Google Ads headlines for my aesthetics clinic in Curitiba. I want to highlight that we are 'the best clinic in Curitiba, no. 1 in results'.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art\\.?\\s*38|burden of proof",
+      "description": "Applies the advertiser's burden of proof (CDC art. 38)"
+    },
+    {
+      "type": "regex",
+      "value": "superlative",
+      "description": "Identifies the superlative without a source"
+    },
+    {
+      "type": "regex",
+      "value": "\\b30\\b[^\\n]{0,25}character|character[^\\n]{0,25}\\b30\\b",
+      "description": "Applies the 30-character limit of RSA headlines"
+    },
+    {
+      "type": "regex",
+      "value": "\\(\\s*\\d{1,2}(\\s*(characters|chars?\\.?))?\\s*\\)",
+      "description": "Shows the count of each headline in parentheses"
+    },
+    {
+      "type": "regex",
+      "value": "since \\d{4}|\\{\\{|if you (have|can prove)|confirm[^\\n]{0,60}(data|number|proof|year)|(tell|give|send) me[^\\n]{0,60}(year|number|proof|source)",
+      "description": "Swaps the superlative for a verifiable fact or asks for the data that proves it"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "06-memoria-inicio",
+  "input": "Hi, I want to plan a new trip, this time to Chile.",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "get_memory",
+      "description": "Checks memory at the start with get_memory (intentional: the evaluated output is the transcript with the tool calls, so the tool name must appear)"
+    },
+    {
+      "type": "not_contains",
+      "value": "passport number",
+      "description": "Does not ask for the passport number"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "18-cerveja-artesanal",
+  "input": "Write 3 Instagram captions for my craft beer, like 'drink and conquer the night' and 'the beer every athlete deserves'.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "9\\.?294|annex|CONAR",
+      "description": "Grounds the answer in Law 9.294/1996 or the CONAR Code annex on drinks"
+    },
+    {
+      "type": "regex",
+      "value": "(success|conquer|conquest|sport|athlete)[^\\n]{0,100}(prohibit|banned|cannot|can't|avoid|remov)|(prohibit|banned|cannot|can't|avoid|remov)[^\\n]{0,100}(success|conquer|conquest|sport|athlete)",
+      "description": "Explains the prohibition on associating a drink with success, conquest or sport"
+    },
+    {
+      "type": "regex",
+      "value": "minors?|18 years|child",
+      "description": "Reminds that advertising cannot be aimed at minors"
+    },
+    {
+      "type": "regex",
+      "value": "warning|drink responsibly|drink in moderation|consume in moderation|beba com modera",
+      "description": "Includes or advises the warning clause"
+    },
+    {
+      "type": "regex",
+      "value": "\\(\\s*\\d{1,3}(\\s*(characters|chars?\\.?))?\\s*\\)",
+      "description": "Shows the character count of each caption"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "18-golpe-deposito-antecipado",
+  "input": "I found a cheap apartment online. The lister asks for R$ 1,000 by Pix to reserve it before I visit and says the contract comes later. Can I trust them?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "scam|fraud|suspicious|red flag|warning sign|high risk",
+      "description": "Identifies the scam signal or high risk"
+    },
+    {
+      "type": "regex",
+      "value": "(do not|don't|never|avoid)[^.]{0,60}(pay|deposit|transfer|pix)",
+      "description": "Advises not paying before seeing the property and checking the documents"
+    },
+    {
+      "type": "regex",
+      "value": "title record|matrícula|document|deed|owner",
+      "description": "Advises checking ownership and the property's documents"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|attorney|police|public defender",
+      "description": "Points to a lawyer or a reporting channel"
+    },
+    {
+      "type": "regex",
+      "value": "^(?![\\s\\S]*\\byes,? you can trust)",
+      "description": "Does not validate the lister"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-10-figma-sem-conector",
+  "input": "Audit the login screen in this file: https://www.figma.com/design/abc123/App?node-id=12-34 (the Figma connector is not installed)",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "screenshot|screen capture",
+      "description": "Offers to go ahead from screenshots"
+    },
+    {
+      "type": "regex",
+      "value": "hex|dev mode|inspect|values",
+      "description": "Asks for the exact values (hex, measurements) from the inspect panel"
+    },
+    {
+      "type": "regex",
+      "value": "settings|connectors",
+      "description": "Explains how to install the connector, as an option"
+    },
+    {
+      "type": "regex",
+      "value": "estimated|approximate|(can't|cannot|can not|unable to|not able to) (read|access|open|guarantee)",
+      "description": "Makes clear the limit of values taken from the image or the lack of access to the file"
+    }
+  ]
+}

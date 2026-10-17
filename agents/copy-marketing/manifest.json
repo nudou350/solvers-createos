@@ -1,0 +1,173 @@
+{
+  "specVersion": 1,
+  "id": "f99fd481ae1a9d158f7e4bd6712afcd4",
+  "slug": "copy-marketing",
+  "name": "Marketing Copy",
+  "tagline": "Ads and sales copy that fit character limits and Brazilian advertising law",
+  "description": "Takes the AI from briefing to final delivery of ads, posts, emails, SMS and WhatsApp messages: it gathers audience, offer, objection and proof, writes 3 to 5 variations per channel with the character count next to each text, and reviews everything against Brazil's Consumer Defense Code (CDC), the CONAR advertising code, the LGPD data protection law and the rules of professional councils and Anvisa (health, law, supplements, cosmetics). It delivers ready-to-upload tables, the list of what was changed and why, and a suggested A/B test. The knowledge base carries the rules with source and date, including the ban on fixed-odds betting in force since September 2026. Built for advertising aimed at Brazil: the legal checks apply Brazilian law only, although the writing method and the channel limits work anywhere. It is not legal advice, does not guarantee approval by a platform, CONAR or a council, does not promise sales results, does not write for purchased lists and does not write betting advertising.",
+  "category": "Escrita",
+  "version": "1.2.0",
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "usesMemory": true,
+  "creator": {
+    "id": "renata-lima",
+    "name": "Renata Lima",
+    "bio": "Copywriter for 10 years, focused on performance ads for small businesses and independent professionals. (demo profile)",
+    "avatarUrl": null
+  },
+  "requirements": [
+    { "type": "client", "label": "Claude ou ChatGPT", "key": "any" }
+  ],
+  "packageContents": [
+    "3-step method with an exit checklist: briefing, writing and legal review",
+    "Character limits for Google Ads, Meta, email, SMS and WhatsApp, with the date they were checked",
+    "AIDA, PAS, BAB and 4U structures with ready-made examples per channel, already counted",
+    "Legal base with source and date: CDC, CONAR Code, 2026 influencer guide and LGPD (Brazil)",
+    "Advertising rules of CFM, COFFITO, CFO, OAB, Anvisa and betting (MP 1.394/2026)",
+    "4 ready-made templates: briefing, delivery table, legal checklist and A/B test plan",
+    "Calibration on first use: business type, channels, tone and available proof"
+  ],
+  "steps": [
+    {
+      "file": "steps/01-briefing.md",
+      "title": "Briefing: audience, offer, channel, proof and restrictions",
+      "gate": [
+        "Calibration profile checked and used to pre-fill the briefing, when one exists",
+        "Audience, offer and main objection confirmed with the user",
+        "Limit of each channel field noted from the limits knowledge base",
+        "Sector classified (ordinary or regulated) and mandatory identification noted",
+        "Each desired claim has proof at hand or is marked for removal",
+        "Blockers (betting, purchased list, therapeutic claim) handled or ruled out"
+      ]
+    },
+    {
+      "file": "steps/02-redacao.md",
+      "title": "Writing the variations by channel",
+      "gate": [
+        "3 to 5 named variations per channel, changing one axis at a time",
+        "Each text with its count in parentheses and within the field limit",
+        "Structure (PAS, AIDA, 4U or BAB) declared and a single CTA per piece",
+        "No promise of results, superlative or urgency without proof",
+        "Brand tone and banned words respected"
+      ]
+    },
+    {
+      "file": "steps/03-revisao.md",
+      "title": "Legal review, count and delivery",
+      "gate": [
+        "Count redone and all texts within the limit",
+        "CDC, CONAR, LGPD and sector rules checked, citing number and year",
+        "Delivery in a table per channel, with status and mandatory identification",
+        "Changes listed: original phrase, new phrase and reason",
+        "User's open items and suggested A/B test",
+        "Disclaimer that the review is advisory and does not replace legal advice"
+      ]
+    }
+  ],
+  "tools": [],
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 60,
+    "sources": [
+      "Lei 8.078/1990 (CDC) e Código do CONAR",
+      "CONAR, Guia de Publicidade por Influenciadores Digitais (edição de maio de 2026)",
+      "Lei 13.709/2018 (LGPD) e orientações da ANPD",
+      "Resoluções CFM, COFFITO e CFO e Provimento OAB 205/2021",
+      "Anvisa: RDC 243/2018, IN 28/2018 e RDC 752/2022",
+      "MP 1.394/2026, Lei 14.790/2023, Lei 15.358/2026 e Portaria SPA/MF 1.231/2024"
+    ]
+  },
+  "templates": [
+    { "name": "briefing", "path": "templates/briefing.md", "title": "Copy briefing", "description": "Business, offer, audience, proof, channel, legal restrictions and contacts on one page" },
+    { "name": "entrega-anuncio", "path": "templates/entrega-anuncio.md", "title": "Delivery table", "description": "Table per channel with character count, explained changes and a filled-in example" },
+    { "name": "checklist-legal", "path": "templates/checklist-legal.md", "title": "Legal checklist before publishing", "description": "CDC, influencer, regulated-sector and LGPD items to tick before the piece goes up" },
+    { "name": "plano-de-teste", "path": "templates/plano-de-teste.md", "title": "A/B test plan", "description": "Hypothesis, variations, metric, minimum volume and decision rule" }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "tipo_negocio",
+        "ask": "Which of these best describes your business or work?",
+        "why": "Defines whether council or agency rules apply and the kind of proof you usually have",
+        "options": ["Store or retail", "Local service", "Health or law", "Course or digital product", "Influencer or content creator", "Other"]
+      },
+      {
+        "id": "canais",
+        "ask": "On which channel do you advertise most, or want to start?",
+        "why": "Each channel has its own character limits and rules; I'll keep the limits at hand",
+        "options": ["Google Ads", "Instagram or Facebook", "Email", "WhatsApp or SMS", "Website or sales page"]
+      },
+      {
+        "id": "tom",
+        "ask": "What tone fits your brand?",
+        "why": "Keeps all the texts in the same voice, without you having to repeat it with every request",
+        "options": ["Close and relaxed", "Professional and direct", "Technical and sober", "Fun and bold"]
+      },
+      {
+        "id": "provas",
+        "ask": "Do you have proof to cite in the ads, such as numbers, authorized testimonials or certifications?",
+        "why": "Without proof, the claim stays out; this changes the kind of copy I write",
+        "options": ["Yes, plenty", "Some", "Almost none"]
+      }
+    ]
+  },
+  "escalation": { "enabled": false },
+  "differentiators": ["liveData", "memory"],
+  "guarantee": { "available": false, "defaultCriteria": [] },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 2,
+    "searches": 15,
+    "tools": {},
+    "templates": ["briefing"],
+    "summary": "You get the briefing organized and the copy variations for the chosen channel, respecting character limits.",
+    "lockedSummary": "the legal review (CDC, CONAR, LGPD and your sector's rules) with a checked count, the delivery table ready to upload and the test plan."
+  },
+  "pricing": { "priceUsdc": 12, "royaltyBps": 500 },
+  "searchPhrases": [
+    "write an ad for Instagram or Google",
+    "sales copy that converts",
+    "social media post caption",
+    "email marketing and WhatsApp message",
+    "promote my business",
+    "I want to sell more",
+    "Google Ads ad within the character limit",
+    "review my ad so it doesn't break Brazilian advertising rules (CONAR)",
+    "paid-post caption for an influencer",
+    "promotional SMS for customers",
+    "can I use before and after in my clinic's ad"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "Write headlines and descriptions for a Google ad for my physiotherapy clinic in Campinas.",
+      "withoutSolver": "Headlines: 1. Quality Physiotherapy in Campinas with Experienced Professionals 2. End Your Pain for Good with Our Physiotherapy 3. The Best Physiotherapy Clinic in the Region. Description: Come to the best clinic in Campinas and say goodbye to pain forever with guaranteed results!",
+      "withSolver": "Headlines (max. 30 characters): 'Physiotherapy in Campinas' (25), 'Assessment within 48 hours' (26), 'We accept health plans' (22), 'Pilates and RPG in Cambuí' (25), 'Book on WhatsApp' (16). Descriptions (max. 90): 'Physiotherapy for spine and knee with a full assessment at the first visit.' (75) and 'Clinic in Cambuí since 2012. Individual 50-minute sessions.' (59). Paths (max. 15): /physiotherapy (13) /spine (5). I removed 'end your pain for good' and 'guaranteed results' (promise of results, prohibited by the physiotherapy code of ethics, Res. COFFITO 424/2013) and 'the best in the region' (superlative without proof: under CDC art. 38, the burden of proof is on whoever advertises). Before publishing, confirm the responsible physiotherapist's name and the CREFITO number for the landing page."
+    },
+    {
+      "prompt": "A brand sent me a vitamin C serum and I'll earn commission with my coupon BIA10. Can you write the Reels caption?",
+      "withoutSolver": "Guys, I'm in love with this serum! 😍 In 7 days my spots disappeared and my skin turned into a different skin. Use my coupon BIA10 and get yours before it runs out! #skincare #vitaminc #loveit",
+      "withSolver": "First line, visible before the 'see more': '#publi I tested Brand X's vitamin C serum for 30 days. With coupon BIA10 you get 10% off until Sunday.' (102 characters, within the ~125). Also turn on Instagram's 'Paid partnership' label: a coupon commission is an advertising relationship, and the CONAR Guide to Advertising by Digital Influencers (May 2026 edition) asks for prominent, immediate disclosure that does not depend on the 'see more' (CDC art. 36). I removed 'my spots disappeared in 7 days': it is a result without proof (CDC art. 38) and a cosmetic cannot promise a treatment effect (Anvisa, RDC 752/2022). In its place, an honest account of use ('I use it in the morning, before sunscreen'). I also removed 'before it runs out': scarcity without real limited stock is misleading (CDC art. 37). Confirm the coupon's validity with the brand."
+    },
+    {
+      "prompt": "I want to send a promotional SMS to my pizzeria's customers: large pizza with 20% off every Tuesday. Can you write a few options?",
+      "withoutSolver": "PIZZARIA BELLA: Hoje tem promoção imperdível! Pizza grande com 20% de desconto toda terça-feira! Peça já pelo WhatsApp (11) 90000-0000 e aproveite essa oferta incrível só para você!!!",
+      "withSolver": "No-accents option, to fit in 1 SMS of 160 characters: 'Pizzaria Bella: toda terca, pizza grande com 20% off. Peca no WhatsApp (11) 90000-0000. Resp SAIR p/ nao receber' (112). With-accents option, which limits the SMS to 70 characters: 'Bella: pizza grande -20% toda terça. SAIR p/ parar' (50). A single 'ç' or 'ã' drops the limit from 160 to 70, and the original version, with 183 characters and accents, would go out as 3 billed messages. I put the sender at the start and the way to stop receiving. The messages stay in Portuguese because the customers are Brazilian and that is where the accent trap applies. Confirm the contacts are customers who agreed to receive messages from the pizzeria (LGPD)."
+    }
+  ],
+  "versions": [
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts unlocked in the demo. The trial's knowledge search now returns excerpts from some files of each specialist (before, it returned none). The full knowledge base stays license-only; method, templates and answers did not change." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T18:00:00Z",
+      "notes": "Moves to the Solver Package v1 format. New: calibration on first use (business type, channels, tone and proof), ready-made examples per channel with checked counts, legal checklist and A/B test plan templates, and steps rewritten with an objective checklist. The knowledge base gains source and date in each file, and the topics were split (health and law, Anvisa, betting, influencers). Fixes: the influencer guide does not mention hashtags such as #recebido, #parceriapaga or #conteúdopago and they were removed; dates and articles of CFM and OAB were checked against the sources. The previous 8 test cases stay the same and 10 new ones were added; the previous rating does not apply to this version and has not been redone yet."
+    },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. End of pay-per-use: the specialist is now lifetime license only." },
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-09-30T12:00:00Z",
+      "notes": "First public version: 3-step method (briefing, writing and review), character limits for Google Ads, Meta, email, SMS and WhatsApp, legal guide with CDC, CONAR, the 2026 influencer guide and LGPD, rules of CFM, COFFITO, CFO, OAB, Anvisa and betting (MP 1.394/2026), and briefing and delivery templates."
+    }
+  ]
+}

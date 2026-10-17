@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-02-texto-grande-definicao",
+  "input": "Is a 20px regular heading in gray with 3.2:1 contrast okay under WCAG?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(does not|doesn't|not) (count as|qualify as|is|is considered|be considered)( a)? large text|does not pass|fails?|insufficient",
+      "description": "Indicates that it does not pass because 20px regular is not large text"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Quotes the 4.5:1 minimum that applies to normal text"
+    },
+    {
+      "type": "regex",
+      "value": "24\\s?px|18\\s?pt",
+      "description": "Explains the large text threshold at regular weight (24px / 18pt)"
+    },
+    {
+      "type": "regex",
+      "value": "18[,.]66|18[,.]7|14\\s?pt",
+      "description": "Mentions the large text threshold in bold (18.66px / 14pt)"
+    }
+  ]
+}

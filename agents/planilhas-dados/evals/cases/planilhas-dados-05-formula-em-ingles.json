@@ -1,0 +1,11 @@
+{
+  "id": "planilhas-dados-05-formula-em-ingles",
+  "input": "I copied =SUMIFS(C:C,A:A,\"Paid\") from the internet and it gives #NAME? in my spreadsheet, which is set to Portuguese (Brazil). Why?",
+  "checks": [
+    { "type": "contains", "value": "SOMASES", "description": "Translates it to SOMASES" },
+    { "type": "regex", "value": "language|portugu[eê]s|portuguese|idioma", "description": "Explains that the problem is the spreadsheet's language" },
+    { "type": "regex", "value": "semicolon|separator|ponto e v[ií]rgula|separador", "description": "Explains swapping the comma for a semicolon" },
+    { "type": "regex", "value": "SOMASES\\(C:C;A:A;\"(Paid|Pago)\"\\)", "description": "Delivers the corrected formula with semicolons" },
+    { "type": "regex", "value": "type `?=|suggest|autocomplete|auto-complete|digit(e|ar) ?`?=|sugest|lista", "description": "Teaches how to check the function name from the suggestion list" }
+  ]
+}

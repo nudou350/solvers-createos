@@ -1,0 +1,11 @@
+{
+  "id": "backend-node-06-webhook",
+  "input": "I receive webhooks from my payment provider on an Express route. How do I make sure the call is genuine?",
+  "checks": [
+    { "type": "regex", "value": "HMAC|signature", "description": "Validates the provider's signature" },
+    { "type": "contains", "value": "timingSafeEqual", "description": "Compares with timingSafeEqual" },
+    { "type": "regex", "value": "express\\.raw|raw body|raw request body", "description": "Uses the raw body to compute the signature" },
+    { "type": "regex", "value": "timestamp|replay", "description": "Rejects old replays" },
+    { "type": "regex", "value": "idempot|event id|duplicate event|redeliver|resend|retr(y|ies)", "description": "Handles redelivery and duplicate events" }
+  ]
+}

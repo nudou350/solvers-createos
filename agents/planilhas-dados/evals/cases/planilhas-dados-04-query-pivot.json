@@ -1,0 +1,12 @@
+{
+  "id": "planilhas-dados-04-query-pivot",
+  "input": "In Google Sheets, I want the total sales by salesperson and by month. The data is in A:C (Date, Salesperson, Amount).",
+  "checks": [
+    { "type": "contains", "value": "QUERY", "description": "Uses QUERY" },
+    { "type": "contains", "value": "pivot", "description": "Uses the pivot clause" },
+    { "type": "regex", "value": "month\\(\\w+\\)\\s*\\+\\s*1|starts (at|from|with) (zero|0)|January (is|=) 0", "description": "Handles month() starting at zero" },
+    { "type": "regex", "value": "group by", "description": "Groups by salesperson with group by" },
+    { "type": "regex", "value": "pivot ?table|tabela din[aâ]mica", "description": "Offers the PivotTable as the no-formula alternative" },
+    { "type": "regex", "value": "real dates?|actual dates?|true dates?|tabular|not text|is(n't| not) text|type|data de verdade", "description": "Asks to confirm the Date column holds real dates" }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-09-modo-escuro-cinza",
+  "input": "In dark mode (background #111827) I used the same gray #6B7280 from the light theme for secondary text. Is that okay?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "3[,.]6\\d?\\s?:\\s?1",
+      "description": "Quotes the approximate ratio of 3.67:1"
+    },
+    {
+      "type": "regex",
+      "value": "fails?|does not pass|insufficient",
+      "description": "States that it fails for normal text"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Quotes the 4.5:1 minimum"
+    },
+    {
+      "type": "regex",
+      "value": "#(?!6B7280\\b|111827\\b)[0-9A-F]{6}\\b",
+      "description": "Suggests another gray in hex for dark mode"
+    },
+    {
+      "type": "regex",
+      "value": "per mode|each mode|each theme|semantic token|text\\.(subtle|secondary|muted)",
+      "description": "Explains that each mode needs its own value in the semantic token"
+    }
+  ]
+}

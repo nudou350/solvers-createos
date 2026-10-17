@@ -1,0 +1,26 @@
+{
+  "id": "07-proprietario-despesas",
+  "input": "I'm a landlord and I'm going to rent out my apartment. Can I put in the contract that the tenant pays the IPTU and also the extra condominium fee to paint the building's facade?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?22",
+      "description": "Cites art. 22"
+    },
+    {
+      "type": "regex",
+      "value": "extraordinary",
+      "description": "Classifies painting the facade as an extraordinary expense"
+    },
+    {
+      "type": "regex",
+      "value": "express(ly)?|stated in the contract|specific clause|clear clause",
+      "description": "Explains that the IPTU can be passed on by an express clause"
+    },
+    {
+      "type": "regex",
+      "value": "(?<!extra)ordinary",
+      "description": "Distinguishes it from the tenant's ordinary expenses"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-12-ferramenta-contraste-marca",
+  "input": "My primary button is orange #FF6B00 with 16px bold white text, and the focus ring is #93C5FD on a white background. Is it accessible?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "contrast_check",
+      "description": "Uses the contrast_check tool"
+    },
+    {
+      "type": "regex",
+      "value": "2[,.]8[56]",
+      "description": "Quotes the calculated button text ratio (about 2.86:1)"
+    },
+    {
+      "type": "regex",
+      "value": "1[,.]80?\\s?:\\s?1",
+      "description": "Quotes the calculated focus ring ratio (about 1.8:1)"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Explains that 16px bold is not large text and requires 4.5:1"
+    },
+    {
+      "type": "regex",
+      "value": "#(?!FF6B00\\b|93C5FD\\b|FFFFFF\\b)[0-9A-F]{6}\\b|dark text|black text",
+      "description": "Proposes an alternative (dark text or another color in hex)"
+    }
+  ]
+}

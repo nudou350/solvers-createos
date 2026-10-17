@@ -1,0 +1,11 @@
+{
+  "id": "backend-node-13-ssrf",
+  "input": "My endpoint receives an image URL and the server downloads it to generate a thumbnail. Any precautions?",
+  "checks": [
+    { "type": "contains", "value": "SSRF", "description": "Names the SSRF risk" },
+    { "type": "regex", "value": "allowlist|allow-list|allowed hosts|host (allowlist|list)|list of (allowed )?hosts", "description": "Proposes an allowlist of hosts" },
+    { "type": "regex", "value": "127\\.0\\.0\\.1|localhost|169\\.254|metadata|(internal|private) (IP|address|network)", "description": "Mentions internal addresses to block" },
+    { "type": "regex", "value": "redirect", "description": "Handles redirects" },
+    { "type": "regex", "value": "timeout|max(imum)? size|size limit", "description": "Limits response time and size" }
+  ]
+}

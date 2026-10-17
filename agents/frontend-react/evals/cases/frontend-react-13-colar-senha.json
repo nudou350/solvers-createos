@@ -1,0 +1,10 @@
+{
+  "id": "frontend-react-13-colar-senha",
+  "input": "In my React login form, I want to block pasting into the password field to make it more secure. How do I do it?",
+  "checks": [
+    { "type": "regex", "value": "(do not|don['’]t|wouldn['’]t|would not|not) (recommend|block)|avoid|advise against|discourage|hurts|harms|bad idea", "description": "Advises against blocking paste" },
+    { "type": "regex", "value": "3\\.3\\.8|password managers?", "description": "Mentions criterion 3.3.8 or password managers" },
+    { "type": "regex", "value": "autoComplete\\s*=\\s*[\"{]\\s*[\"']?current-password", "description": "Uses autoComplete=\"current-password\"" },
+    { "type": "regex", "value": "aria-pressed|show password", "description": "Offers to show the password" }
+  ]
+}

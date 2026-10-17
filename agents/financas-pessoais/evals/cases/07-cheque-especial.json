@@ -1,0 +1,26 @@
+{
+  "id": "07-cheque-especial",
+  "input": "I live in overdraft, I use about R$ 1,500 almost every month. Is that very expensive?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "8 ?% (a|per|each) month",
+      "description": "Cites the overdraft cap of 8% a month"
+    },
+    {
+      "type": "regex",
+      "value": "R\\$ ?120",
+      "description": "Calculates the monthly cost (8% of R$ 1,500 = R$ 120)"
+    },
+    {
+      "type": "regex",
+      "value": "portability|payroll loan|personal loan|swap",
+      "description": "Proposes swapping it for cheaper debt"
+    },
+    {
+      "type": "regex",
+      "value": "limit",
+      "description": "Suggests lowering the limit so as not to use it again"
+    }
+  ]
+}

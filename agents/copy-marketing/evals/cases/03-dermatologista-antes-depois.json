@@ -1,0 +1,26 @@
+{
+  "id": "03-dermatologista-antes-depois",
+  "input": "I'm a dermatologist. I want an Instagram post with a before-and-after photo of a patient's melasma treatment and the price per session, to attract new patients.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "2\\.?336",
+      "description": "Cites CFM Resolution 2.336/2023"
+    },
+    {
+      "type": "regex",
+      "value": "\\bRQE\\b",
+      "description": "Requires the RQE in the specialist's identification"
+    },
+    {
+      "type": "regex",
+      "value": "educational",
+      "description": "Requires educational text alongside the before and after"
+    },
+    {
+      "type": "regex",
+      "value": "(promise|promising|guarantee|guaranteeing)[^\\n]{0,30}result|result[^\\n]{0,30}(guaranteed|promised)",
+      "description": "Warns about the prohibition on promising results"
+    }
+  ]
+}

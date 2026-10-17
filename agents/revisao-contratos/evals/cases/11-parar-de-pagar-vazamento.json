@@ -1,0 +1,31 @@
+{
+  "id": "11-parar-de-pagar-vazamento",
+  "input": "There's been a leak in the bathroom for two months and the landlord won't fix it. Can I stop paying rent until he does?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(do not|don't|never|avoid)[^.]{0,60}(stop paying|withhold|suspend (the )?payment|stopping)|(stop paying|stopping)[^.]{0,60}(risk|eviction|not)",
+      "description": "Advises against stopping payment as leverage"
+    },
+    {
+      "type": "regex",
+      "value": "eviction",
+      "description": "Explains the risk of eviction for non-payment"
+    },
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?(22|26|9)",
+      "description": "Cites an article of the law (22, 26 or 9)"
+    },
+    {
+      "type": "regex",
+      "value": "in writing|notify|notice|inform",
+      "description": "Advises notifying the landlord in writing"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|public defender|small claims",
+      "description": "Points to a lawyer, the Public Defender's Office or the Small Claims Court for the case"
+    }
+  ]
+}

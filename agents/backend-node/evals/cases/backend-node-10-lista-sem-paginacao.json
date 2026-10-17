@@ -1,0 +1,11 @@
+{
+  "id": "backend-node-10-lista-sem-paginacao",
+  "input": "My GET /products returns 200 thousand records at once and takes the server down. What do I do?",
+  "checks": [
+    { "type": "regex", "value": "max(imum)? (page )?(limit|size)|max(imum)? of (50|100)|limit.{0,30}(100|50)", "description": "Enforces a maximum limit on the server" },
+    { "type": "contains", "value": "cursor", "description": "Proposes cursor pagination" },
+    { "type": "regex", "value": "index", "description": "Creates an index for the filter and sort" },
+    { "type": "regex", "value": "offset", "description": "Explains the limit of offset on large tables" },
+    { "type": "regex", "value": "total|count", "description": "Comments on the cost of returning the exact total" }
+  ]
+}

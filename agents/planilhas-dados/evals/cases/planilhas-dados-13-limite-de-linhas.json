@@ -1,0 +1,9 @@
+{
+  "id": "planilhas-dados-13-limite-de-linhas",
+  "input": "My CSV file has 2 million rows and Excel will not open all of it. What do I do?",
+  "checks": [
+    { "type": "regex", "value": "1,048,576|1\\.048\\.576|1048576|just over a million|a little over a million|about a million", "description": "Cites the 1,048,576 rows per worksheet limit" },
+    { "type": "regex", "value": "Power Query|data model|database|Access|split|divide|break (it )?(up|into)|modelo de dados|banco de dados|dividir", "description": "Proposes Power Query, the data model, a database or splitting the file" },
+    { "type": "regex", "value": "summari[sz]e|aggregate|group|filter (before|first)|import only|only the columns|resumir|agregar|agrup", "description": "Suggests reducing the data before opening (summarize or import only what is needed)" }
+  ]
+}

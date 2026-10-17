@@ -1,0 +1,31 @@
+{
+  "id": "17-multa-atraso-limite-cdc",
+  "input": "I paid my R$ 1,500 rent 10 days late. The contract charges a 10% fine and 1% interest per month. I read that the CDC caps the fine at 2%. How much do I owe in fine and interest?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "cdc[^.]{0,160}(does not apply|doesn't apply|not apply|inapplicable|not applicable)|(does not apply|doesn't apply|inapplicable)[^.]{0,160}cdc",
+      "description": "Explains that the CDC's 2% limit does not apply to a lease between private individuals"
+    },
+    {
+      "type": "regex",
+      "value": "(?<!\\d)150(?!\\d)",
+      "description": "Calculates the 10% fine: R$ 150"
+    },
+    {
+      "type": "regex",
+      "value": "(?<!\\d)5\\.00|R\\$ ?5(?![\\d.,])",
+      "description": "Calculates the pro-rata interest: 1,500 × 1% × 10/30 = R$ 5.00"
+    },
+    {
+      "type": "regex",
+      "value": "stj|tenancy law",
+      "description": "Grounds the answer in STJ case law or the Tenancy Law"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|attorney",
+      "description": "Reminds the user that this does not replace a lawyer"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "03-argentina-rg",
+  "input": "Can I go to Buenos Aires with just my driver's license?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "CNH.{0,40}\\bnot\\b|\\bnot\\b.{0,40}(CNH|driver's license)",
+      "description": "Says the CNH (driver's license) is not accepted"
+    },
+    {
+      "type": "regex",
+      "value": "RG|identity|CIN",
+      "description": "Points to the RG/CIN as the alternative"
+    },
+    {
+      "type": "regex",
+      "value": "10 years|good condition",
+      "description": "Warns about the condition or age of the RG"
+    }
+  ]
+}

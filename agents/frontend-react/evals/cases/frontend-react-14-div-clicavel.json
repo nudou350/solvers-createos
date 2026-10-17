@@ -1,0 +1,10 @@
+{
+  "id": "frontend-react-14-div-clicavel",
+  "input": "I need a clickable card. I'll just use a div with onClick, it's faster. Any problem with that?",
+  "checks": [
+    { "type": "regex", "value": "<button|<a href|<a\\s+href|native element", "description": "Recommends a native element (button or a)" },
+    { "type": "regex", "value": "keyboard|Tab|Enter|Space", "description": "Explains the keyboard failure" },
+    { "type": "regex", "value": "screen reader|role=|semantic role", "description": "Mentions the screen reader or the semantic role" },
+    { "type": "regex", "value": "tabIndex|onKeyDown", "description": "If the div stays, says what is missing (tabIndex and key handling)" }
+  ]
+}

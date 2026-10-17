@@ -1,0 +1,12 @@
+{
+  "id": "frontend-react-16-alvo-de-toque",
+  "input": "My icon-only buttons are 16 by 16 pixels and sit right next to each other. Does that pass WCAG 2.2?",
+  "checks": [
+    { "type": "regex", "value": "24\\s*(x|×|by)\\s*24", "description": "Mentions the 24 by 24 CSS pixel minimum" },
+    { "type": "regex", "value": "2\\.5\\.8", "description": "Mentions criterion 2.5.8" },
+    { "type": "regex", "value": "spacing|circle|exception", "description": "Explains the spacing exception" },
+    { "type": "regex", "value": "44", "description": "Recommends 44 px for touch" },
+    { "type": "regex", "value": "min-(width|height)|padding", "description": "Shows how to enlarge the clickable area (min-width, min-height or padding)" },
+    { "type": "regex", "value": "aria-label", "description": "Reminds about the button's accessible name" }
+  ]
+}

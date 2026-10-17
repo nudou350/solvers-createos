@@ -1,0 +1,36 @@
+{
+  "id": "11-europa-etias-ees",
+  "input": "I'm going to Paris and Rome in December 2026 with my mother, 12 days. We're Brazilian. Do we need to get any authorization before traveling?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "ETIAS",
+      "description": "Mentions the ETIAS"
+    },
+    {
+      "type": "regex",
+      "value": "(last quarter|end|late) of 2026|postpon|transition|phased|gradual|not yet (in force|started)",
+      "description": "Treats the ETIAS start as an uncertain forecast (last quarter of 2026, postponements, phased transition)"
+    },
+    {
+      "type": "regex",
+      "value": "\\bEES\\b|Entry/Exit|biometric",
+      "description": "Mentions the EES biometric registration at the border"
+    },
+    {
+      "type": "contains",
+      "value": "travel-europe.europa.eu",
+      "description": "Points to the official ETIAS/EES site"
+    },
+    {
+      "type": "regex",
+      "value": "90 days|90/180|90-in-180",
+      "description": "Explains the visa exemption of up to 90 days in 180"
+    },
+    {
+      "type": "not_contains",
+      "value": "ETIAS is already in force",
+      "description": "Does not state that the ETIAS is already in force"
+    }
+  ]
+}

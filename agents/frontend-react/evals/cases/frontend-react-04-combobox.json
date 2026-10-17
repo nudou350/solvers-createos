@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-04-combobox",
+  "input": "Build a search field with accessible autocomplete.",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "role=\"combobox\"",
+      "description": "combobox"
+    },
+    {
+      "type": "contains",
+      "value": "aria-expanded",
+      "description": "aria-expanded"
+    },
+    {
+      "type": "contains",
+      "value": "aria-activedescendant",
+      "description": "aria-activedescendant"
+    },
+    {
+      "type": "regex",
+      "value": "role=\"listbox\"",
+      "description": "listbox for the options"
+    }
+  ]
+}

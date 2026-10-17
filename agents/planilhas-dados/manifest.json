@@ -1,0 +1,155 @@
+{
+  "specVersion": 1,
+  "id": "838d5b7a5bf245df5aa0b429b0a06816",
+  "slug": "planilhas-dados",
+  "name": "Spreadsheets and Data",
+  "tagline": "Right formulas, clean data and clear analysis in Excel and Google Sheets",
+  "description": "Walks your AI through a method for solving real spreadsheet problems in Excel and Google Sheets: it confirms your version and language, diagnoses the structure and the data types, picks the simplest solution (XLOOKUP, INDEX with MATCH, SUMIFS, a PivotTable, FILTER or QUERY) and writes the formula in your spreadsheet's language, English or Brazilian Portuguese, with the right argument separator, together with a test script for you to check it. The knowledge base covers function names, lookups, data cleaning and dates, QUERY and limits, with source and date. It does not access your spreadsheet or run formulas: you apply and test them. It also does not write macros unless you insist.",
+  "category": "Negócios",
+  "version": "1.1.0",
+  "creator": {
+    "id": "marina-costa",
+    "name": "Marina Costa",
+    "bio": "Senior software engineer with 12 years in React and Node.js. Was a platform tech lead at a fintech and writes about accessibility and testing.",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" }
+  ],
+  "packageContents": [
+    "4-step method: understand the problem, prepare the data, choose the solution, test and deliver",
+    "Knowledge base with source and date: function names in English and Brazilian Portuguese, lookups, data and date cleaning, QUERY, limits and errors",
+    "Ready-made templates: formula recipes in English and Brazilian Portuguese, a test script and a spreadsheet read-me",
+    "Calibration of your program, version and language saved in the specialist's memory",
+    "Updates for version 1.x"
+  ],
+  "usesMemory": true,
+  "steps": [
+    {
+      "file": "steps/01-entender.md",
+      "title": "Understand the problem and the spreadsheet",
+      "gate": [
+        "Profile read or calibrated (program, version, language and separator)",
+        "Problem rewritten in one sentence and confirmed with the user",
+        "Made-up example of the data and of the expected result received"
+      ]
+    },
+    {
+      "file": "steps/02-diagnosticar-e-preparar.md",
+      "title": "Diagnose and prepare the data",
+      "gate": [
+        "Tabular structure checked",
+        "Problematic types identified with tests the user runs",
+        "Cleanup plan on a copy, with a row count and sum check"
+      ]
+    },
+    {
+      "file": "steps/03-resolver.md",
+      "title": "Choose and write the solution",
+      "gate": [
+        "Solution chosen in order from the simplest to the most complex",
+        "Formula in the profile's language and separator, with every argument explained",
+        "Handling of not found and of errors defined"
+      ]
+    },
+    {
+      "file": "steps/04-testar-e-entregar.md",
+      "title": "Test and deliver",
+      "gate": [
+        "Test script with common, missing, text, empty and duplicate cases",
+        "Expected result of each case given before applying",
+        "Prevention and spreadsheet documentation offered"
+      ]
+    }
+  ],
+  "tools": [],
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 90,
+    "sources": [
+      "Microsoft Support (Excel, pt-BR)",
+      "Excel specifications and limits (Microsoft)",
+      "Google Docs Editors Help",
+      "Google Visualization API Query Language",
+      "OWASP (CSV Injection)"
+    ]
+  },
+  "templates": [
+    { "name": "receitas-de-formulas", "path": "templates/receitas-de-formulas.md", "title": "Formula recipes in English and Brazilian Portuguese", "description": "Lookups, conditional sums, data cleaning, lists and QUERY, with the alternative for older versions." },
+    { "name": "roteiro-de-teste", "path": "templates/roteiro-de-teste.md", "title": "Solution test script", "description": "Six test cases with the expected result worked out by hand, plus row count and sum checks." },
+    { "name": "documentacao-da-planilha", "path": "templates/documentacao-da-planilha.md", "title": "Spreadsheet read-me", "description": "Documentation sheet template: sheets, how to update, main formulas and precautions." }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "programa",
+        "ask": "Which program do you use for spreadsheets?",
+        "why": "Functions such as XLOOKUP, FILTER and QUERY depend on the program and the version; I only write what works in yours.",
+        "options": ["Excel 365", "Excel 2024 or 2021", "Excel 2019 or older", "Google Sheets"]
+      },
+      {
+        "id": "idioma",
+        "ask": "Is your spreadsheet in English or in Portuguese?",
+        "why": "It sets the function names and whether the separator is a comma or a semicolon.",
+        "options": ["English (comma)", "Brazilian Portuguese (semicolon)", "I don't know"]
+      },
+      {
+        "id": "nivel",
+        "ask": "How would you describe your level with formulas?",
+        "why": "It adjusts how much I explain about each argument and whether I use helper columns instead of long formulas.",
+        "options": ["Beginner", "Intermediate", "Advanced"]
+      },
+      {
+        "id": "uso",
+        "ask": "What do you mostly use spreadsheets for?",
+        "why": "I pick examples and precautions from your day to day, such as sales, inventory or reports.",
+        "options": ["Business sales and finance", "Inventory and operations", "Reports and dashboards", "Study or personal use", "Other"]
+      }
+    ]
+  },
+  "differentiators": ["liveData", "memory"],
+  "guarantee": { "available": false, "defaultCriteria": [] },
+  "pricing": { "priceUsdc": 14, "royaltyBps": 500 },
+  "searchPhrases": [
+    "write a formula in Excel",
+    "VLOOKUP giving #N/A error",
+    "VLOOKUP, XLOOKUP or SUMIFS formula",
+    "create a pivot table",
+    "clean up the data in a spreadsheet",
+    "date shows up as text in Excel",
+    "analyze sales data in a spreadsheet",
+    "build a report in Google Sheets",
+    "how to use QUERY in Google Sheets",
+    "sum by month and by salesperson",
+    "merge two spreadsheets by the ID column",
+    "slow or freezing spreadsheet",
+    "#VALUE! error in my formula"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "My VLOOKUP returns #N/A even though the code exists in the other sheet.",
+      "withoutSolver": "Check that the lookup value exists in the first column of the range and use =VLOOKUP(A2,Sheet2!A:B,2,FALSE).",
+      "withSolver": "Asks for your version and language, has you test =ISTEXT(A2) in both sheets and =LEN(A2) to spot text against number or a stray space, and delivers the fix in your spreadsheet's language: =XLOOKUP(VALUE(TRIM(A2)),Sheet2!A2:A500,Sheet2!B2:B500,\"not found\") in Excel 365 or 2021, and INDEX with MATCH in Excel 2019. Ends with a three-row test script."
+    },
+    {
+      "prompt": "I want the total sales by salesperson and by month in a Google spreadsheet.",
+      "withoutSolver": "You can use SUMIF to add up each salesperson's sales.",
+      "withSolver": "Checks that the data is tabular and that the Date column holds real dates, then delivers =QUERY(A1:C,\"select B, sum(C) where A is not null group by B pivot month(A)+1\",1), explaining that month() starts at zero, hence the +1, with a no-formula PivotTable alternative."
+    },
+    {
+      "prompt": "My imported dates are left-aligned and the filter does not group by month.",
+      "withoutSolver": "Format the column as a date.",
+      "withSolver": "Explains that they are text and that formatting does not convert them, tests the conversion with a day greater than 12 so day and month do not get swapped, writes =DATEVALUE(A2) or, if the format is fixed, =DATE(RIGHT(A2,4),MID(A2,4,2),LEFT(A2,2)), and tells you to apply it on a copy and check the row count and the sum before pasting values."
+    }
+  ],
+  "versions": [
+    { "version": "0.9.0", "releasedAt": "2026-07-25T12:00:00Z", "notes": "Guide to lookup formulas and data cleaning." },
+    { "version": "1.0.0", "releasedAt": "2026-09-01T12:00:00Z", "notes": "Adds QUERY in Google Sheets, PivotTables and recipes for dates stored as text." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Method rewritten in 4 steps (understand, prepare the data, choose the solution, test and deliver). Knowledge base reorganized into 7 files with source and date: Portuguese function names checked against Microsoft's pages, availability by Excel version, limits, QUERY and privacy. Fix: the shortcut to create a Table is Ctrl+T (the previous text said Ctrl+Alt+T). Three ready-made templates and calibration saved in the specialist's memory. Twelve or more evaluation cases; the earlier scores were withdrawn because they did not match existing cases."
+    }
+  ]
+}

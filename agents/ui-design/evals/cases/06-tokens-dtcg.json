@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-06-tokens-dtcg",
+  "input": "Generate color tokens for primary and secondary text in the W3C format, with a light and a dark theme.",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "$value",
+      "description": "Uses the DTCG $value"
+    },
+    {
+      "type": "regex",
+      "value": "\"\\$type\"\\s*:\\s*\"color\"",
+      "description": "Declares \"$type\": \"color\""
+    },
+    {
+      "type": "regex",
+      "value": "\\{color\\.[a-z0-9.\\-]+\\}",
+      "description": "Uses aliases in curly braces pointing to primitives"
+    },
+    {
+      "type": "regex",
+      "value": "text\\.(default|primary|subtle|secondary|muted)|\"text\"\\s*:\\s*\\{\\s*\"(default|primary|subtle|secondary|muted)\"",
+      "description": "Names the semantic tokens by intent (text.default, text.subtle...)"
+    },
+    {
+      "type": "regex",
+      "value": "\\{color\\.(gray|grey|neutral|slate|zinc)\\.(50|100|200|300|400)\\}",
+      "description": "In the dark theme, points text at light tones of the ramp"
+    }
+  ]
+}

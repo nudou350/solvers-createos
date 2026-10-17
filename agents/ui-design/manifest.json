@@ -1,0 +1,205 @@
+{
+  "specVersion": 1,
+  "id": "714b681d53fe62c8f9edc321efce752f",
+  "slug": "ui-design",
+  "name": "Interface Design",
+  "tagline": "Figma screen audits, design tokens and a handoff ready for your front-end team",
+  "description": "Reads your Figma file through the connector (or, without it, from screenshots and values you paste) and runs an audit of visual hierarchy, spacing, typography and contrast, with numbers and WCAG 2.2 references instead of vague opinions. Turns the loose values on your screens into design tokens in three layers (primitives, semantic and component) in the W3C DTCG format, ready for code, and closes with a handoff that covers states, responsiveness and edge cases. The contrast check runs on the server, and the knowledge base includes WCAG 2.2, DTCG 2025.10 and the Figma connector, with source and date. The handoff examples for currency, dates and ID formats use Brazil as the reference and are labeled as such; the method works for any locale. It does not create the visual design from scratch, does not replace user testing and does not measure the contrast of text over a photo.",
+  "category": "Design",
+  "version": "1.2.0",
+  "creator": {
+    "id": "lucas-andrade",
+    "name": "Lucas Andrade",
+    "bio": "Product designer for 11 years, specialized in design systems and accessibility. Has led interface standardization at digital banks and B2B SaaS companies (demo profile)",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" },
+    { "type": "connector", "label": "Figma (optional)", "key": "figma", "optional": true }
+  ],
+  "packageContents": [
+    "A 4-step method: reading Figma, audit, tokens and handoff",
+    "Works without the Figma connector, from screenshots and pasted values",
+    "Knowledge base with source and date: WCAG 2.2, color and contrast, typography, spacing, tokens (DTCG 2025.10), handoff and the Figma connector",
+    "Server-side contrast check tool (text, large text and interface components)",
+    "Ready-made templates: three-layer tokens with a dark theme and a handoff checklist",
+    "Calibration of platform, token destination, conformance level and design system, kept in the specialist's memory",
+    "Updates for version 1.x"
+  ],
+  "usesMemory": true,
+  "steps": [
+    {
+      "file": "steps/01-ler-arquivo-figma.md",
+      "title": "Read the Figma file",
+      "gate": [
+        "Project profile read or calibrated",
+        "Target frames read through the Figma connector or, without it, screenshots and values received from the user",
+        "Interface goal and audience confirmed with the user",
+        "Inventory of styles and variables recorded, with the source of each value"
+      ]
+    },
+    {
+      "file": "steps/02-auditar.md",
+      "title": "Audit hierarchy, spacing, typography and contrast",
+      "gate": [
+        "Contrast verified via run_tool contrast_check, with the right kind on each pair",
+        "Issues classified by severity with current value and suggested value"
+      ]
+    },
+    {
+      "file": "steps/03-tokens.md",
+      "title": "Define design tokens",
+      "gate": [
+        "Tokens in three layers (primitive, semantic, component)",
+        "File in valid DTCG format delivered"
+      ]
+    },
+    {
+      "file": "steps/04-handoff.md",
+      "title": "Prepare the handoff",
+      "gate": [
+        "States of every interactive component specified",
+        "Responsive behavior and edge cases documented"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "contrast_check",
+      "description": "Calculates the WCAG 2.x contrast ratio of 1 to 50 color pairs. Input: { pairs: [{ fg, bg, use?, kind?, large? }] }. Colors in #RGB, #RGBA, #RRGGBB, #RRGGBBAA, rgb() or rgba(); a translucent fg is composited over bg, and bg must be opaque. use is a free-form label, returned as given. kind says what the pair is, using these exact values: \"texto\" (text; the default, 4.5:1), \"texto-grande\" (large text; 3:1; 24px or more, or 18.66px or more in bold) or \"ui\" (3:1; field borders, icons with meaning, focus ring, toggle tracks). Returns per pair: ratio, pass (according to the kind), aa { texto, textoGrande, ui } and aaa { texto, textoGrande }; an invalid pair comes back with error without affecting the others. Always use it before stating that a color pair passes or fails.",
+      "runner": "node:contrast",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pairs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "properties": {
+                "fg": { "type": "string", "maxLength": 60 },
+                "bg": { "type": "string", "maxLength": 60 },
+                "use": { "type": "string", "maxLength": 120 },
+                "kind": { "type": "string", "description": "texto (text, the default), texto-grande (large text) or ui" },
+                "large": { "type": "boolean" }
+              },
+              "required": ["fg", "bg"]
+            }
+          }
+        },
+        "required": ["pairs"]
+      }
+    }
+  ],
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 90,
+    "sources": [
+      "W3C WCAG 2.2",
+      "Design Tokens Community Group (DTCG 2025.10)",
+      "Style Dictionary documentation",
+      "Figma MCP server documentation",
+      "National Eye Institute (color vision)"
+    ]
+  },
+  "templates": [
+    { "name": "tokens", "path": "templates/tokens.json", "title": "Three-layer tokens (light theme)", "description": "Primitives, semantic and component tokens in DTCG JSON (draft format), with contrast annotated on the text tones." },
+    { "name": "tokens-escuro", "path": "templates/tokens.dark.json", "title": "Dark theme tokens", "description": "Overrides the semantic layer only; load after the light theme." },
+    { "name": "handoff-checklist", "path": "templates/handoff-checklist.md", "title": "Handoff checklist", "description": "Context, layout by breakpoint, states, edge cases, accessibility, motion, assets and open items." }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "plataforma",
+        "ask": "Which platform do you design for?",
+        "why": "It changes the touch target goal, the type scales and the breakpoints.",
+        "options": ["Responsive web", "iOS app", "Android app", "Desktop", "More than one"]
+      },
+      {
+        "id": "destino",
+        "ask": "Where will the tokens live in code?",
+        "why": "It sets the format and the naming convention I deliver (CSS, Tailwind, Style Dictionary).",
+        "options": ["CSS variables", "Tailwind", "Style Dictionary", "styled-components or similar", "Not sure yet"]
+      },
+      {
+        "id": "conformidade",
+        "ask": "Which accessibility level does the project need to reach?",
+        "why": "It sets the yardstick for the contrast and touch target audit.",
+        "options": ["WCAG 2.2 AA", "AA, and AAA on long text", "Not defined yet"]
+      },
+      {
+        "id": "sistema",
+        "ask": "Is there already a design system or component library?",
+        "why": "If there is, I map the Figma components to it and point out only the differences.",
+        "options": ["shadcn/ui or Radix", "MUI", "In-house library", "None"]
+      }
+    ]
+  },
+  "differentiators": ["tool", "liveData", "memory"],
+  "guarantee": {
+    "available": false,
+    "defaultCriteria": [
+      "All text pairs with a minimum contrast of 4.5:1",
+      "Tokens delivered as valid DTCG JSON"
+    ]
+  },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 2,
+    "searches": 15,
+    "tools": {
+      "contrast_check": 3
+    },
+    "summary": "You get the screen read and the audit of hierarchy, spacing, typography and contrast, with the issues prioritized and the contrast ratio calculated.",
+    "lockedSummary": "the design tokens (light and dark) ready to import and the full handoff with states for the front-end team."
+  },
+  "pricing": { "priceUsdc": 19, "royaltyBps": 500 },
+  "searchPhrases": [
+    "review the design of a screen in Figma",
+    "does my text have enough contrast",
+    "accessible color palette",
+    "improve the look of my interface",
+    "colors, typography and spacing for my app",
+    "design tokens for my project",
+    "hand off a Figma design to the developer",
+    "standardize spacing and fonts",
+    "create a design system",
+    "dark mode without breaking contrast",
+    "handoff documentation with states"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "Take a look at the checkout screen in my Figma and tell me what to improve.",
+      "withoutSolver": "Your screen is well organized! A few suggestions: increase the contrast of some texts, use more consistent spacing, make the main button stand out more and consider a clearer typographic hierarchy. It is also worth testing with users.",
+      "withSolver": "I read the frame \"Checkout / Desktop\" (1440px) through the connector. 3 critical problems: (1) supporting text #9CA3AF on #FFFFFF has 2.54:1 (contrast_check), fails AA; swap it for #6B7280 (4.83:1). (2) The \"Place order\" button (secondary, 36px tall) competes with \"Apply coupon\" (primary): swap the weights. (3) Spacing values in use: 6, 10, 13, 16, 22 and 24px; normalize to the 8/16/24 scale (gap between fields 16, between groups 24). I also suggest cutting the heading scale from 5 to 3 sizes (30/20/16). Want me to generate the tokens?"
+    },
+    {
+      "prompt": "I need to hand this signup screen over to the dev. What do I send?",
+      "withoutSolver": "Send the Figma link to the developer, with the measurements and colors. Explain the flow and stay available for questions. You can also export the icons and use Figma's Dev Mode.",
+      "withSolver": "I prepared the handoff for the \"Sign up\" frame: semantic tokens used (color.text.default, color.feedback.error.border, space.stack.md...), 6 field states (default, hover, focus with a 2px color.border.focus ring, filled, error with a message linked by aria-describedby, disabled), behavior at 360/768/1280px (single column below 768px, maximum form width 480px), edge cases (a 60-character name, an email that is already registered, a Brazilian CPF (national ID number) pasted with or without punctuation and formatted on leaving the field, a slow submit with the button in aria-disabled and the text \"Creating account…\") and the list of 4 icons to export as 24px SVG."
+    },
+    {
+      "prompt": "My brand is orange #FF6B00 and the button text is white. Is it accessible?",
+      "withoutSolver": "Orange with white usually works well on buttons; just check that the text is legible.",
+      "withSolver": "Calculated with contrast_check: white on #FF6B00 gives 2.86:1 and fails the 4.5:1 required for normal text. Preserve the brand with dark text #1F2937 (5.14:1) or with a darker version of the orange on the button only, and also check the focus ring and the hover and disabled states."
+    }
+  ],
+  "versions": [
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts unlocked in the demo. Searching the trial knowledge base now returns excerpts from some of each specialist's files (before, it returned none). The full knowledge base stays license-only; method, templates and answers did not change." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Project calibration in the specialist's memory (platform, token destination, conformance and design system). Knowledge base updated with source and date: WCAG 2.2 (nine new criteria), DTCG 2025.10 (color and dimension as an object; Style Dictionary does not fully support it yet) and Figma connector tools. Fix: APCA Lc values removed because they are not a standard. Token and checklist templates delivered by the server. Evaluation cases expanded; the previous scores were withdrawn because they belonged to a different version."
+    },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. End of pay-per-use: the specialist is now a lifetime license only." },
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-09-30T12:00:00Z",
+      "notes": "First public version: a 4-step method (reading Figma, with a screenshot alternative when there is no connector; audit of hierarchy, spacing, typography and contrast; design tokens; handoff), a knowledge base with WCAG 2.2 reference numbers, the contrast_check tool on the server for text, large text and interface components, a W3C DTCG three-layer token template with a dark theme and a handoff checklist with states and edge cases."
+    }
+  ]
+}

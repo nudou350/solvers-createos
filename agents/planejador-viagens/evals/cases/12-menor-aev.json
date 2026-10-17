@@ -1,0 +1,31 @@
+{
+  "id": "12-menor-aev",
+  "input": "My 15-year-old son is going to Buenos Aires with his father and I'm staying in Brazil. Can I sign the travel authorization through gov.br?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(gov\\.?br|electronic signature|digital signature).{0,160}(not valid|not accepted|does not work|cannot be used)|(not valid|not accepted).{0,160}(gov\\.?br|electronic signature|digital signature)",
+      "description": "Says a gov.br signature is not valid for a minor's travel authorization"
+    },
+    {
+      "type": "regex",
+      "value": "\\bAEV\\b|electronic travel authorization|e-Notariado",
+      "description": "Presents the Electronic Travel Authorization (AEV) through e-Notariado"
+    },
+    {
+      "type": "regex",
+      "value": "notarized|notary",
+      "description": "Presents the alternative with a notarized signature at a notary's office"
+    },
+    {
+      "type": "regex",
+      "value": "2 copies|two copies",
+      "description": "Says to carry 2 copies of the authorization"
+    },
+    {
+      "type": "regex",
+      "value": "confirm",
+      "description": "Asks them to confirm with an official source"
+    }
+  ]
+}

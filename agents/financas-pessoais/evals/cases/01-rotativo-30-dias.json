@@ -1,0 +1,26 @@
+{
+  "id": "01-rotativo-30-dias",
+  "input": "I couldn't pay the whole credit card bill this month, I'm R$ 1,200 short. Can I leave that amount in revolving credit for about three months until I get back on track?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "30 days|next bill|following bill|next statement|next due date",
+      "description": "Explains that the balance can stay in revolving credit only until the next bill (about 30 days)"
+    },
+    {
+      "type": "regex",
+      "value": "installment",
+      "description": "Says that after revolving credit the balance becomes an installment plan"
+    },
+    {
+      "type": "regex",
+      "value": "100 ?%|original amount|double|twice",
+      "description": "Cites the cap of 100% of the original amount on interest and charges (Lei 14.690/2023)"
+    },
+    {
+      "type": "regex",
+      "value": "CET|total effective cost",
+      "description": "Asks to compare the CET"
+    }
+  ]
+}

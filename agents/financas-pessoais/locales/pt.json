@@ -1,0 +1,36 @@
+{
+  "name": "Finanças Pessoais",
+  "tagline": "Organize o mês, saia das dívidas caras e monte sua reserva",
+  "description": "Um passo a passo para quem quer pôr a vida financeira em ordem sem planilha complicada nem jargão. A IA faz um diagnóstico real de renda, gastos e dívidas, ataca primeiro o que custa mais caro (rotativo do cartão e cheque especial), calcula a reserva de emergência em meses de custo e fecha um plano do mês em reais, com as ações dos próximos 30 dias. No primeiro uso ela pergunta o seu perfil (tipo de renda, prioridade, estilo de quitação) e adapta o caminho. A base traz os números e as regras que a IA comum costuma errar, cada arquivo com fonte e data de validade (referência: setembro e outubro de 2026): Selic, poupança, imposto de renda e IOF, FGC, Tesouro Selic, tetos do rotativo e do cheque especial, Desenrola e superendividamento. Explica categorias onde guardar dinheiro, nunca um banco ou produto. É educação financeira: não é aconselhamento profissional, não indica investimentos, não declara imposto de renda e não monta carteira.",
+  "packageContents": [
+    "Método em 4 etapas com checklist: diagnóstico, dívidas, reserva e metas, plano do mês",
+    "Calibragem no primeiro uso (tipo de renda, prioridade e estilo de quitação), guardada na memória do especialista",
+    "Base de conhecimento com fonte e validade: Selic, CDI, poupança, IR, IOF, FGC e Tesouro Selic (referência: outubro de 2026)",
+    "Regras e taxas médias do rotativo do cartão e do cheque especial",
+    "Guia de renegociação, programas do governo e superendividamento (Lei 14.181/2021 e mínimo existencial)",
+    "Modelos de plano do mês, tabela de dívidas, roteiro de renegociação e revisão semanal"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    }
+  ],
+  "searchPhrases": [
+    "organizar minhas finanças",
+    "sair das dívidas do cartão",
+    "montar uma reserva de emergência",
+    "controlar os gastos do mês",
+    "fazer um orçamento pessoal",
+    "deixei a fatura do cartão no rotativo, e agora",
+    "vivo no cheque especial",
+    "onde guardar a reserva de emergência",
+    "poupança ainda vale a pena",
+    "quanto de imposto paga um CDB",
+    "LCI e LCA pagam imposto de renda",
+    "quanto o FGC cobre",
+    "o Desenrola ainda está aberto",
+    "estou superendividado, o que fazer"
+  ],
+  "creatorBio": "Grupo de consultores de viagem, finanças e rotina doméstica que transforma experiência de atendimento real em métodos simples para quem não é especialista (perfil de demonstração)"
+}

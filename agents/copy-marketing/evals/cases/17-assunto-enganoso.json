@@ -1,0 +1,31 @@
+{
+  "id": "17-assunto-enganoso",
+  "input": "Review my promotional email to the store's customers: subject 'RE: your order #4821 has shipped', body with 40% off everything and, in the footer, nothing but the store name.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "misleading|art\\.?\\s*37",
+      "description": "Points out the fake subject line as misleading advertising (CDC art. 37)"
+    },
+    {
+      "type": "regex",
+      "value": "subject[^\\n]{0,100}(truthful|mislead|false|fake|pretend|simulat)|(truthful|mislead|false|fake|pretend|simulat)[^\\n]{0,100}subject",
+      "description": "Asks for a truthful subject line, not pretending to be a reply or order tracking"
+    },
+    {
+      "type": "regex",
+      "value": "unsubscribe|opt out|stop receiving",
+      "description": "Requires a visible unsubscribe in the footer"
+    },
+    {
+      "type": "regex",
+      "value": "LGPD|13\\.?709|art\\.?\\s*9",
+      "description": "Points out LGPD transparency (sender identification and reason for receiving)"
+    },
+    {
+      "type": "regex",
+      "value": "\\b50\\b[^\\n]{0,40}character|subject[^\\n]{0,40}\\(\\s*\\d{1,2}\\s*\\)|preheader",
+      "description": "Rewrites the subject within the limit and suggests a preheader"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "03-fgc-heranca",
+  "input": "I inherited R$ 400,000. Can I put it all in a CDB at a single bank? Is it safe?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "FGC|credit guarantee fund",
+      "description": "Cites the FGC"
+    },
+    {
+      "type": "regex",
+      "value": "250[.,\\s]?000|250 ?thousand|250k",
+      "description": "Cites the limit of R$ 250,000 per CPF"
+    },
+    {
+      "type": "regex",
+      "value": "conglomerate|per institution",
+      "description": "Explains that the limit is per institution or conglomerate"
+    },
+    {
+      "type": "regex",
+      "value": "1 million|1[.,]000[.,]000",
+      "description": "Cites the overall ceiling of R$ 1 million"
+    }
+  ]
+}

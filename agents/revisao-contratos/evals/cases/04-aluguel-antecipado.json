@@ -1,0 +1,21 @@
+{
+  "id": "04-aluguel-antecipado",
+  "input": "The contract has rental guarantee insurance, and still the landlord wants me to pay the month's rent on the 1st, before I've lived in the month. Can he demand that?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?20(?!\\d)",
+      "description": "Cites art. 20 (ban on advance rent)"
+    },
+    {
+      "type": "regex",
+      "value": "misdemeanor|art(icle|\\.)?\\s?43",
+      "description": "Points to the misdemeanor in art. 43, III"
+    },
+    {
+      "type": "regex",
+      "value": "short[- ]stay|art(icle|\\.)?\\s?42|(no|without)( any)? guarantee",
+      "description": "Mentions the exceptions (short-stay rental or a contract with no guarantee)"
+    }
+  ]
+}

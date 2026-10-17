@@ -1,0 +1,167 @@
+{
+  "specVersion": 1,
+  "id": "b73a0405a98f900454c7c4b809685e13",
+  "slug": "backend-node",
+  "name": "Node Back-end",
+  "tagline": "Secure Node.js and TypeScript APIs: contract, validation, authorization and tests",
+  "description": "Walks your AI through an API engineering process for Node.js and TypeScript: it writes the endpoint contract, validates input with strict schemas, authorizes by resource owner, standardizes errors, protects against abuse and delivers tests that prove the security rules hold. The knowledge base covers OWASP API Top 10 2023, Express 5, Node LTS, zod 4 and RFC 9457, each with source and date, and the method adapts to your framework, your authentication and your database. Use it for a new endpoint, a security review, or diagnosing a slow or unstable API. It does not run your code or do penetration testing: the tests are written for you to run, and the review is done by reading the code.",
+  "category": "Desenvolvimento",
+  "version": "1.1.0",
+  "creator": {
+    "id": "marina-costa",
+    "name": "Marina Costa",
+    "bio": "Senior software engineer with 12 years in React and Node.js. Was a platform tech lead at a fintech and writes about accessibility and testing.",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" },
+    { "type": "plan", "label": "Paid plan recommended", "key": "paid" }
+  ],
+  "packageContents": [
+    "A 5-step method, from the endpoint contract to the security review, with an exit checklist for each step",
+    "Knowledge base with source and date: OWASP API Top 10 2023, Express 5, Node LTS, zod 4, RFC 9457, passwords and JWT",
+    "Ready-made templates: endpoint contract, Express 5 skeleton with zod, test matrix and review checklist",
+    "Your project profile (framework, validation, authentication and database) saved in the specialist's memory",
+    "Updates for version 1.x"
+  ],
+  "usesMemory": true,
+  "steps": [
+    {
+      "file": "steps/01-contrato.md",
+      "title": "Understand the request and write the contract",
+      "gate": [
+        "Project profile read or calibrated",
+        "Endpoint contract written and confirmed with the user",
+        "Resource owner and protected fields identified"
+      ]
+    },
+    {
+      "file": "steps/02-validacao-e-autorizacao.md",
+      "title": "Validate input and authorize per resource",
+      "gate": [
+        "Strict schemas for params, query and body, with limits",
+        "Resource owner included in the query",
+        "Output built by a mapper, with no internal fields"
+      ]
+    },
+    {
+      "file": "steps/03-regra-de-negocio-e-protecoes.md",
+      "title": "Business rules, errors and protections",
+      "gate": [
+        "Errors handled in a single handler using the problem+json format",
+        "States, transaction and idempotency defined when there is a side effect",
+        "Timeouts and size and rate limits defined"
+      ]
+    },
+    {
+      "file": "steps/04-testes.md",
+      "title": "Tests that prove security",
+      "gate": [
+        "Test matrix approved by the user",
+        "Different-owner and extra-field tests written",
+        "Each security test paired with the change that would make it fail"
+      ]
+    },
+    {
+      "file": "steps/05-revisao-e-entrega.md",
+      "title": "Review security and deliver",
+      "gate": [
+        "Checklist walked through item by item",
+        "Open items recorded with the risk described",
+        "Final summary of what was and was not verified"
+      ]
+    }
+  ],
+  "tools": [],
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 90,
+    "sources": [
+      "OWASP API Security Top 10 2023",
+      "OWASP Cheat Sheet Series",
+      "Node.js (documentation and releases)",
+      "Express (official documentation)",
+      "Zod (documentation)",
+      "IETF RFC 9457, RFC 9110 and RFC 8725"
+    ]
+  },
+  "templates": [
+    { "name": "contrato-endpoint", "path": "templates/contrato-endpoint.md", "title": "Endpoint contract", "description": "Ten-line sheet: authentication, authorization, input, output, responses, limits and risks." },
+    { "name": "esqueleto-express", "path": "templates/esqueleto-express.md", "title": "Express 5 skeleton with zod", "description": "Strict validation, owner in the query, output mapper and an error handler that returns problem+json." },
+    { "name": "matriz-de-testes", "path": "templates/matriz-de-testes.md", "title": "API test matrix", "description": "Twelve cases per endpoint, each with the change that would make it fail." },
+    { "name": "checklist-revisao", "path": "templates/checklist-revisao.md", "title": "Security review checklist", "description": "Items grouped by the OWASP API Top 10 2023, to mark as OK, N/A or fail." }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "framework",
+        "ask": "Which back-end framework do you use?",
+        "why": "Express 4, Express 5 and Fastify handle errors and routes differently; I write for yours.",
+        "options": ["Express 5", "Express 4", "Fastify", "NestJS", "Other or not chosen yet"]
+      },
+      {
+        "id": "validacao",
+        "ask": "How do you validate incoming data in your API today?",
+        "why": "I use the same library your project already has instead of imposing another one.",
+        "options": ["zod", "class-validator", "JSON Schema (Fastify or Ajv)", "I don't validate yet"]
+      },
+      {
+        "id": "autenticacao",
+        "ask": "How do your users authenticate?",
+        "why": "It determines where the user id lives on the request and how the owner goes into the query.",
+        "options": ["Cookie session", "JWT in the header", "External login provider", "API key", "Not yet"]
+      },
+      {
+        "id": "banco",
+        "ask": "Which database and which data access layer do you use?",
+        "why": "It changes how I write queries, transactions and duplicate handling.",
+        "options": ["PostgreSQL with Prisma", "PostgreSQL with Drizzle", "PostgreSQL with a plain driver", "MongoDB", "Other"]
+      }
+    ]
+  },
+  "differentiators": ["liveData", "memory"],
+  "guarantee": { "available": false, "defaultCriteria": [] },
+  "pricing": { "priceUsdc": 22, "royaltyBps": 500 },
+  "searchPhrases": [
+    "build an API in Node.js",
+    "create an endpoint with Express",
+    "review the security of my API",
+    "my API is slow or crashing",
+    "UnhandledPromiseRejection error in Node",
+    "how to stop one user from seeing another user's data",
+    "validate the data coming into my API",
+    "build JWT login in Node",
+    "migrate from Express 4 to Express 5",
+    "prevent duplicate charges in my API",
+    "receive payment webhooks securely",
+    "rate limit requests per user",
+    "REST API with TypeScript and tests"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "Create a PATCH /orders/:id endpoint in Express to update the delivery address.",
+      "withoutSolver": "app.patch('/orders/:id', async (req, res) => { const order = await Order.findByIdAndUpdate(req.params.id, req.body); res.json(order); });",
+      "withSolver": "Writes the contract first (who owns the order, what is immutable, which responses exist). Delivers strict validation for the address field only, a query with the owner in the filter (another user's order returns 404, no IDOR), 409 when the order has already shipped, errors in problem+json, output through a mapper, and tests for a different owner and for extra fields."
+    },
+    {
+      "prompt": "My API is slow and sometimes crashes with 'UnhandledPromiseRejection'. What do I do?",
+      "withoutSolver": "Add try/catch to your async functions and consider using a cache to improve performance.",
+      "withSolver": "Explains that in current Node an unhandled rejection takes the process down, centralizes errors in a single handler (Express 5 already forwards rejected promises), adds timeouts to external calls with AbortSignal.timeout, caps the database pool, and tells you to measure p95 per route before talking about caching."
+    },
+    {
+      "prompt": "I receive payment webhooks in my API. How do I make sure they are genuine?",
+      "withoutSolver": "Check that the body has the expected fields and mark the payment as paid.",
+      "withSolver": "Validates the HMAC signature over the raw body (express.raw), compares it with timingSafeEqual, rejects old timestamps, stores the event id with a uniqueness constraint to ignore redeliveries, and checks the final state in the provider's API before releasing the order."
+    }
+  ],
+  "versions": [
+    { "version": "0.9.0", "releasedAt": "2026-07-15T12:00:00Z", "notes": "Initial version with a security checklist and validation patterns." },
+    { "version": "1.0.0", "releasedAt": "2026-09-01T12:00:00Z", "notes": "Errors in the RFC 9457 format, a rate limit section and a review of the OWASP API 2023 checklist." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Method rewritten into 5 steps (contract, validation and authorization, business rules and protections, tests, review). Knowledge base reorganized into 9 files with source and date (Node 24 LTS, Express 5.2, zod 4, OWASP API 2023, RFC 9457, JWT and passwords). Four ready-made templates. Project profile kept in the specialist's memory. Twelve or more evaluation cases; the previous scores were withdrawn because they did not match existing cases."
+    }
+  ]
+}

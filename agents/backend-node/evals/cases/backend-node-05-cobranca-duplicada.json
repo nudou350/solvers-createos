@@ -1,0 +1,12 @@
+{
+  "id": "backend-node-05-cobranca-duplicada",
+  "input": "My payment endpoint sometimes charges twice when the app retries the request because of the network. How do I fix it?",
+  "checks": [
+    { "type": "contains", "value": "Idempotency-Key", "description": "Proposes the idempotency key" },
+    { "type": "regex", "value": "unique|uniqueness", "description": "Guarantees the key is unique in the database" },
+    { "type": "regex", "value": "same (response|result)|returns? the (stored |saved |original )?(response|result)", "description": "On a repeat, returns the same result" },
+    { "type": "regex", "value": "transaction", "description": "Stores the key together with the operation, in a transaction" },
+    { "type": "regex", "value": "draft|convention|not (yet )?(a|an) (published )?(RFC|standard)", "description": "Says the header is not yet a published RFC" },
+    { "type": "regex", "value": "409|422", "description": "Defines the error for the same key with a different body" }
+  ]
+}

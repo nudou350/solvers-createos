@@ -1,0 +1,26 @@
+{
+  "id": "05-prazo-indeterminado",
+  "input": "I signed a 30-month lease that expired in March 2026. I still live there and nobody signed anything new. I want to leave next month. Do I have to pay a penalty?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?6(?!\\d)",
+      "description": "Cites art. 6"
+    },
+    {
+      "type": "regex",
+      "value": "indefinite",
+      "description": "Explains that the contract became indefinite-term"
+    },
+    {
+      "type": "regex",
+      "value": "(30|thirty)[- ]days?",
+      "description": "States the 30-day notice"
+    },
+    {
+      "type": "regex",
+      "value": "\\bno\\s(early[- ]exit\\s|termination\\s)?(penalty|fine)|(not|n't)[^.]{0,40}penalty|penalty[^.]{0,40}(does not|doesn't|not) (apply|arise)",
+      "description": "Concludes there is no termination penalty"
+    }
+  ]
+}

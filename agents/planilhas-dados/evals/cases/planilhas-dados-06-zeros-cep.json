@@ -1,0 +1,10 @@
+{
+  "id": "planilhas-dados-06-zeros-cep",
+  "input": "My Brazilian postal codes (CEP) lose the leading zero when I open the file in Excel (01310100 becomes 1310100). How do I fix it?",
+  "checks": [
+    { "type": "regex", "value": "TEXT\\([^)]*\"0{8}\"\\)|TEXTO\\([^)]*\"0{8}\"\\)|00000000", "description": "Restores the zeros with TEXT and an 8-digit format" },
+    { "type": "regex", "value": "text format|format(ting)? (the )?(column|cells?) as text|column.{0,30}text|formato (de )?texto|formatar.{0,40}como texto", "description": "Recommends formatting the column as text before importing" },
+    { "type": "regex", "value": "(postal|zip|CEP).{0,80}(not (a )?number|text|code)|code.{0,40}text|n[aã]o (é|e) n[uú]mero", "description": "Explains that a postal code is a code, not a number" },
+    { "type": "regex", "value": "import|wizard|Text to Columns|Get Data|From Text|assistente|Obter dados|De Texto", "description": "Mentions importing with the column type defined" }
+  ]
+}

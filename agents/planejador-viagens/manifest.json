@@ -1,0 +1,217 @@
+{
+  "specVersion": 1,
+  "id": "99fa11a5cdf8f1164b4d7a02fdb9191e",
+  "slug": "planejador-viagens",
+  "name": "Travel Planner",
+  "tagline": "Itinerary, budget and documents for your trip, with nothing forgotten",
+  "description": "A travel consultant that thinks like someone who has helped hundreds of Brazilian travelers: it starts with documents and entry requirements, builds a realistic budget (with IOF, Brazil's tax on foreign-currency spending, plus exchange rates, insurance and an emergency reserve) and only then designs an itinerary at a pace you can actually keep, closing with a checklist of dates. Built for travelers who hold a Brazilian passport and leave from Brazil: entry rules, minor travel authorizations, cash declarations and taxes follow Brazilian rules. The first time, it asks about your pace, who you travel with and your spending style, and remembers it for your next trips. Anything that changes often (visas, ETIAS, fees, tax rates) comes with a source and a date, flagged so you can confirm it on the official site. It does not issue visas or authorizations, does not guarantee approval or entry to any country, does not sell flights or lodging, and does not replace a doctor or an insurer. Ideal if you are not a travel expert and want to travel with peace of mind.",
+  "category": "Dia a dia",
+  "version": "1.2.0",
+  "usesMemory": true,
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "creator": {
+    "id": "coletivo-pratico",
+    "name": "Coletivo Prático",
+    "bio": "A group of travel, finance and household-routine consultants who turn real client experience into simple methods for people who are not specialists (demo profile).",
+    "avatarUrl": null
+  },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" }
+  ],
+  "packageContents": [
+    "5-step method with checklists: profile, documents, budget, itinerary and final checklist",
+    "Knowledge base with source and date: entry documents and rules for Brazilian passport holders (Mercosur, Schengen, USA, UK, Canada, Mexico, Japan)",
+    "Budget split calculator (budget_split) that runs on the server",
+    "Ready-made templates: trip sheet, budget, day-by-day itinerary and pre-trip checklist",
+    "First-use calibration and a memory of your preferences across trips",
+    "Guides on travel insurance, vaccines, seasonality and how far ahead to book"
+  ],
+  "steps": [
+    {
+      "file": "steps/01-perfil.md",
+      "title": "Understand the traveler and the trip",
+      "gate": [
+        "Memory checked with get_memory before any question",
+        "Destination, dates, who is traveling and approximate budget confirmed with the user",
+        "Feasibility check done (budget, season, document lead times)",
+        "Lasting preferences saved with save_memory, with no sensitive data"
+      ]
+    },
+    {
+      "file": "steps/02-documentos.md",
+      "title": "Documents and entry requirements",
+      "gate": [
+        "Travel document and validity checked for each traveler",
+        "Visa or electronic authorization identified, with the source and date from the knowledge base",
+        "Insurance, vaccines and minor travel authorization assessed where they apply",
+        "Every rule that can change carries 'confirm on the official site' and the address"
+      ]
+    },
+    {
+      "file": "steps/03-orcamento.md",
+      "title": "Realistic budget",
+      "gate": [
+        "Split calculated with run_tool budget_split",
+        "IOF, exchange rate and emergency reserve (minimum 10%) included",
+        "Daily amount per person at the destination calculated and compared with the knowledge base",
+        "Budget validated with the user"
+      ]
+    },
+    {
+      "file": "steps/04-roteiro.md",
+      "title": "An itinerary with a doable pace",
+      "gate": [
+        "Day-by-day itinerary with at most 2 major attractions per day",
+        "Travel days counted as half a day and international arrival kept light",
+        "Minimum of 3 nights per base, or a day trip instead",
+        "Critical bookings and deadlines listed"
+      ]
+    },
+    {
+      "file": "steps/05-checklist.md",
+      "title": "Final checklist and delivery",
+      "gate": [
+        "Pre-trip checklist delivered with dates calculated from the departure date",
+        "Items to confirm on an official site highlighted",
+        "Contingency plan delivered",
+        "Memory updated with save_memory, with no sensitive data"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "budget_split",
+      "description": "Splits the total trip budget into categories (aereo = flights, hospedagem = lodging, alimentacao = food, passeios = activities and tickets, transporteLocal = local transport, seguro = insurance, reserva = emergency reserve). Input: total, currency, days, travelers, profile (economico = budget, moderado = moderate, conforto = comfort or luxo = luxury), destinationType (nacional = domestic or internacional = international), alreadyPaid by category and emergencyReservePct (minimum 10). Output: categories with the amount for each category, perPersonPerDayLocal (daily spend per person at the destination) and alerts. Use it in the budget step, before suggesting hotels or activities.",
+      "runner": "node:budget",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "number", "exclusiveMinimum": 0 },
+          "currency": { "type": "string", "maxLength": 10 },
+          "days": { "type": "integer", "minimum": 1, "maximum": 365 },
+          "travelers": { "type": "integer", "minimum": 1, "maximum": 50 },
+          "profile": { "type": "string", "enum": ["economico", "moderado", "conforto", "luxo"] },
+          "destinationType": { "type": "string", "enum": ["nacional", "internacional"] },
+          "alreadyPaid": {
+            "type": "object",
+            "properties": {
+              "aereo": { "type": "number", "minimum": 0 },
+              "hospedagem": { "type": "number", "minimum": 0 },
+              "alimentacao": { "type": "number", "minimum": 0 },
+              "passeios": { "type": "number", "minimum": 0 },
+              "transporteLocal": { "type": "number", "minimum": 0 },
+              "seguro": { "type": "number", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          "emergencyReservePct": { "type": "number", "minimum": 0, "maximum": 50 }
+        },
+        "required": ["total", "days"],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 60,
+    "sources": [
+      "Itamaraty Consular Portal and Brazilian Federal Police (gov.br)",
+      "CNJ (Brazil's National Council of Justice): Resolution 131/2011 and Provision 103/2020",
+      "Receita Federal (Brazilian tax authority): IOF and Traveler's Guide",
+      "travel-europe.europa.eu (ETIAS and EES)",
+      "travel.state.gov and the US consulate in Brazil",
+      "gov.uk/eta, canada.ca and the Mexican government (gob.mx/sre)",
+      "Anvisa (Brazilian health regulator) and SUSEP (Brazilian insurance regulator)",
+      "Itinerary, budget and seasonality method by Coletivo Prático"
+    ]
+  },
+  "templates": [
+    { "name": "ficha-do-viajante", "path": "templates/ficha-do-viajante.md", "title": "Trip sheet", "description": "Destination, dates, travelers, documents in general terms and calibration profile, with no sensitive data" },
+    { "name": "orcamento-viagem", "path": "templates/orcamento-viagem.md", "title": "Trip budget", "description": "Split by category, hidden costs, daily spend and payment method" },
+    { "name": "roteiro-modelo", "path": "templates/roteiro-modelo.md", "title": "Day-by-day itinerary", "description": "Bases, transfers, days with a plan B, critical bookings and items to confirm" },
+    { "name": "checklist-pre-viagem", "path": "templates/checklist-pre-viagem.md", "title": "Pre-trip checklist", "description": "Tasks by deadline until departure, items to confirm on an official site and emergency contacts" }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "ritmo",
+        "ask": "What travel pace suits you best?",
+        "why": "Sets how many attractions go into each day of the itinerary",
+        "options": ["Relaxed, with free time", "Moderate", "Intense, I want to see as much as possible"]
+      },
+      {
+        "id": "grupo",
+        "ask": "Who do you usually travel with?",
+        "why": "Changes the lodging, the pace and the documents, such as the minor travel authorization",
+        "options": ["Solo", "Couple", "Family with children", "Friends", "With parents or older relatives"]
+      },
+      {
+        "id": "estilo",
+        "ask": "Which spending style do you prefer when you travel?",
+        "why": "Sets the profile used to split the budget",
+        "options": ["Budget", "Moderate", "Comfort", "Luxury"]
+      },
+      {
+        "id": "restricoes",
+        "ask": "Is there anything that changes lodging and activities, such as avoiding stairs or a dietary restriction?",
+        "why": "Avoids suggesting places and meals that do not work for you",
+        "options": ["Avoid stairs or a lot of walking", "Dietary restriction", "Small child", "None"]
+      }
+    ]
+  },
+  "escalation": { "enabled": false },
+  "differentiators": ["tool", "liveData", "memory"],
+  "guarantee": {
+    "available": false,
+    "defaultCriteria": []
+  },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 3,
+    "searches": 15,
+    "tools": {
+      "budget_split": 2
+    },
+    "templates": ["ficha-do-viajante", "orcamento-viagem"],
+    "summary": "You get the trip profile, the documents and entry requirements for your destination, and the budget split by category, including the hidden costs.",
+    "lockedSummary": "the day-by-day itinerary at a doable pace and the final checklist for before departure."
+  },
+  "pricing": { "priceUsdc": 9, "royaltyBps": 300 },
+  "searchPhrases": [
+    "plan an international trip from scratch",
+    "build a vacation itinerary",
+    "do I need a visa to travel to the United States as a Brazilian",
+    "how much does it cost to travel to Europe",
+    "documents, passport and visa to travel abroad",
+    "checklist before traveling",
+    "how to split a trip budget",
+    "travel with kids to Orlando",
+    "entry requirements for Brazilian passport holders",
+    "ETIAS and EES for Brazilians traveling to Europe"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "I want to go to Portugal and Spain in May, 15 days, with my wife. What do I need?",
+      "withoutSolver": "What an amazing trip! For Portugal and Spain, Brazilians do not need a visa for tourism. Bring your passport, get travel insurance and book your hotels early. Suggested itinerary: Lisbon (3 days), Porto (2 days), Madrid (3 days), Barcelona (3 days), Seville (2 days), Granada (2 days). May is a great time to go!",
+      "withSolver": "Documents first, before the itinerary: your passport must be valid for at least 3 months after you leave the Schengen area and have been issued less than 10 years ago (check the date for both of you). Visa exemption lasts up to 90 days in any 180-day period. Insurance with minimum medical cover of €30,000: for visa-exempt travelers it is not always checked, but the border may ask, so carry a printed policy. On your first entry you go through EES biometric registration (photo and fingerprints); expect a queue, which varies by airport. ETIAS: expected in the last quarter of 2026 (€20 per person, valid for 3 years), phased in gradually, with no exact date announced to date; since the date has been postponed several times, confirm on travel-europe.europa.eu before you travel. Itinerary: 6 cities in 15 days means 5 hotel changes and about 2.5 days lost in transit. I suggest 4 bases: Lisbon (4 nights, with a day trip to Sintra), Porto (3), Madrid (4, with Toledo), Seville (3). Fly Porto-Madrid instead of taking the train (there is no fast direct train). Want me to calculate the budget with IOF and a 10% reserve?"
+    },
+    {
+      "prompt": "I'm going to Orlando in July with my two kids. Do I need to get the ESTA?",
+      "withoutSolver": "Yes! The ESTA is the electronic authorization to enter the United States. You can apply online on the official site for about US$40 and approval usually arrives within 72 hours. Remember to have a valid passport too.",
+      "withSolver": "No: Brazil is not part of the Visa Waiver Program (VWP), so Brazilians cannot use the ESTA. Each of you, children included, needs a B1/B2 tourist visa in the passport. Today almost everyone has an interview at the consulate, children too (the age-based waiver ended in 2025; confirm your case on the US consulate site). Interview wait times vary a lot by city and can run to months: check the wait time on travel.state.gov and only buy tickets after the visa is approved. If you travel alone with the children, also bring the other parent's authorization with a notarized signature, or the electronic AEV made through e-Notariado (a gov.br signature is not valid), in 2 copies; confirm the form on gov.br. July is high season in Orlando and peak heat with afternoon storms: plan the parks for early morning and rest in the middle of the day. Insurance: for the US, I recommend medical cover of at least US$100,000 per person."
+    },
+    {
+      "prompt": "I want to go to Japan in April 2027. Do Brazilians need a visa?",
+      "withoutSolver": "Yes, Brazilians need a visa for Japan. Contact the Japanese consulate and prepare an invitation letter, a detailed trip itinerary and bank statements; the process takes several weeks.",
+      "withSolver": "For tourism of up to 90 days, no: the visa exemption between Brazil and Japan was extended from September 30, 2026 to September 29, 2029, but it only applies to ordinary passports with an electronic chip (the chip symbol is on the cover). A passport without a chip requires a visa: check yours now and, if needed, start the renewal early. Confirm the rules with the Japanese consulate before buying tickets. Cherry blossoms bloom between late March and early April, depending on the region, and it is one of the most sought-after times: book lodging months ahead, and remember that Golden Week, at the end of April, fills up transport and hotels. Want me to build the itinerary bases and calculate the budget?"
+    }
+  ],
+  "versions": [
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts unlocked in the demo. Searching the trial knowledge base now returns excerpts from some files of each specialist (before, it returned none). The full knowledge base remains license-only; method, templates and answers did not change." },
+    { "version": "1.1.0", "releasedAt": "2026-10-02T12:00:00Z", "notes": "Migration to the Solver Package v1 format. First-use calibration (pace, who you travel with, spending style and restrictions) used to tune the itinerary and the budget. Knowledge reorganized, with a source and date in each file and entry rules separated from the Brazilian documents, reviewed on October 2, 2026: EES fully operating since April 10, 2026, with uneven biometric collection in some countries; ETIAS still without an exact date; UK ETA at £20; Mexico electronic authorization; Japan visa exemption extended to 2029. New templates for the trip sheet and the budget, and rewritten steps. 7 test cases were added; the test scores of earlier versions do not apply to this version." },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. No more pay-per-use: the specialist is now a lifetime license only." },
+    { "version": "1.0.0", "releasedAt": "2026-09-30T12:00:00Z", "notes": "First public version: 5-step method (profile, documents, budget, itinerary and checklist), documentation guide for Brazilians updated in September 2026, budget_split tool, preferences memory, seasonality guide and a pre-trip checklist with deadlines." }
+  ]
+}

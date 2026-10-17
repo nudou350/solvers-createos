@@ -1,0 +1,103 @@
+{
+  "version": "1.2.0",
+  "cases": 18,
+  "passed": 17,
+  "scoreBps": 9444,
+  "runAt": "2026-10-07T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "01-google-ads-fisioterapia",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "02-influenciadora-skincare",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "03-dermatologista-antes-depois",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "04-advogada-trabalhista",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "05-apostas-bonus",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "06-email-lista-comprada",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "07-suplemento-colageno",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "08-sms-pizzaria",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "09-fisio-sessao-gratis",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "10-odonto-clinica-antes-depois",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "11-dado-sensivel-diabetes",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "12-crianca-peca-para-mae",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "13-urgencia-falsa-garantia",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "14-superlativo-estetica",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "15-afiliado-bet",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "16-garantia-aprovacao",
+      "passed": false,
+      "failed": [
+        "Reminds that the platform has its own policies, which can be stricter"
+      ]
+    },
+    {
+      "id": "17-assunto-enganoso",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "18-cerveja-artesanal",
+      "passed": true,
+      "failed": []
+    }
+  ]
+}

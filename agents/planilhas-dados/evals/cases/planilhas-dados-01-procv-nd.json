@@ -1,0 +1,12 @@
+{
+  "id": "planilhas-dados-01-procv-nd",
+  "input": "My VLOOKUP returns #N/A even though the code exists in the other sheet. I use Excel 365 in English.",
+  "checks": [
+    { "type": "regex", "value": "ISTEXT|ISNUMBER|ÉTEXTO|ÉNÚM|text.{0,60}number|number.{0,60}text|n[úu]mero.{0,60}texto|texto.{0,60}n[úu]mero", "description": "Points to a type mismatch (text against number) as the likely cause" },
+    { "type": "regex", "value": "\\bLEN\\b|NÚM\\.CARACT|space", "description": "Tells the user to test for stray spaces with LEN" },
+    { "type": "regex", "value": "TRIM|VALUE\\(|ARRUMAR", "description": "Fixes it with TRIM or VALUE" },
+    { "type": "regex", "value": "XLOOKUP|INDEX|PROCX|ÍNDICE", "description": "Proposes XLOOKUP or INDEX with MATCH" },
+    { "type": "regex", "value": "=[A-Z.]+\\([^;\\n]*,", "description": "Writes the formula with commas for an English spreadsheet" },
+    { "type": "not_contains", "value": "PROCX", "description": "Does not write the formula in Portuguese for an English spreadsheet" }
+  ]
+}

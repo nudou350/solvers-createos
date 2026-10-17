@@ -1,0 +1,26 @@
+{
+  "id": "03-duas-garantias",
+  "input": "The real estate agency wants me to provide a guarantor and also deposit 3 months' rent as a security deposit. Can I accept, or is something wrong?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?37",
+      "description": "Cites art. 37"
+    },
+    {
+      "type": "regex",
+      "value": "sole paragraph|only one (type|guarantee)|a single (type|guarantee)|one (single )?(type|guarantee)",
+      "description": "Explains that only one type of guarantee is allowed"
+    },
+    {
+      "type": "regex",
+      "value": "null|void",
+      "description": "Says the requirement is void"
+    },
+    {
+      "type": "regex",
+      "value": "misdemeanor|art(icle|\\.)?\\s?43",
+      "description": "Points to the misdemeanor in art. 43"
+    }
+  ]
+}

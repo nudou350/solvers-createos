@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-07-camadas-tokens",
+  "input": "Can I bind my components straight to the palette colors (blue-600)?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "semantic",
+      "description": "Explains the semantic layer"
+    },
+    {
+      "type": "regex",
+      "value": "primitive",
+      "description": "Names the primitives layer"
+    },
+    {
+      "type": "regex",
+      "value": "theme|dark mode|dark",
+      "description": "Explains the impact on themes"
+    },
+    {
+      "type": "regex",
+      "value": "(action|text|bg|border|surface)\\.[a-z]",
+      "description": "Gives an example of a semantic name by intent (e.g. color.action.primary.bg)"
+    }
+  ]
+}

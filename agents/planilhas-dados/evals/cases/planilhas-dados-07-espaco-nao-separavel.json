@@ -1,0 +1,10 @@
+{
+  "id": "planilhas-dados-07-espaco-nao-separavel",
+  "input": "I already used TRIM but my XLOOKUP still does not find the code. The data came from a web system. My Excel is in Portuguese (Brazil).",
+  "checks": [
+    { "type": "regex", "value": "CHAR\\(160\\)|CARACT\\(160\\)|160|non-?breaking space|espa[cç]o n[aã]o separ[aá]vel", "description": "Identifies the non-breaking space (code 160)" },
+    { "type": "regex", "value": "SUBSTITUTE|SUBSTITUIR", "description": "Uses SUBSTITUTE to replace it" },
+    { "type": "regex", "value": "(TRIM|ARRUMAR).{0,100}(does not remove|doesn't remove|only removes|only (strips|trims)|just removes|not remove|n[aã]o remove|s[oó] remove|apenas|n[aã]o tira)", "description": "Explains that TRIM only removes the ordinary space" },
+    { "type": "regex", "value": "LEN|NÚM\\.CARACT", "description": "Tells the user to check the text length with LEN" }
+  ]
+}

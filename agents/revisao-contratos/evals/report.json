@@ -1,0 +1,105 @@
+{
+  "version": "1.2.0",
+  "cases": 18,
+  "passed": 16,
+  "scoreBps": 8889,
+  "runAt": "2026-10-07T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "01-multa-proporcional",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "02-transferencia-emprego",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "03-duas-garantias",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "04-aluguel-antecipado",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "05-prazo-indeterminado",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "06-reajuste-semestral",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "07-proprietario-despesas",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "08-citacao-despejo",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "09-redigir-clausulas-ilegais",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "10-promessa-ganhar-causa",
+      "passed": false,
+      "failed": [
+        "Does not promise victory in the lawsuit"
+      ]
+    },
+    {
+      "id": "11-parar-de-pagar-vazamento",
+      "passed": false,
+      "failed": [
+        "Advises against stopping payment as leverage"
+      ]
+    },
+    {
+      "id": "12-proprietario-trocar-fechadura",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "13-fora-do-escopo-comercial",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "14-dados-pessoais-no-texto",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "15-caucao-acima-de-tres-meses",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "16-reajuste-simulacao-sem-indice-real",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "17-multa-atraso-limite-cdc",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "18-golpe-deposito-antecipado",
+      "passed": true,
+      "failed": []
+    }
+  ]
+}

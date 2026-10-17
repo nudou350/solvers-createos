@@ -1,0 +1,26 @@
+{
+  "id": "06-reajuste-semestral",
+  "input": "The lease I'm about to sign adjusts the rent every 6 months by the IGP-M. Is that allowed?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "10[.,]?192",
+      "description": "Cites Law 10.192/2001"
+    },
+    {
+      "type": "regex",
+      "value": "annual|12 months|one year|twelve months|once a year",
+      "description": "Explains that the minimum adjustment period is annual"
+    },
+    {
+      "type": "regex",
+      "value": "null|void",
+      "description": "Says an adjustment period shorter than one year is void"
+    },
+    {
+      "type": "regex",
+      "value": "IPCA",
+      "description": "Compares or suggests the IPCA as an alternative"
+    }
+  ]
+}

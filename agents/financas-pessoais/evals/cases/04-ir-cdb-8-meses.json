@@ -1,0 +1,31 @@
+{
+  "id": "04-ir-cdb-8-meses",
+  "input": "I'm going to leave some money in a CDB for about 8 months. How much tax will I pay?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(^|[^0-9.])20 ?%",
+      "description": "Points to the 20% rate for 181 to 360 days"
+    },
+    {
+      "type": "regex",
+      "value": "22\\.5 ?%",
+      "description": "Shows the 22.5% band of the table"
+    },
+    {
+      "type": "regex",
+      "value": "(^|[^0-9.])15 ?%",
+      "description": "Shows the final 15% band of the table"
+    },
+    {
+      "type": "regex",
+      "value": "regressive",
+      "description": "Explains that the table is regressive"
+    },
+    {
+      "type": "regex",
+      "value": "on (the )?(earnings|returns|gains|profit|yield)|only (on |to )?(the )?(earnings|returns|gains|profit|yield)",
+      "description": "Says that income tax applies only to the earnings"
+    }
+  ]
+}

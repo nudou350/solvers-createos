@@ -1,0 +1,26 @@
+{
+  "id": "07-suplemento-colageno",
+  "input": "Write 3 Instagram ads for my collagen supplement, which helps cure arthrosis and lose weight.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "Anvisa",
+      "description": "Cites Anvisa"
+    },
+    {
+      "type": "regex",
+      "value": "243/2018|IN\\s*(no\\.?\\s*)?28|(authorized|permitted|approved) claims|list of (authorized )?claims",
+      "description": "Refers to RDC 243/2018, IN 28/2018 or the list of authorized claims"
+    },
+    {
+      "type": "regex",
+      "value": "disease|therapeutic|medicine",
+      "description": "Explains that a supplement cannot claim to treat disease"
+    },
+    {
+      "type": "regex",
+      "value": "art\\.?\\s*38|burden of proof",
+      "description": "Applies the advertiser's burden of proof (CDC art. 38)"
+    }
+  ]
+}

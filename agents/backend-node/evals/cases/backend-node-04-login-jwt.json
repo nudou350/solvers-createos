@@ -1,0 +1,13 @@
+{
+  "id": "backend-node-04-login-jwt",
+  "input": "I want to build email and password login with JWT in a Node API. What is the right way to do it?",
+  "checks": [
+    { "type": "regex", "value": "argon2id|argon2|bcrypt|scrypt", "description": "Stores the password with a proper hash, not a plain hash" },
+    { "type": "regex", "value": "algorithms\\s*:|(fixed|explicit) (list|allowlist) of algorithms|algorithm allowlist|\\balg\\b", "description": "Verifies the JWT algorithm with an explicit list" },
+    { "type": "regex", "value": "expir|expiresIn|15 ?min|short[- ]lived", "description": "Defines a short expiry" },
+    { "type": "regex", "value": "generic|same (error )?message|invalid credentials", "description": "Generic response for invalid credentials" },
+    { "type": "regex", "value": "rate.?limit|(limit|throttl)\\w* (login )?attempts|attempt limit", "description": "Limits login attempts" },
+    { "type": "not_contains", "value": "md5", "description": "Does not suggest MD5" },
+    { "type": "regex", "value": "refresh|logout|revoc|revok", "description": "Handles token renewal or revocation" }
+  ]
+}

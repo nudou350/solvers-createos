@@ -1,0 +1,174 @@
+{
+  "specVersion": 1,
+  "id": "622ff207d0a82886535565f255d6a065",
+  "slug": "financas-pessoais",
+  "name": "Personal Finance",
+  "tagline": "Organize your month, get out of expensive debt and build your emergency fund (Brazil)",
+  "description": "A step-by-step method for anyone who wants to put their financial life in order without a complicated spreadsheet or jargon. Built for people in Brazil: the rules, rates, taxes and government programs it uses are Brazilian (amounts in reais). The AI makes a real diagnosis of income, spending and debts, attacks the most expensive debt first (revolving credit card debt and overdraft), calculates the emergency fund in months of costs and closes a monthly plan in reais, with the actions for the next 30 days. On first use it asks about your profile (type of income, priority, payoff style) and adapts the path. The knowledge base holds the numbers and rules that a generic AI tends to get wrong, each file with a source and a validity date (reference: September and October 2026): Selic, poupança savings, income tax and IOF, FGC deposit guarantee, Tesouro Selic, caps on revolving credit and overdraft, Desenrola and over-indebtedness. It explains categories for keeping money, never a bank or a product. It is financial education: it is not professional advice, does not recommend investments, does not file income tax returns and does not build portfolios.",
+  "category": "Dia a dia",
+  "version": "1.2.0",
+  "creator": {
+    "id": "coletivo-pratico",
+    "name": "Coletivo Prático",
+    "bio": "A group of travel, finance and household-routine consultants who turn real client experience into simple methods for non-specialists (demo profile)",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" }
+  ],
+  "packageContents": [
+    "4-step method with checklists: diagnosis, debts, emergency fund and goals, monthly plan",
+    "Calibration on first use (type of income, priority and payoff style), saved in the specialist's memory",
+    "Knowledge base with source and validity date: Selic, CDI, poupança, income tax, IOF, FGC and Tesouro Selic (reference: October 2026)",
+    "Rules and average rates for revolving card credit and overdraft in Brazil",
+    "Guide to renegotiation, government programs and over-indebtedness (Lei 14.181/2021 and the existential minimum)",
+    "Templates: monthly plan, debt table, renegotiation script and weekly review"
+  ],
+  "usesMemory": true,
+  "differentiators": ["liveData", "memory"],
+  "escalation": { "enabled": false },
+  "knowledge": {
+    "updatedAt": "2026-10-02",
+    "reviewEveryDays": 30,
+    "sources": [
+      "Banco Central do Brasil (Copom, credit statistics and CMN rules)",
+      "Fundo Garantidor de Créditos (FGC)",
+      "B3 and Tesouro Direto (custody fee)",
+      "Planalto (Leis 11.033/2004, 12.703/2012, 14.181/2021 and 14.690/2023; MP 1.393/2026)",
+      "Receita Federal",
+      "STF (existential minimum, April 2026)",
+      "Serasa (Limpa Nome fair)"
+    ]
+  },
+  "templates": [
+    { "name": "plano-do-mes", "path": "templates/plano-do-mes.md", "title": "Monthly plan", "description": "A table in reais that adds up to your income, with the emergency fund and the actions for the next 30 days" },
+    { "name": "tabela-de-dividas", "path": "templates/tabela-de-dividas.md", "title": "Debt table", "description": "Debts from the most expensive to the cheapest, with the month's interest, the action and a renegotiation log" },
+    { "name": "roteiro-de-renegociacao", "path": "templates/roteiro-de-renegociacao.md", "title": "Renegotiation script", "description": "What to ask the creditor, how to compare offers and what to check before and after paying" },
+    { "name": "revisao-semanal", "path": "templates/revisao-semanal.md", "title": "10-minute weekly review", "description": "Weekly checklist for spending caps, debts, the emergency fund and charges" }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "perfil_renda",
+        "ask": "Is your monthly income fixed (CLT employee, civil servant) or does it vary (self-employed, MEI, gig work, commission)?",
+        "why": "Variable income calls for a bigger emergency fund and a plan based on the worst month.",
+        "options": ["Fixed", "Varies a little", "Varies a lot"]
+      },
+      {
+        "id": "prioridade",
+        "ask": "What weighs on you the most right now?",
+        "why": "It sets where the plan starts and what shows up first in the conversation.",
+        "options": ["Getting out of debt", "Making it to the end of the month", "Building an emergency fund", "Saving for a goal"]
+      },
+      {
+        "id": "estilo_quitacao",
+        "ask": "To pay off debts, do you prefer to save more on interest or to see the debts disappearing quickly?",
+        "why": "It chooses between the avalanche method (highest rate first) and the snowball method (smallest balance first).",
+        "options": ["Save on interest", "See debts disappearing quickly", "I don't know, explain it to me"]
+      },
+      {
+        "id": "dependentes",
+        "ask": "Does anyone depend only on your money (children, parents, partner)?",
+        "why": "Anyone who supports other people needs an emergency fund at the top of the recommended range.",
+        "options": ["Yes", "No"]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "file": "steps/01-diagnostico.md",
+      "title": "Monthly diagnosis",
+      "gate": [
+        "Financial education disclaimer given at the start of the reply",
+        "Calibration profile read, when one exists",
+        "Net income, fixed and variable spending gathered in reais and as a % of income",
+        "Debts listed with balance, installment and monthly rate or CET (given or estimated)",
+        "Monthly snapshot confirmed with the user, with the surplus or shortfall calculated"
+      ]
+    },
+    {
+      "file": "steps/02-dividas.md",
+      "title": "Debt attack plan",
+      "gate": [
+        "Debts ordered by effective cost with an action for each one",
+        "Rules for revolving credit, overdraft and renegotiation programs checked in the knowledge base, with the date",
+        "Monthly amount for debts defined and over-indebtedness assessed"
+      ]
+    },
+    {
+      "file": "steps/03-reserva-e-metas.md",
+      "title": "Emergency fund and goals",
+      "gate": [
+        "Target fund calculated in months of essential costs and in reais",
+        "Monthly amount and timeline with milestones defined",
+        "Where to keep it explained by category, with dated FGC and tax rules, without naming a product"
+      ]
+    },
+    {
+      "file": "steps/04-plano-do-mes.md",
+      "title": "Monthly plan and next 30 days",
+      "gate": [
+        "Monthly table in reais that adds up to the income",
+        "Up to 5 actions for the next 30 days with dates and one action for this week",
+        "Closing notice that this is not a recommendation and to check the official source"
+      ]
+    }
+  ],
+  "tools": [],
+  "guarantee": { "available": false, "defaultCriteria": [] },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 2,
+    "searches": 15,
+    "tools": {},
+    "templates": ["tabela-de-dividas"],
+    "summary": "You get the monthly diagnosis (where the money goes) and the right order to attack your debts, with the math done and the debt table.",
+    "lockedSummary": "the emergency fund and goals calculated for your case, the monthly plan with the next 30 days and the renegotiation and weekly review templates."
+  },
+  "pricing": { "priceUsdc": 7, "royaltyBps": 300 },
+  "searchPhrases": [
+    "organize my finances",
+    "get out of credit card debt",
+    "build an emergency fund",
+    "control my monthly spending",
+    "make a personal budget",
+    "I left my card bill in revolving credit, now what",
+    "I live in overdraft",
+    "where to keep my emergency fund",
+    "is poupança still worth it",
+    "how much tax does a CDB pay",
+    "do LCI and LCA pay income tax",
+    "how much does the FGC cover",
+    "is Desenrola still open",
+    "I am over-indebted, what do I do"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "I earn R$ 4,000 net, I have R$ 3,000 in revolving credit card debt and R$ 2,000 saved in poupança. What do I do first?",
+      "withoutSolver": "The ideal is to balance both. Pay at least the minimum on the bill so you don't end up blacklisted and keep your emergency fund in poupança, which yields 0.5% a month. Gradually cut unnecessary spending and pay off the debt.",
+      "withSolver": "Heads up: this is financial education, not professional advice. Revolving credit first, and don't pay only the minimum. In August 2026 the average revolving rate was 444.9% a year, about 15% a month (Central Bank of Brazil): your R$ 3,000 costs about R$ 450 in interest a month, while the R$ 2,000 in poupança earns about R$ 13 (0.5% + TR, about 0.67% a month). Use R$ 1,500 of the poupança now and keep R$ 500 for surprises. The remaining R$ 1,500 can only stay in revolving credit until the next bill; after that it becomes an installment plan (average of 192.1% a year). If you can, pay everything off on the next bill; if not, compare the CET of the installment plan with that of a personal loan. Under Lei 14.690/2023, interest and charges on revolving credit and installment plans cannot exceed 100% of the original amount. Once the card is paid off, rebuild the emergency fund at R$ 400 a month. Check the rate on your bill."
+    },
+    {
+      "prompt": "I'm self-employed, I spend R$ 3,000 a month on essentials and I have R$ 5,000 saved. How much emergency fund do I need and where do I keep it? I heard LCI now pays tax.",
+      "withoutSolver": "The ideal is to have 6 months of expenses, that is, R$ 18,000. Keep it in poupança or LCI. Remember that since 2026 LCI and LCA started paying 5% income tax, so a CDB may pay off more.",
+      "withSolver": "Heads up: this is financial education, not an investment recommendation. With variable income, the target is 6 to 12 months of essentials: R$ 18,000 to R$ 36,000. You are R$ 13,000 short of the first target; saving R$ 650 a month, you get there in 20 months. About LCI: the 5% income tax was a proposal in MP 1.303/2025, which lapsed in October 2025, and LCI and LCA remain exempt (check whether a new law came out). But they usually have a lock-up period, and an emergency fund needs same-day redemption. With the Selic at 13.75% (Copom, September 16, 2026), a floating-rate investment with daily liquidity at about 100% of the CDI yields about 10.6% a year net in the first 6 months (22.5% income tax) and 11.6% after 2 years (15% income tax), against about 8.2% for poupança, which is exempt. In Tesouro Selic there is no custody fee up to R$ 10,000. Check the numbers on the official websites."
+    }
+  ],
+  "versions": [
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts unlocked in the demo. Search in the trial knowledge base now returns excerpts from some files of each specialist (before, it returned none). The full knowledge base stays license-only; method, templates and answers did not change." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Package in the v1 format. Calibration on first use (type of income, priority, payoff style and dependents) that adjusts the steps; financial education disclaimer at the start of every reply. Knowledge base reorganized with a source and validity date in each file and numbers checked on October 2, 2026: Selic at 13.75% (Copom, September 16, 2026), revolving credit at 444.9% a year (Central Bank, August 2026), Desenrola Famílias ended and Desenrola Adimplentes until October 26, 2026, existential minimum of R$ 600 with an annual review and payroll loans included (STF, April 23, 2026). Average card rates separated from the rules, because they expire sooner. Two new templates: renegotiation script and weekly review. Test cases expanded from 8 to 20 (the 12 new ones still without measured answers); the score measured for version 1.0.1 does not apply to this version."
+    },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. End of pay-per-use: the specialist is now a lifetime license only." },
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-09-30T12:00:00Z",
+      "notes": "First public version: 4-step method (diagnosis, debts, emergency fund and goals, monthly plan), knowledge base with September 2026 numbers and official sources (Selic, poupança, income tax, IOF, FGC, Tesouro Selic, revolving credit, overdraft, Desenrola and over-indebtedness) and templates for the monthly plan and the debt table."
+    }
+  ]
+}

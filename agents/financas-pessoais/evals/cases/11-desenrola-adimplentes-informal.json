@@ -1,0 +1,41 @@
+{
+  "id": "11-desenrola-adimplentes-informal",
+  "input": "I drive for a ride-hailing app, with no formal employment contract, and I have a R$ 9,000 personal loan that is up to date. Is there a government program to swap it for a lower interest rate?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "Adimplentes",
+      "description": "Identifies Desenrola Adimplentes"
+    },
+    {
+      "type": "regex",
+      "value": "10/26|26/10|October 26|Oct 26",
+      "description": "Gives the deadline of October 26, 2026"
+    },
+    {
+      "type": "regex",
+      "value": "1\\.99",
+      "description": "Cites the cap of 1.99% a month"
+    },
+    {
+      "type": "regex",
+      "value": "15[.,]?000|15 thousand|R\\$ ?15k",
+      "description": "Cites the balance limit of R$ 15,000"
+    },
+    {
+      "type": "regex",
+      "value": "analysis|eligib|confirm|go to the bank|ask (the|your) bank",
+      "description": "Tells them to confirm eligibility with the bank, without promising approval"
+    },
+    {
+      "type": "not_contains",
+      "value": "guaranteed approval",
+      "description": "Does not promise approval"
+    },
+    {
+      "type": "not_contains",
+      "value": "will be approved",
+      "description": "Does not promise approval (variation)"
+    }
+  ]
+}

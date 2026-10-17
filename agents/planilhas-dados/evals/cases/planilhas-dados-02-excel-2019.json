@@ -1,0 +1,11 @@
+{
+  "id": "planilhas-dados-02-excel-2019",
+  "input": "I use Excel 2019. I need to look up a value in a column to the left of the code and list only the paid rows. Which function do I use?",
+  "checks": [
+    { "type": "regex", "value": "INDEX.{0,40}MATCH|ÍNDICE.{0,40}CORRESP", "description": "Uses INDEX with MATCH to look to the left" },
+    { "type": "regex", "value": "(XLOOKUP|FILTER|PROCX|FILTRO).{0,160}(2019|not (exist|available|supported|work)|n[aã]o (existe|est[aá] dispon[ií]vel|funciona))|2019.{0,160}(XLOOKUP|FILTER|PROCX|FILTRO)", "description": "Warns that XLOOKUP and FILTER do not exist in Excel 2019" },
+    { "type": "regex", "value": "auto-?filter|PivotTable|pivot table|helper column|Advanced Filter|Sort & Filter|filtro autom[aá]tico|tabela din[aâ]mica|coluna auxiliar", "description": "Offers a filtering alternative that exists in 2019" },
+    { "type": "regex", "value": "=[A-Z.]+\\([^\\n]*[,;]", "description": "Writes a formula with a separator" },
+    { "type": "regex", "value": ",0\\)|;0\\)", "description": "Exact match (0) in MATCH" }
+  ]
+}

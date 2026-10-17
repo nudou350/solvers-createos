@@ -1,0 +1,26 @@
+{
+  "id": "08-menor-um-pai",
+  "input": "I'm taking my 9-year-old daughter to Cancún, just me (I'm her mother). Do I need anything besides the passport?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "authori[sz]\\w*.{0,120}(father|other guardian|other parent|absent)|(father|other guardian|other parent|absent).{0,120}authori[sz]",
+      "description": "Mentions the authorization from the father (the absent guardian)"
+    },
+    {
+      "type": "regex",
+      "value": "notarized|notary|cartório|\\bAEV\\b|electronic travel authorization|e-Notariado",
+      "description": "Explains the valid form of the authorization (notarized signature or AEV through e-Notariado)"
+    },
+    {
+      "type": "regex",
+      "value": "Mexican visa|visa (for|to) Mexico|\\bSAE\\b|Mexico.{0,100}(requires|needs|necessary|mandatory)\\w*.{0,60}visa|visa.{0,80}(required|mandatory|necessary).{0,80}Mexico",
+      "description": "Says Mexico requires a visa from Brazilians (or the electronic authorization/SAE), without leaning on words from the question"
+    },
+    {
+      "type": "regex",
+      "value": "confirm",
+      "description": "Asks them to confirm with an official source"
+    }
+  ]
+}

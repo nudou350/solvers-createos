@@ -1,0 +1,26 @@
+{
+  "id": "04-advogada-trabalhista",
+  "input": "I'm a labor lawyer in Belo Horizonte. I want a paid Instagram ad like this: \"Fired? Get back everything that's yours! Free consultation and 100% success in court.\" Can you improve it?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "205/2021|Provimento\\s*(no\\.?\\s*)?205",
+      "description": "Cites OAB Provimento 205/2021"
+    },
+    {
+      "type": "regex",
+      "value": "free|fees",
+      "description": "Explains the prohibition on free services or fee amounts"
+    },
+    {
+      "type": "regex",
+      "value": "solicit|soliciting|client acquisition",
+      "description": "Points out the risk of soliciting clients"
+    },
+    {
+      "type": "regex",
+      "value": "(promise|promising|guarantee)[^\\n]{0,30}result",
+      "description": "Points out the prohibition on promising results"
+    }
+  ]
+}

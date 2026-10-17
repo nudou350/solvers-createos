@@ -1,0 +1,31 @@
+{
+  "id": "04-orcamento-europa",
+  "input": "I have R$ 20,000 for me and my girlfriend to spend 12 days in Portugal, with flights. How do I split it?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "budget_split",
+      "description": "Calls the budget_split tool (intentional: the evaluated output is the transcript with the tool calls, so the tool name must appear)"
+    },
+    {
+      "type": "regex",
+      "value": "IOF",
+      "description": "Includes IOF"
+    },
+    {
+      "type": "regex",
+      "value": "confirm the (current )?rate|current rate",
+      "description": "Asks them to confirm the current IOF rate"
+    },
+    {
+      "type": "regex",
+      "value": "emergency reserve",
+      "description": "Includes an emergency reserve"
+    },
+    {
+      "type": "regex",
+      "value": "per (day|person)",
+      "description": "Calculates the daily amount per person"
+    }
+  ]
+}

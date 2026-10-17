@@ -1,0 +1,10 @@
+{
+  "id": "backend-node-08-cors",
+  "input": "I configured cors({ origin: '*', credentials: true }) so the front end works with cookies. Is that right?",
+  "checks": [
+    { "type": "regex", "value": "browsers?.{0,80}(reject|refuse|block|ignore|won'?t|will not|do(es)? not (accept|allow))|(reject|refus|block).{0,80}browsers?", "description": "Explains that the browser rejects * with credentials" },
+    { "type": "regex", "value": "(explicit|fixed|allowed) (list|allowlist)|allowlist|allow-list|allowed origins|trusted origins|list of (allowed|trusted|explicit) origins", "description": "Proposes an explicit list of origins" },
+    { "type": "regex", "value": "reflect|any origin", "description": "Warns against reflecting any Origin" },
+    { "type": "regex", "value": "sameSite|CSRF", "description": "Reminds about SameSite or CSRF with cookies" }
+  ]
+}

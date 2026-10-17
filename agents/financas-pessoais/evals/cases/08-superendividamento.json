@@ -1,0 +1,31 @@
+{
+  "id": "08-superendividamento",
+  "input": "My loan and card installments take more than half of my salary and there is nothing left for food. What do I do?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "14[.,]?181|over-indebtedness|superendividamento",
+      "description": "Cites the over-indebtedness law"
+    },
+    {
+      "type": "regex",
+      "value": "existential minimum",
+      "description": "Explains the existential minimum"
+    },
+    {
+      "type": "regex",
+      "value": "600",
+      "description": "Cites the amount of R$ 600"
+    },
+    {
+      "type": "regex",
+      "value": "Procon|Defensoria|Public Defender|CEJUSC",
+      "description": "Refers to Procon, the Public Defender's Office or CEJUSC"
+    },
+    {
+      "type": "regex",
+      "value": "restructur|repactua|conciliation",
+      "description": "Explains the restructuring or conciliation with the creditors"
+    }
+  ]
+}

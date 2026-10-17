@@ -1,0 +1,31 @@
+{
+  "id": "09-fisio-sessao-gratis",
+  "input": "I want an Instagram post for my physiotherapy clinic: 'First session free! Cure your back pain in 3 sessions'. Can you get it ready?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "COFFITO|CREFITO",
+      "description": "Grounds the answer in the physiotherapy council rules"
+    },
+    {
+      "type": "regex",
+      "value": "(promise|promising|guarantee|guaranteeing)[^\\n]{0,40}(result|cure)|cure[^\\n]{0,40}(promise|prohibit|cannot|not allowed)",
+      "description": "Explains that promising a cure or results is prohibited"
+    },
+    {
+      "type": "regex",
+      "value": "(free|no cost)[^\\n]{0,120}(restrict|prohibit|confirm|caution|CREFITO|guidance)|(restrict|prohibit|confirm|caution)[^\\n]{0,120}(free|no cost)",
+      "description": "Treats the free session as a caution point to confirm with the CREFITO"
+    },
+    {
+      "type": "regex",
+      "value": "CREFITO[-\\s]?\\d|CREFITO number|CREFITO registration|CREFITO-\\[",
+      "description": "Asks for or includes identification with the CREFITO number"
+    },
+    {
+      "type": "regex",
+      "value": "\\(\\s*\\d{1,3}(\\s*(characters|chars?\\.?))?\\s*\\)",
+      "description": "Keeps the character count in parentheses in the delivered texts"
+    }
+  ]
+}

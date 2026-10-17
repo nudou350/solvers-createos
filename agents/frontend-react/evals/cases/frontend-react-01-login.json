@@ -1,0 +1,31 @@
+{
+  "id": "frontend-react-01-login",
+  "input": "Build an accessible React login form with email and password, validation and tests.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "<label[^>]*htmlFor",
+      "description": "Fields with an associated label"
+    },
+    {
+      "type": "contains",
+      "value": "aria-describedby",
+      "description": "Errors tied to the field with aria-describedby"
+    },
+    {
+      "type": "regex",
+      "value": "getByRole\\(",
+      "description": "Tests by accessible role (Testing Library)"
+    },
+    {
+      "type": "contains",
+      "value": "userEvent",
+      "description": "Interaction with user-event"
+    },
+    {
+      "type": "regex",
+      "value": "aria-invalid",
+      "description": "Marks the invalid field with aria-invalid"
+    }
+  ]
+}

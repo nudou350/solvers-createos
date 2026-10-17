@@ -1,0 +1,36 @@
+{
+  "id": "frontend-react-11-run-tests",
+  "input": "Build an accessible toggle button in React with tests and run the tests on the server to prove they pass before handing it over.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "run_tool|run_tests",
+      "description": "Calls the run_tests tool through run_tool"
+    },
+    {
+      "type": "regex",
+      "value": "\"?tool\"?\\s*:\\s*[\"']run_tests[\"']",
+      "description": "Shows the call with tool: \"run_tests\""
+    },
+    {
+      "type": "regex",
+      "value": "\"?files\"?\\s*:\\s*\\[",
+      "description": "Sends files in list format"
+    },
+    {
+      "type": "regex",
+      "value": "\"?path\"?\\s*:\\s*[\"'][\\w./-]+\\.test\\.tsx[\"']",
+      "description": "Includes the test file as { path, content }"
+    },
+    {
+      "type": "regex",
+      "value": "\"?content\"?\\s*:",
+      "description": "Each file with content"
+    },
+    {
+      "type": "regex",
+      "value": "aria-pressed",
+      "description": "Toggle with aria-pressed"
+    }
+  ]
+}

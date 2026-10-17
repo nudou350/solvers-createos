@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-17-contraste-gradiente",
+  "input": "I need a landing page hero in React with a purple-to-pink gradient, white text and 5 accent colors the visitor can switch. Make sure it's accessible.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "token",
+      "description": "Plans separate color tokens instead of reusing the brand color"
+    },
+    {
+      "type": "regex",
+      "value": "4\\.5\\s?:\\s?1|4\\.5",
+      "description": "States the 4.5:1 text contrast minimum"
+    },
+    {
+      "type": "regex",
+      "value": "gradient[^.]{0,120}(measure|worst|pixel)|(measure|worst|pixel)[^.]{0,120}gradient",
+      "description": "Says text over a gradient must be measured, not assumed"
+    },
+    {
+      "type": "regex",
+      "value": "browser|axe",
+      "description": "Names what needs a browser to verify (axe-core or similar)"
+    }
+  ]
+}

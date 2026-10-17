@@ -1,0 +1,26 @@
+{
+  "id": "05-lci-lca-mp",
+  "input": "I heard that LCI and LCA now pay 5% income tax. Is it still worth it?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "exempt",
+      "description": "Says that LCI and LCA remain exempt for individuals"
+    },
+    {
+      "type": "regex",
+      "value": "1[.,]?303",
+      "description": "Identifies MP 1.303/2025"
+    },
+    {
+      "type": "regex",
+      "value": "lapsed|expired|lost (its )?validity|was not (approved|voted|passed)|never became law|did not become law|pulled from the agenda|withdrawn from",
+      "description": "Explains that the MP did not become law"
+    },
+    {
+      "type": "regex",
+      "value": "lock-up|grace period|liquidity",
+      "description": "Warns about lock-up periods or liquidity"
+    }
+  ]
+}

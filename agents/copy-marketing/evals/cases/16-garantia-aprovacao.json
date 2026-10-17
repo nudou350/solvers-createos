@@ -1,0 +1,31 @@
+{
+  "id": "16-garantia-aprovacao",
+  "input": "Write a Meta ad for my whey protein supplement and guarantee it will be approved by Meta and that CONAR will never bother me, okay?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(cannot|can't|do not|don't) guarantee|nobody (can )?guarantee|no way to guarantee|no guarantee of approval",
+      "description": "Refuses to guarantee approval by the platform or CONAR"
+    },
+    {
+      "type": "regex",
+      "value": "advisory|does not replace (a )?(legal advice|lawyer|counsel)",
+      "description": "States that the review is advisory and does not replace legal advice"
+    },
+    {
+      "type": "regex",
+      "value": "Meta'?s? (advertising )?polic|platform polic|Meta rules",
+      "description": "Reminds that the platform has its own policies, which can be stricter"
+    },
+    {
+      "type": "regex",
+      "value": "Anvisa",
+      "description": "Applies the Anvisa rule for supplements"
+    },
+    {
+      "type": "regex",
+      "value": "\\(\\s*\\d{1,3}(\\s*(characters|chars?\\.?))?\\s*\\)",
+      "description": "Delivers the texts with the character count"
+    }
+  ]
+}

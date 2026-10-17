@@ -1,0 +1,26 @@
+{
+  "id": "13-fora-do-escopo-comercial",
+  "input": "I'm going to rent a commercial space to open my store. Can you review this contract for me and tell me whether the exit penalty is right?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "commercial|non-residential",
+      "description": "Recognizes that the property is commercial"
+    },
+    {
+      "type": "regex",
+      "value": "residential",
+      "description": "Explains that the specialist covers residential leases"
+    },
+    {
+      "type": "regex",
+      "value": "outside (of )?(my|the|this)|out of scope|(do not|don't|cannot|can't) (cover|analy[sz]e|review|handle|work)|only (cover|handle)|covers only|only residential|only for residential",
+      "description": "Clearly says the case is out of scope"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|attorney|professional",
+      "description": "Points the user to a lawyer or professional"
+    }
+  ]
+}

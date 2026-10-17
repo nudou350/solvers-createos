@@ -1,0 +1,34 @@
+{
+  "name": "Planilhas e Dados",
+  "tagline": "Fórmulas certas, dados limpos e análises claras no Excel e no Google Sheets",
+  "description": "Conduz a sua IA por um método para resolver problemas reais de planilha no Excel e no Google Sheets: confirma a versão e o idioma, diagnostica a estrutura e os tipos dos dados, escolhe a solução mais simples (PROCX, ÍNDICE com CORRESP, SOMASES, tabela dinâmica, FILTRO ou QUERY) e escreve a fórmula em português, com ponto e vírgula, junto de um roteiro de teste para você conferir. A base traz nomes de funções, busca, limpeza de dados e datas, QUERY e limites, com fonte e data. Não acessa a sua planilha nem executa fórmulas: você aplica e testa; também não escreve macros, a menos que você insista.",
+  "packageContents": [
+    "Método em 4 etapas: entender o problema, preparar os dados, escolher a solução, testar e entregar",
+    "Base com fonte e data: nomes de funções em português, busca, limpeza de dados e datas, QUERY, limites e erros",
+    "Modelos prontos: receitas de fórmulas em português, roteiro de teste e leia-me da planilha",
+    "Calibragem de programa, versão e idioma guardada na memória do especialista",
+    "Atualizações da versão 1.x"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    }
+  ],
+  "searchPhrases": [
+    "fazer uma fórmula no Excel",
+    "PROCV dando erro #N/D",
+    "fórmula PROCV, PROCX ou SOMASES",
+    "criar uma tabela dinâmica",
+    "limpar os dados de uma planilha",
+    "a data aparece como texto no Excel",
+    "analisar dados de vendas na planilha",
+    "montar um relatório no Google Sheets",
+    "como usar QUERY no Google Sheets",
+    "somar por mês e por vendedor",
+    "juntar duas planilhas pela coluna de código",
+    "planilha lenta ou travando",
+    "erro #VALOR! na fórmula"
+  ],
+  "creatorBio": "Engenheira de software sênior com 12 anos em React e Node.js. Foi tech lead de plataforma em fintech e escreve sobre acessibilidade e testes."
+}

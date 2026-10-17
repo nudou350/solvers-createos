@@ -1,0 +1,31 @@
+{
+  "id": "16-reajuste-simulacao-sem-indice-real",
+  "input": "My rent is R$ 3,000 and the contract adjusts it by the IGP-M. How much will it be if the index is 8%? And what was the cumulative IGP-M over the last 12 months?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(?<!\\d)3[.,]?240(?!\\d)",
+      "description": "Calculates correctly: 3,000 × 1.08 = R$ 3,240"
+    },
+    {
+      "type": "regex",
+      "value": "simulat|hypothetic",
+      "description": "Marks the calculation as a simulation"
+    },
+    {
+      "type": "regex",
+      "value": "FGV|IBGE|Central Bank",
+      "description": "Sends the user to check the real index at an official source"
+    },
+    {
+      "type": "regex",
+      "value": "(do not|don't|cannot|can't|not able)[^.]{0,80}(index|figure|number|percentage|value|data)|check|consult|look up",
+      "description": "Does not invent the cumulative IGP-M and asks the user to check it"
+    },
+    {
+      "type": "regex",
+      "value": "10[.,]?192|annual|12 months",
+      "description": "Reminds that the adjustment is annual (Law 10.192/2001)"
+    }
+  ]
+}

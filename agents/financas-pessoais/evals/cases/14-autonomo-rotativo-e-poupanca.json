@@ -1,0 +1,41 @@
+{
+  "id": "14-autonomo-rotativo-e-poupanca",
+  "input": "I'm self-employed, I earn between R$ 3,000 and R$ 6,000, I have R$ 10,000 in poupança and R$ 4,000 in revolving card credit. Do I use the poupança to pay the card or keep the emergency fund?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "revolving",
+      "description": "Treats revolving credit as the priority"
+    },
+    {
+      "type": "regex",
+      "value": "R\\$ ?(5[5-9]\\d|6\\d\\d)",
+      "description": "Calculates the monthly interest on revolving credit (about R$ 600 on R$ 4,000)"
+    },
+    {
+      "type": "regex",
+      "value": "minimum reserve|half a month|R\\$ ?(500|1,000)|R\\$ ?1000",
+      "description": "Keeps a minimum reserve instead of emptying the poupança"
+    },
+    {
+      "type": "regex",
+      "value": "worst month|variable income",
+      "description": "Considers the variable income (worst month) in the plan"
+    },
+    {
+      "type": "regex",
+      "value": "6 (to|and|up to|-|–) 12 months|six to twelve",
+      "description": "Cites the target fund of 6 to 12 months for variable income after paying off the debt"
+    },
+    {
+      "type": "not_contains",
+      "value": "keep everything in poupança",
+      "description": "Does not tell them to keep everything in poupança with revolving credit open"
+    },
+    {
+      "type": "not_contains",
+      "value": "pay only the minimum",
+      "description": "Does not tell them to pay only the minimum"
+    }
+  ]
+}

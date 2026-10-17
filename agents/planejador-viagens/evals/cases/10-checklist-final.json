@@ -1,0 +1,36 @@
+{
+  "id": "10-checklist-final",
+  "input": "I'm flying to Lisbon on May 10. Give me the checklist of what to do until then.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "\\b(?!May 10\\b)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (0?[1-9]|[12][0-9]|3[01])\\b",
+      "description": "Checklist with concrete dates calculated from the departure date (any month-day date other than May 10, which is already in the question)"
+    },
+    {
+      "type": "regex",
+      "value": "insurance",
+      "description": "Includes travel insurance"
+    },
+    {
+      "type": "regex",
+      "value": "ETIAS",
+      "description": "Mentions ETIAS"
+    },
+    {
+      "type": "contains",
+      "value": "travel-europe.europa.eu",
+      "description": "Points to the official ETIAS/EES site"
+    },
+    {
+      "type": "regex",
+      "value": "official site",
+      "description": "Includes a section of items to confirm on an official site"
+    },
+    {
+      "type": "regex",
+      "value": "carry-on",
+      "description": "Says to put medications and documents in carry-on baggage"
+    }
+  ]
+}

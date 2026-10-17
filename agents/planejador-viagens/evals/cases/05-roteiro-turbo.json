@@ -1,0 +1,21 @@
+{
+  "id": "05-roteiro-turbo",
+  "input": "I want to see Paris, London, Amsterdam, Brussels, Berlin and Prague in 10 days. Can you build my itinerary?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "3 nights|three nights|fewer cities|reduce|cut",
+      "description": "Recommends cutting cities or a minimum number of nights per base"
+    },
+    {
+      "type": "regex",
+      "value": "United Kingdom.{0,120}(ETA|Schengen)|ETA",
+      "description": "Reminds them that London has its own rule (ETA, outside Schengen)"
+    },
+    {
+      "type": "regex",
+      "value": "transfer|travel day|door to door",
+      "description": "Takes transfer time into account"
+    }
+  ]
+}

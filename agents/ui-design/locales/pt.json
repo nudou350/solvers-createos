@@ -1,0 +1,38 @@
+{
+  "name": "Design de Interfaces",
+  "tagline": "Auditoria de telas no Figma, design tokens e handoff pronto para o time de front",
+  "description": "Lê o seu arquivo do Figma pelo conector (ou, sem ele, a partir de screenshots e valores que você colar) e faz uma auditoria de hierarquia visual, espaçamento, tipografia e contraste, com números e referências da WCAG 2.2 em vez de opiniões vagas. Transforma os valores soltos das telas em design tokens em três camadas (primitivos, semânticos e de componente) no formato W3C DTCG, prontos para o código, e fecha com um handoff que cobre estados, responsividade e casos de borda. A checagem de contraste roda no servidor e a base traz WCAG 2.2, DTCG 2025.10 e o conector do Figma, com fonte e data. Não cria o design visual do zero, não substitui teste com usuários e não mede contraste de texto sobre foto.",
+  "packageContents": [
+    "Método em 4 etapas: leitura do Figma, auditoria, tokens e handoff",
+    "Funciona sem o conector do Figma, a partir de screenshots e valores colados",
+    "Base com fonte e data: WCAG 2.2, cor e contraste, tipografia, espaçamento, tokens (DTCG 2025.10), handoff e conector do Figma",
+    "Ferramenta de checagem de contraste no servidor (texto, texto grande e componentes de interface)",
+    "Modelos prontos: tokens em três camadas com tema escuro e checklist de handoff",
+    "Calibragem de plataforma, destino dos tokens, nível de conformidade e design system na memória do especialista",
+    "Atualizações da versão 1.x"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    },
+    {
+      "key": "figma",
+      "label": "Figma (opcional)"
+    }
+  ],
+  "searchPhrases": [
+    "revisar o design de uma tela no Figma",
+    "meu texto tem contraste suficiente",
+    "paleta de cores acessível",
+    "melhorar o visual da interface",
+    "cores, tipografia e espaçamento do meu app",
+    "design tokens para o meu projeto",
+    "passar o design do Figma para o desenvolvedor",
+    "padronizar os espaçamentos e as fontes",
+    "criar um design system",
+    "modo escuro sem quebrar o contraste",
+    "documentação de handoff com estados"
+  ],
+  "creatorBio": "Designer de produto há 11 anos, especialista em design systems e acessibilidade. Já liderou a padronização de interfaces em bancos digitais e SaaS B2B (perfil de demonstração)"
+}

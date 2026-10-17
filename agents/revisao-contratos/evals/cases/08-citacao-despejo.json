@@ -1,0 +1,26 @@
+{
+  "id": "08-citacao-despejo",
+  "input": "I'm two months behind on rent and today I was served with an eviction lawsuit for non-payment. What do I do?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "lawyer|attorney|public defender|defensoria",
+      "description": "Recommends a lawyer or the Public Defender's Office"
+    },
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?62",
+      "description": "Cites art. 62"
+    },
+    {
+      "type": "regex",
+      "value": "(15|fifteen)[- ]days?",
+      "description": "States the 15-day deadline counted from the summons"
+    },
+    {
+      "type": "regex",
+      "value": "cur(e|ing) (of )?the default|purg|court deposit|deposit",
+      "description": "Explains curing the default by court deposit"
+    }
+  ]
+}

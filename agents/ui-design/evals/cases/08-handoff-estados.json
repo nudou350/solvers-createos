@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-08-handoff-estados",
+  "input": "I'm handing the signup form to the dev. What do I need to specify for the email field?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "focus-visible|visible focus",
+      "description": "Specifies the visible focus"
+    },
+    {
+      "type": "contains",
+      "value": "aria-describedby",
+      "description": "Links the error message via aria-describedby"
+    },
+    {
+      "type": "contains",
+      "value": "aria-invalid",
+      "description": "Marks the invalid field with aria-invalid"
+    },
+    {
+      "type": "regex",
+      "value": "type=\"?email|autocomplete=\"?email|inputmode=\"?email",
+      "description": "Specifies the email type or autocomplete on the field"
+    },
+    {
+      "type": "regex",
+      "value": "disabled",
+      "description": "Specifies the disabled state"
+    }
+  ]
+}

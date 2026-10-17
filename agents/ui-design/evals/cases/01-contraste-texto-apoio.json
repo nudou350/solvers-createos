@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-01-contraste-texto-apoio",
+  "input": "My supporting text is #9CA3AF on a white background. Does it pass WCAG AA?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "2[,.]5\\d?\\s?:\\s?1",
+      "description": "Quotes the correct ratio (about 2.54:1), which is not in the question"
+    },
+    {
+      "type": "regex",
+      "value": "fails?|does not pass|doesn't pass|insufficient",
+      "description": "States that it fails"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Quotes the 4.5:1 minimum for normal text"
+    },
+    {
+      "type": "regex",
+      "value": "#(?!9CA3AF\\b|FFFFFF\\b)[0-9A-F]{6}\\b",
+      "description": "Suggests an alternative color in hex, different from the colors in the question"
+    }
+  ]
+}

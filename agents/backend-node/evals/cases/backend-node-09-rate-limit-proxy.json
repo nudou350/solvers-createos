@@ -1,0 +1,11 @@
+{
+  "id": "backend-node-09-rate-limit-proxy",
+  "input": "I used express-rate-limit, but behind nginx all users are getting blocked together. What is wrong?",
+  "checks": [
+    { "type": "contains", "value": "trust proxy", "description": "Points to the trust proxy setting" },
+    { "type": "contains", "value": "X-Forwarded-For", "description": "Explains the real IP comes from X-Forwarded-For" },
+    { "type": "regex", "value": "hops?|number of proxies|how many proxies", "description": "Recommends a number of hops instead of true" },
+    { "type": "regex", "value": "forg|spoof|fak", "description": "Warns that trusting too much lets the IP be forged" },
+    { "type": "regex", "value": "Redis|shared (store|storage)|multiple instances|more than one instance|several instances", "description": "Reminds about shared storage with multiple instances" }
+  ]
+}

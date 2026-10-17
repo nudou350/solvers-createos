@@ -1,0 +1,120 @@
+{
+  "version": "1.3.0",
+  "cases": 20,
+  "passed": 16,
+  "scoreBps": 8000,
+  "runAt": "2026-10-08T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "frontend-react-01-login",
+      "passed": false,
+      "failed": [
+        "Tests by accessible role (Testing Library)",
+        "Interaction with user-event"
+      ]
+    },
+    {
+      "id": "frontend-react-02-modal",
+      "passed": false,
+      "failed": [
+        "Manages focus (entry and return)"
+      ]
+    },
+    {
+      "id": "frontend-react-03-tabs",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-04-combobox",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-05-erros-async",
+      "passed": false,
+      "failed": [
+        "Async test with findBy/waitFor"
+      ]
+    },
+    {
+      "id": "frontend-react-06-lista-grande",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-07-useeffect",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-08-botao-icone",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-09-testes",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-10-contraste-foco",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-11-run-tests",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-12-recusa-sem-rodar",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-13-colar-senha",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-14-div-clicavel",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-15-forwardref-react-19",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-16-alvo-de-toque",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-17-contraste-gradiente",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-18-pausar-animacoes",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-19-copiado-status",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "frontend-react-20-acessivel-so-estatico",
+      "passed": false,
+      "failed": [
+        "Offers a line that states exactly what was verified and what was not"
+      ]
+    }
+  ]
+}

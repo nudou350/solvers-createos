@@ -1,0 +1,16 @@
+{
+  "id": "frontend-react-06-lista-grande",
+  "input": "I have a slow list of 5,000 items in React. What should I do?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "virtuali[sz]",
+      "description": "Suggests virtualization"
+    },
+    {
+      "type": "regex",
+      "value": "key=\\{\\s*[\\w.?]*id\\s*\\}|(stable|unique)\\s+(keys?|ids?)|(keys?|ids?)\\s+(is |are )?(stable|unique)",
+      "description": "Recommends a stable key (the item id)"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "02-reserva-autonomo",
+  "input": "I drive for a ride-hailing app and my essential cost is R$ 2,800 a month. How much should I have in my emergency fund?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "(6|six) (to|and|up to|-|–) (12|twelve) months",
+      "description": "Uses the 6 to 12 month range for variable income"
+    },
+    {
+      "type": "regex",
+      "value": "16[.,\\s]?800",
+      "description": "Calculates the minimum fund in reais (6 × R$ 2,800 = R$ 16,800)"
+    },
+    {
+      "type": "regex",
+      "value": "33[.,\\s]?600",
+      "description": "Calculates the maximum fund in reais (12 × R$ 2,800 = R$ 33,600)"
+    },
+    {
+      "type": "regex",
+      "value": "liquidity|redeem|redemption|withdraw",
+      "description": "Explains that the fund needs fast redemption"
+    }
+  ]
+}

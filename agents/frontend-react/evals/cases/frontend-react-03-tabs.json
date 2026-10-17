@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-03-tabs",
+  "input": "Build a tabs component following WAI-ARIA.",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "role=\"tablist\"",
+      "description": "tablist"
+    },
+    {
+      "type": "contains",
+      "value": "aria-selected",
+      "description": "aria-selected on the tabs"
+    },
+    {
+      "type": "regex",
+      "value": "ArrowRight|ArrowLeft",
+      "description": "Arrow-key navigation"
+    },
+    {
+      "type": "regex",
+      "value": "tabIndex=\\{[^}]*-1|tabIndex=\\{?\\s*[\"']?-1|roving",
+      "description": "Roving tabindex (e.g. tabIndex={active ? 0 : -1})"
+    }
+  ]
+}

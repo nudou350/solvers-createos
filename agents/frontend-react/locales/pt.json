@@ -1,0 +1,44 @@
+{
+  "name": "Solver Front-end React",
+  "tagline": "Componentes React acessíveis e testados, do jeito que um sênior faria",
+  "description": "Transforma a sua IA numa engenheira front-end sênior de React e TypeScript. Ela levanta os requisitos antes de codar, escolhe o padrão WAI-ARIA certo para cada componente, implementa formulários com validação e gestão de foco e entrega testes com Testing Library e Vitest que exercitam o comportamento real, não detalhes de implementação. Os testes e a checagem estática de acessibilidade rodam no servidor, e a entrega pode ser coberta pela garantia: você só libera o pagamento quando tudo passa. A base traz React 19.x, WCAG 2.2, tokens de design acessíveis (contraste, anel de foco, movimento, mensagens de status), acabamento visual e as armadilhas mais comuns, com fonte e data. Ela calcula o contraste dos seus tokens nos testes e diz exatamente o que verificou e o que ainda precisa de navegador (axe-core, contraste sobre gradiente, teste de teclado). Não substitui teste com leitor de tela real nem um designer de interface, e não monta sites inteiros: o foco é o componente e os estilos dele.",
+  "packageContents": [
+    "Método em 4 etapas com checklist de saída em cada uma",
+    "Base com fonte e data: padrões WAI-ARIA, formulários, foco e teclado, WCAG 2.2, tokens acessíveis (contraste, anel de foco, movimento), acabamento visual, verificação medida, testes e React 19.x",
+    "Ferramenta de testes no servidor (Vitest + Testing Library em ambiente isolado)",
+    "Checagem estática de acessibilidade do código JSX/HTML",
+    "Modelos de componente e de teste prontos para copiar",
+    "Modelo de estilos: CSS de tokens, ajudante de contraste com teste para cada par de cores, botão de pausar animações e mensagem de status anunciada",
+    "Calibragem do seu projeto (versão do React, framework, estilo e biblioteca de componentes) na memória do especialista",
+    "Garantia: pagamento liberado só com todos os testes passando"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    },
+    {
+      "key": "paid",
+      "label": "Plano pago recomendado"
+    }
+  ],
+  "searchPhrases": [
+    "criar um componente React acessível",
+    "formulário de login em React com testes",
+    "modal de confirmação acessível em React",
+    "testar componente React com Testing Library",
+    "deixar meu site acessível para leitor de tela",
+    "meu formulário não é acessível",
+    "botão só com ícone sem nome acessível",
+    "autocomplete ou combobox acessível",
+    "arrumar um bug de foco no React",
+    "fazer uma landing page em React",
+    "criar a página do meu negócio em React",
+    "revisar acessibilidade do meu código React",
+    "conferir o contraste de cores dos meus componentes React",
+    "adicionar modo escuro com cores acessíveis",
+    "botão de pausar animações por acessibilidade",
+    "deixar minha interface React mais elegante e profissional"
+  ],
+  "creatorBio": "Engenheira de software sênior com 12 anos em React e Node.js. Foi tech lead de plataforma em fintech e escreve sobre acessibilidade e testes (perfil de demonstração)."
+}

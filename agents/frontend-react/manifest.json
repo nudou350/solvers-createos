@@ -1,0 +1,260 @@
+{
+  "specVersion": 1,
+  "id": "0ee9927a8023c955da8d010762eb2efe",
+  "slug": "frontend-react",
+  "name": "Front-end React Solver",
+  "tagline": "Accessible, tested React components, the way a senior engineer would build them",
+  "description": "Turns your AI into a senior front-end engineer for React and TypeScript. It gathers the requirements before writing code, picks the right WAI-ARIA pattern for each component, builds forms with validation and focus management, and delivers Testing Library and Vitest tests that exercise real behavior instead of implementation details. The tests and a static accessibility check run on the server, and the delivery can be covered by the guarantee: you only release the payment when everything passes. The knowledge base covers React 19.x, WCAG 2.2, accessible design tokens (contrast, focus ring, motion, status messages), visual polish and the most common pitfalls, each with a source and a date. It computes the contrast of your color tokens in the tests and tells you exactly what it verified and what still needs a browser (axe-core, contrast over gradients, a keyboard pass). It does not replace testing with a real screen reader or a human interface designer, and it does not build whole sites: the focus is the component and its styles.",
+  "category": "Desenvolvimento",
+  "version": "1.3.0",
+  "creator": {
+    "id": "marina-costa",
+    "name": "Marina Costa",
+    "bio": "Senior software engineer with 12 years of React and Node.js. Was a platform tech lead at a fintech and writes about accessibility and testing (demo profile).",
+    "avatarUrl": null
+  },
+  "terms": { "rightsConfirmed": true, "sourcesListed": true },
+  "requirements": [
+    { "type": "client", "label": "Claude or ChatGPT", "key": "any" },
+    { "type": "plan", "label": "Paid plan recommended", "key": "paid" }
+  ],
+  "packageContents": [
+    "A 4-step method with an exit checklist for each step",
+    "A knowledge base with sources and dates: WAI-ARIA patterns, forms, focus and keyboard, WCAG 2.2, accessible design tokens (contrast, focus ring, motion), visual polish, measured verification, testing and React 19.x",
+    "A server-side test tool (Vitest + Testing Library in an isolated environment)",
+    "A static accessibility check for JSX/HTML code",
+    "Ready-to-copy component and test templates",
+    "A styles template: token CSS, a contrast helper with tests for every color pair, a pause-animations control and a live-region status message",
+    "Setup for your project (React version, framework, styling and component library) saved in the specialist's memory",
+    "Guarantee: payment is released only when all tests pass"
+  ],
+  "usesMemory": true,
+  "steps": [
+    {
+      "file": "steps/01-entender.md",
+      "title": "Understand the request and the project",
+      "gate": ["Project profile read or set up", "Requirements confirmed with the user", "WAI-ARIA pattern chosen, or ruled out with a justification"]
+    },
+    {
+      "file": "steps/02-planejar.md",
+      "title": "Plan the API, states and tests",
+      "gate": ["Props and states defined", "Test case list approved by the user"]
+    },
+    {
+      "file": "steps/03-implementar.md",
+      "title": "Implement the component and tests",
+      "gate": ["Complete code, no omitted sections", "Tests written covering every planned case"]
+    },
+    {
+      "file": "steps/04-revisar.md",
+      "title": "Review, verify and deliver",
+      "gate": ["Accessibility checked with a11y_check", "Tests passing via run_tool run_tests", "Delivery summary sent to the user"]
+    }
+  ],
+  "tools": [
+    {
+      "name": "run_tests",
+      "description": "Runs the delivery's tests (Vitest + Testing Library, jsdom) in an isolated container with no network. Use it in the review step and always before saying the tests pass. Input: { files: [{ path: \"LoginForm.tsx\", content: \"...\" }, { path: \"LoginForm.test.tsx\", content: \"...\" }] } (also accepts files as an object { \"LoginForm.tsx\": \"...\" }); relative paths, no \"..\". Output: passed, numTests, numPassed, numFailed and failures with the message for each failure.",
+      "runner": "docker:solvers-react-test",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string", "maxLength": 200 },
+                "content": { "type": "string" }
+              },
+              "required": ["path", "content"]
+            }
+          }
+        },
+        "required": ["files"]
+      },
+      "passField": "passed"
+    },
+    {
+      "name": "a11y_check",
+      "description": "Static check of JSX/HTML code (it does not render the component): field with no label (label htmlFor, label wrapping the field or aria-label), button with no accessible name (for example icon only), image with no alt, clickable div or span without role and tabIndex, positive tabIndex and removed outline. Input: the same as run_tests, { files: [{ path, content }] }. Output: passed (no errors), issues (errors, which block the guarantee) and warnings (for example outline removed with :focus-visible in the same file). It does not check contrast, duplicate IDs or heading order. Use it after implementing and before delivering.",
+      "runner": "node:a11y",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string", "maxLength": 200 },
+                "content": { "type": "string" }
+              },
+              "required": ["path", "content"]
+            }
+          }
+        },
+        "required": ["files"]
+      },
+      "passField": "passed"
+    }
+  ],
+  "knowledge": {
+    "updatedAt": "2026-10-08",
+    "reviewEveryDays": 90,
+    "sources": [
+      "W3C WAI-ARIA 1.2 and the Authoring Practices Guide",
+      "W3C WCAG 2.2",
+      "React documentation (react.dev)",
+      "Testing Library documentation",
+      "npm registry (package versions)",
+      "WebAIM Million 2026",
+      "axe-core and Playwright documentation",
+      "Measurements from a real React 19 component project (contrast, focus, motion, status messages)"
+    ]
+  },
+  "templates": [
+    { "name": "componente-react", "path": "templates/componente-react.md", "title": "React component template", "description": "Accessible form with an async action: useId, error tied to the field, focus, double-submit guard and live regions." },
+    { "name": "teste-do-componente", "path": "templates/teste-do-componente.md", "title": "Component test template", "description": "Testing Library and Vitest with user-event: accessible names, error, focus, double submit, pending state and failure." },
+    { "name": "estilos-acessiveis", "path": "templates/estilos-acessiveis.md", "title": "Accessible styles template", "description": "Token CSS per theme, contrastRatio helper with a test per color pair, pause-animations control (WCAG 2.2.2) and a copy button announced through a live region." }
+  ],
+  "onboarding": {
+    "questions": [
+      {
+        "id": "react",
+        "ask": "Which React version and which language does your project use?",
+        "why": "In React 19, ref is a regular prop and there are form actions; in 18 the code changes.",
+        "options": ["React 19 with TypeScript", "React 19 with JavaScript", "React 18 with TypeScript", "React 18 with JavaScript", "I'm just getting started"]
+      },
+      {
+        "id": "framework",
+        "ask": "Which framework or build tool do you use?",
+        "why": "Next.js requires marking components with state as client components and handling SSR; Vite does not.",
+        "options": ["Next.js (App Router)", "Vite", "React Router or Remix", "Other"]
+      },
+      {
+        "id": "estilo",
+        "ask": "How do you style your components?",
+        "why": "I deliver the component in the same styling approach as your project.",
+        "options": ["Tailwind", "CSS Modules", "styled-components or Emotion", "Plain CSS", "Other"]
+      },
+      {
+        "id": "primitivos",
+        "ask": "Does your project already use a component library?",
+        "why": "If Radix, React Aria or MUI is already there, the component should build on it instead of reimplementing it.",
+        "options": ["Radix or shadcn/ui", "React Aria", "MUI", "Headless UI", "None"]
+      }
+    ]
+  },
+  "differentiators": ["tool", "verifier", "liveData", "memory"],
+  "guarantee": {
+    "available": true,
+    "defaultCriteria": [
+      "All tests pass in the server's isolated environment",
+      "No critical accessibility errors in a11y_check",
+      "TypeScript component with typed props and no explicit any",
+      "Every behavior agreed in the planning step has a test"
+    ],
+    "priceUsdc": 19,
+    "milestones": [
+      {
+        "title": "Component plan",
+        "criteria": ["Props and states defined", "Test case list approved by you"],
+        "sharePct": 30,
+        "verify": "manual"
+      },
+      {
+        "title": "Component and tests",
+        "criteria": [
+          "All tests pass in the server's isolated environment",
+          "No critical accessibility errors in a11y_check",
+          "TypeScript component with typed props and no explicit any",
+          "Every behavior agreed in the planning step has a test"
+        ],
+        "sharePct": 70
+      }
+    ]
+  },
+  "trial": {
+    "available": true,
+    "uses": 3,
+    "steps": 3,
+    "searches": 15,
+    "tools": {
+      "a11y_check": 3,
+      "run_tests": 1
+    },
+    "toolLimits": {
+      "run_tests": { "maxFiles": 3, "maxBytes": 30000 },
+      "a11y_check": { "maxFiles": 3, "maxBytes": 30000 }
+    },
+    "scope": "In the trial, 1 component per use; if the request is a page, build the main section and show what the license would cover for the rest.",
+    "summary": "You get the confirmed requirements, the plan for props, states and tests, and the component with its tests written, and you can run the accessibility check and the tests on the server once.",
+    "lockedSummary": "the final review with tests running as many times as you need, the delivery summary and the guarantee, with payment released only when everything passes."
+  },
+  "pricing": { "priceUsdc": 19, "royaltyBps": 500 },
+  "searchPhrases": [
+    "build an accessible React component",
+    "React login form with tests",
+    "accessible confirmation modal in React",
+    "test a React component with Testing Library",
+    "make my site accessible to screen readers",
+    "my form is not accessible",
+    "icon-only button with no accessible name",
+    "accessible autocomplete or combobox",
+    "fix a focus bug in React",
+    "build a landing page in React",
+    "create my business website in React",
+    "review the accessibility of my React code",
+    "check color contrast of my React components",
+    "add dark mode with accessible colors",
+    "pause animations button for accessibility",
+    "make my React UI look more polished and professional"
+  ],
+  "beforeAfter": [
+    {
+      "prompt": "Build me a confirmation modal in React for deleting an item.",
+      "withoutSolver": "A component with <div className=\"overlay\"> and <div className=\"modal\">, closed by an isOpen state, with \"Cancel\" and \"Delete\" buttons. No role or aria-modal, focus stays on the button that opened the modal, Tab moves through the page behind it, Esc does not close it and no tests are delivered. It ends with the generic suggestion: \"add styles as needed\".",
+      "withSolver": "Before coding: \"Does the project already use a primitives library (Radix, React Aria)? Is the deletion asynchronous?\". It delivers the native <dialog> with showModal() (focus trap and Esc for free), aria-labelledby pointing at the title, initial focus on \"Cancel\" (a destructive action does not get default focus), focus returning to the trigger on close, a \"Delete\" button with aria-disabled and the text \"Deleting…\" during the request, and the error in role=\"alert\". Eight user-event tests (Esc closes, focus returns, a double click does not delete twice), all passing in run_tests."
+    },
+    {
+      "prompt": "My sign-up form shows the errors in red but screen reader users are complaining. Can you fix it?",
+      "withoutSolver": "Suggests adding aria-label to the inputs and changing the error color to a darker red. Rewrites the form keeping the placeholders as labels and puts role=\"alert\" on every error message, which makes the screen reader fire several announcements at once when the user submits an empty form.",
+      "withSolver": "Diagnosis as a list: a placeholder is not a label (replace it with <label htmlFor>), the error must be tied to the field with aria-describedby and aria-invalid, and role=\"alert\" on each field produces stacked announcements. Fix: validation on submit, focus on the first invalid field (which already announces the label and the error), live revalidation only on fields that already show an error, and an optional error summary for long forms. It delivers the tests: toHaveAccessibleDescription on each error and toHaveFocus on the first invalid field."
+    },
+    {
+      "prompt": "I need a login form in React. Should I block pasting in the password field to make it more secure?",
+      "withoutSolver": "Yes, blocking paste prevents passwords pasted from text files. Add onPaste with preventDefault on the password field.",
+      "withSolver": "Explains that blocking paste hurts password managers and goes against WCAG 2.2 success criterion 3.3.8, then delivers the login with the right autoComplete (username, current-password), a show-password button with aria-pressed, errors tied by aria-describedby, a generic message for invalid credentials and tests that prove all of it."
+    },
+    {
+      "prompt": "Make my React landing page look polished, with gradients and an accent color the user can switch. Is it accessible?",
+      "withoutSolver": "Builds the page with white text on the accent gradient, reuses the accent color for the focus ring and the form borders, loops a background animation forever and answers \"yes, it is accessible, it has alt text and labels\" after a quick scan of the markup.",
+      "withSolver": "Plans separate tokens for text, focus ring and field border per theme and palette, darkens the gradient behind white text, and delivers a test that asserts the contrast of every token pair. Adds a visible Pause animations button (aria-pressed) besides prefers-reduced-motion and a live region for the Copied message. The summary says what was checked (tests, static check, computed contrast) and what was not (contrast over gradients, focus ring and layout need axe-core and a keyboard pass in a browser), instead of declaring the page accessible."
+    }
+  ],
+  "versions": [
+    {
+      "version": "1.3.0",
+      "releasedAt": "2026-10-08T12:00:00Z",
+      "notes": "Visual accessibility and polish, learned from a real project where the static check passed and 11 contrast, focus, motion and status failures were still found by measuring. New knowledge: accessible design tokens (the brand color is not a text, focus or border color), contrast over gradients, focus ring, a pause control for animation (WCAG 2.2.2), live-region status messages, visual polish (scales, states, motion) and measured verification (axe-core per state, pixel contrast, keyboard pass). New styles template with a contrastRatio helper and tests. The method now plans the tokens and the verification, sends the complete files to the static check and reports exactly what was and was not verified, never calling a component accessible from static checks alone. Tools, onboarding and step structure did not change. The rating was not measured again on this version."
+    },
+    { "version": "1.2.0", "releasedAt": "2026-10-07T05:00:00Z", "notes": "English becomes the primary language: method, knowledge base, templates and test cases were translated, and the Portuguese storefront text moved to locales/pt.json. The AI still answers in the user's language. The rating was measured again on this version (answers generated in English by an AI agent without seeing the checks)." },
+    { "version": "1.1.1", "releasedAt": "2026-10-02T22:00:00Z", "notes": "Free trial: knowledge excerpts unlocked in the demo. Knowledge search in the trial now returns excerpts from some of each specialist's files (before, it returned none). The full knowledge base stays license-only; the method, templates and answers did not change." },
+    {
+      "version": "1.1.0",
+      "releasedAt": "2026-10-02T12:00:00Z",
+      "notes": "Project setup in the specialist's memory (React version, framework, styling and component library). Knowledge base updated with source and date: React 19.3, React Compiler 1.0, WCAG 2.2 (authentication, target size, focus) and Vitest and Testing Library versions; fixes (WebAIM figure, scroll-padding technique). Component and test templates delivered by the server. More evaluation cases; the previous scores were withdrawn because they belonged to a different version."
+    },
+    { "version": "1.0.1", "releasedAt": "2026-09-30T20:00:00Z", "notes": "Free trial with clear limits: what it unlocks and what only the license gives. Pay-per-use is gone: the specialist is now a lifetime license only." },
+    {
+      "version": "1.0.0",
+      "releasedAt": "2026-09-30T12:00:00Z",
+      "notes": "First public version: 4-step method, a knowledge base of WAI-ARIA patterns, React 19 and Testing Library, server-side tests (Vitest) and an accessibility check. Guarantee available."
+    }
+  ]
+}

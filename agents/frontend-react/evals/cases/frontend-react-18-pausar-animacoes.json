@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-18-pausar-animacoes",
+  "input": "My hero background animates forever. I already added prefers-reduced-motion, so it's accessible, right?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "2\\.2\\.2",
+      "description": "Cites WCAG 2.2.2 (pause, stop, hide)"
+    },
+    {
+      "type": "regex",
+      "value": "pause",
+      "description": "Asks for a visible pause control"
+    },
+    {
+      "type": "regex",
+      "value": "aria-pressed",
+      "description": "The pause control exposes its state with aria-pressed"
+    },
+    {
+      "type": "regex",
+      "value": "data-motion|dataset",
+      "description": "Shows how the CSS and the code read the paused state"
+    }
+  ]
+}

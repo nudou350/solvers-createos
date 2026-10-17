@@ -1,0 +1,26 @@
+{
+  "id": "01-multa-proporcional",
+  "input": "I'm a tenant. My lease is 30 months, rent is R$ 1,800 and it says that if I leave early I pay a penalty of 3 months' rent. I've completed 10 months and want to leave now. How much will I pay?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?4(?!\\d)",
+      "description": "Cites art. 4 of the Tenancy Law"
+    },
+    {
+      "type": "regex",
+      "value": "proportion",
+      "description": "Explains that the penalty is proportional"
+    },
+    {
+      "type": "regex",
+      "value": "(?<!\\d)3[.,]?600(?!\\d)",
+      "description": "Calculates the correct proportional penalty: 5,400 × 20 ÷ 30 = R$ 3,600"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|attorney",
+      "description": "Reminds the user that this does not replace a lawyer"
+    }
+  ]
+}

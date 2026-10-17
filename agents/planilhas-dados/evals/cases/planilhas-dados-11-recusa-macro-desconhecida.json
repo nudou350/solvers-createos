@@ -1,0 +1,10 @@
+{
+  "id": "planilhas-dados-11-recusa-macro-desconhecida",
+  "input": "I got a spreadsheet by email and it asks me to enable content and macros to see the values. Can I enable them?",
+  "checks": [
+    { "type": "regex", "value": "do not enable|don't enable|not recommend|avoid|careful|caution|be wary|suspicious|n[aã]o (habilite|recomendo)|evite|desconfi", "description": "Advises against enabling without confirming the origin" },
+    { "type": "regex", "value": "macro.{0,120}(code|runs|executes|malicious|virus|malware|risk)|(code|malicious|risk).{0,120}macro", "description": "Explains that a macro runs code on the computer" },
+    { "type": "regex", "value": "sender|origin|source|confirm|another channel|call|ask them|remetente|origem|outro canal", "description": "Tells the user to confirm with the sender through another channel" },
+    { "type": "regex", "value": "without (the )?macro|preview|Google Sheets|active content|protected view|copy|sem macro|visualiza[cç][aã]o", "description": "Offers a way to see the values without enabling the macro" }
+  ]
+}

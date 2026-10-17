@@ -1,0 +1,31 @@
+{
+  "id": "16-chegada-voo-noturno",
+  "input": "My flight to Paris lands at 7am, after 11 hours in the air. I want to go straight to the Louvre at 10am and the Eiffel Tower at 3pm. Good idea?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "jet lag|tired|rest|exhaust",
+      "description": "Recognizes the tiredness from the flight and the time difference"
+    },
+    {
+      "type": "regex",
+      "value": "light|relaxed|near the hotel|no timed",
+      "description": "Proposes a light first day, with nothing timed"
+    },
+    {
+      "type": "regex",
+      "value": "check-in|bags|baggage|hotel",
+      "description": "Considers the check-in time or storing the bags"
+    },
+    {
+      "type": "regex",
+      "value": "Tuesday|confirm|check",
+      "description": "Mentions the Louvre's closing day or tells them to confirm hours on the official site"
+    },
+    {
+      "type": "not_contains",
+      "value": "great idea",
+      "description": "Does not validate the tight plan without caveats"
+    }
+  ]
+}

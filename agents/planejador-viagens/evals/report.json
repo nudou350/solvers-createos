@@ -1,0 +1,113 @@
+{
+  "version": "1.2.0",
+  "cases": 19,
+  "passed": 16,
+  "scoreBps": 8421,
+  "runAt": "2026-10-07T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "01-eua-esta",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "02-schengen-validade",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "03-argentina-rg",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "04-orcamento-europa",
+      "passed": false,
+      "failed": [
+        "Calls the budget_split tool (intentional: the evaluated output is the transcript with the tool calls, so the tool name must appear)"
+      ]
+    },
+    {
+      "id": "05-roteiro-turbo",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "06-memoria-inicio",
+      "passed": false,
+      "failed": [
+        "Checks memory at the start with get_memory (intentional: the evaluated output is the transcript with the tool calls, so the tool name must appear)"
+      ]
+    },
+    {
+      "id": "07-memoria-sensivel",
+      "passed": false,
+      "failed": [
+        "Saves the preference to memory",
+        "Records the hotel-with-breakfast preference (tied to the saving, not just repeated from the question)"
+      ]
+    },
+    {
+      "id": "08-menor-um-pai",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "09-caribe-setembro",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "10-checklist-final",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "11-europa-etias-ees",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "12-menor-aev",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "13-japao-isencao",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "14-mexico-sae",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "15-moeda-especie-limite",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "16-chegada-voo-noturno",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "17-conexao-eua",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "18-promessa-visto",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "19-etias-site-intermediario",
+      "passed": true,
+      "failed": []
+    }
+  ]
+}

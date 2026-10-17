@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-03-borda-input",
+  "input": "The fields in my form have a #E5E7EB border on white. Any problem?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "1[,.]2\\d?\\s?:\\s?1",
+      "description": "Quotes the approximate ratio of 1.24:1"
+    },
+    {
+      "type": "regex",
+      "value": "1\\.4\\.11|non[ -]text|interface components?",
+      "description": "References the non-text contrast criterion (1.4.11)"
+    },
+    {
+      "type": "regex",
+      "value": "(?<![\\d,.])3\\s?:\\s?1",
+      "description": "Quotes the 3:1 minimum for components"
+    },
+    {
+      "type": "regex",
+      "value": "#(?!E5E7EB\\b|FFFFFF\\b)[0-9A-F]{6}\\b",
+      "description": "Suggests an alternative border color in hex"
+    }
+  ]
+}

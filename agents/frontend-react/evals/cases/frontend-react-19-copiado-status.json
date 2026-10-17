@@ -1,0 +1,21 @@
+{
+  "id": "frontend-react-19-copiado-status",
+  "input": "When the user clicks Copy I change the button text to \"Copied!\". Screen reader users say they hear nothing. Fix it.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "role=\"status\"|aria-live",
+      "description": "Uses a live region (role status or aria-live)"
+    },
+    {
+      "type": "regex",
+      "value": "(already|always|first render|from the start|before)[^.]{0,80}(DOM|render|exist|present|mounted)|(exist|present|mounted)[^.]{0,60}(first render|before|already)",
+      "description": "The live region must already exist in the DOM before the text changes"
+    },
+    {
+      "type": "regex",
+      "value": "getByRole\\(\\s*[\"']status[\"']",
+      "description": "Tests the status region by role"
+    }
+  ]
+}

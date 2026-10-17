@@ -1,0 +1,13 @@
+{
+  "id": "backend-node-01-patch-pedido",
+  "input": "Create a PATCH /orders/:id endpoint in Express so the customer can update the delivery address of the order.",
+  "checks": [
+    { "type": "regex", "value": "where:?\\s*\\(?\\{?[^}]{0,120}(userId|ownerId|customerId|donoId|usuarioId|clienteId)|(AND|and)\\s+(user_id|owner_id|customer_id|cliente_id)\\s*=", "description": "Puts the order owner in the query filter (no IDOR)" },
+    { "type": "regex", "value": "strict(Object)?\\s*\\(|\\.strict\\(\\)", "description": "Validates the body with a strict schema" },
+    { "type": "contains", "value": "404", "description": "Answers 404 for an order that does not belong to the user" },
+    { "type": "contains", "value": "409", "description": "Defines 409 for an order in a state that does not accept the change" },
+    { "type": "regex", "value": "problem\\+json|problem details|RFC 9457", "description": "Errors in the problem+json format" },
+    { "type": "not_contains", "value": "findByIdAndUpdate(req.params.id, req.body", "description": "Does not pass req.body straight to the ORM" },
+    { "type": "regex", "value": "contract", "description": "Writes or confirms the contract before coding" }
+  ]
+}

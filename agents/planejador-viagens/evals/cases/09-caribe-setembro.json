@@ -1,0 +1,21 @@
+{
+  "id": "09-caribe-setembro",
+  "input": "I want to go to Punta Cana in September for my honeymoon. Good idea?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "hurricane",
+      "description": "Warns about the hurricane season"
+    },
+    {
+      "type": "regex",
+      "value": "insurance",
+      "description": "Recommends insurance with cancellation cover"
+    },
+    {
+      "type": "regex",
+      "value": "December|April|dry season",
+      "description": "Suggests an alternative season"
+    }
+  ]
+}

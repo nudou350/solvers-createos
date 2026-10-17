@@ -1,0 +1,11 @@
+{
+  "id": "backend-node-14-versao-node",
+  "input": "Which Node version should I use in production for a new API? Right now I'm on Node 18.",
+  "checks": [
+    { "type": "regex", "value": "Node(\\.js)? 24|\\b24\\b.{0,20}LTS|Krypton", "description": "Recommends the 24 line in LTS" },
+    { "type": "contains", "value": "LTS", "description": "Talks about LTS versions" },
+    { "type": "regex", "value": "18.{0,120}(end of life|EOL|ended|out of support|no longer (supported|receives?)|unsupported|reached its end|no (security )?fixes)|(end of life|EOL|out of support|unsupported).{0,120}18", "description": "Warns that Node 18 is out of support" },
+    { "type": "regex", "value": "2[0-9]\\.[0-9]|source|nodejs\\.org|checked|may be (out of date|outdated)|as of|date", "description": "Cites the source or the date of the check" },
+    { "type": "regex", "value": "22.{0,80}(maintenance|support)|(maintenance|support).{0,80}22", "description": "Places Node 22 as a maintenance line" }
+  ]
+}

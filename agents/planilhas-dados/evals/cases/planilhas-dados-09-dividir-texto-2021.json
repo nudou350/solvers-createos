@@ -1,0 +1,10 @@
+{
+  "id": "planilhas-dados-09-dividir-texto-2021",
+  "input": "I have \"Silva, Maria\" in one cell and I want to split it into two columns. I use Excel 2021.",
+  "checks": [
+    { "type": "regex", "value": "Text to Columns|wizard|Texto para colunas|assistente", "description": "Offers the Text to Columns wizard, which exists in 2021" },
+    { "type": "regex", "value": "TEXTSPLIT.{0,160}(365|2024)|(365|2024).{0,160}TEXTSPLIT|DIVIDIRTEXTO.{0,160}(365|2024)|(365|2024).{0,160}DIVIDIRTEXTO", "description": "Warns that TEXTSPLIT only exists in Excel 365 and 2024" },
+    { "type": "regex", "value": "MID|FIND|LEFT|RIGHT|EXT\\.TEXTO|LOCALIZAR|ESQUERDA|DIREITA", "description": "Gives the formula alternative with the classic text functions" },
+    { "type": "regex", "value": "=[A-Z.]+\\([^\\n]*[,;]", "description": "Writes a formula with a separator" }
+  ]
+}

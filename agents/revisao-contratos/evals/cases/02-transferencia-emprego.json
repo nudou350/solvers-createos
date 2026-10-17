@@ -1,0 +1,26 @@
+{
+  "id": "02-transferencia-emprego",
+  "input": "My company is transferring me from Campinas to Recife in two months. My lease is 30 months, I'm in month 8 and the penalty is 3 months' rent. What should I do?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "sole paragraph",
+      "description": "Cites the sole paragraph of art. 4"
+    },
+    {
+      "type": "regex",
+      "value": "(30|thirty)[- ]days?",
+      "description": "States the minimum 30-day notice"
+    },
+    {
+      "type": "regex",
+      "value": "in writing|written|notif",
+      "description": "Says the notice must be in writing"
+    },
+    {
+      "type": "regex",
+      "value": "exempt|waive|no penalty|zero penalty|penalty (is )?(zero|waived)|(do not|don't|does not|won't|need not)[^.]{0,20}(pay|owe)[^.]{0,20}penalty|not (owe|pay)[^.]{0,30}penalty",
+      "description": "Concludes the penalty is waived"
+    }
+  ]
+}

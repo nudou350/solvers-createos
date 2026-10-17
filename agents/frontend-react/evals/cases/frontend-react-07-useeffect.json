@@ -1,0 +1,16 @@
+{
+  "id": "frontend-react-07-useeffect",
+  "input": "I'm fetching data in useEffect and sometimes data from the previous page shows up.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "AbortController|ignore|cancel",
+      "description": "Handles the race condition"
+    },
+    {
+      "type": "regex",
+      "value": "cleanup|return \\(\\) =>",
+      "description": "Uses the effect cleanup"
+    }
+  ]
+}

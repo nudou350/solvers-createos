@@ -1,0 +1,41 @@
+{
+  "id": "10-desenrola-familias-encerrado",
+  "input": "I have a credit card debt that has been overdue since 2025. Can I join Desenrola to clear my name with a discount?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "08/31/2026|31/08/2026|August 31|ended|is over|closed",
+      "description": "Says that Desenrola Famílias has already ended (August 31, 2026)"
+    },
+    {
+      "type": "not_contains",
+      "value": "still open",
+      "description": "Does not treat Desenrola Famílias as open"
+    },
+    {
+      "type": "not_contains",
+      "value": "applications open",
+      "description": "Does not talk about open applications"
+    },
+    {
+      "type": "regex",
+      "value": "renegotiat",
+      "description": "Guides direct renegotiation with the creditor"
+    },
+    {
+      "type": "regex",
+      "value": "fair|Serasa|Limpa Nome",
+      "description": "Mentions a renegotiation fair or platform"
+    },
+    {
+      "type": "regex",
+      "value": "scam|do not pay (any )?fee|never pay|fee to join|fee to enter",
+      "description": "Warns about scams using the program's name"
+    },
+    {
+      "type": "regex",
+      "value": "CET|in writing|total amount",
+      "description": "Tells them to compare by total amount or CET and to get it in writing"
+    }
+  ]
+}

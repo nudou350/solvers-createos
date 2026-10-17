@@ -1,0 +1,12 @@
+{
+  "id": "planilhas-dados-14-somases-mes",
+  "input": "I want to add up March 2026 sales by salesperson. Date in column A, salesperson in B, amount in C, down to row 500. My Excel is in Portuguese (Brazil).",
+  "checks": [
+    { "type": "regex", "value": "SUMIFS|SOMASES", "description": "Uses SUMIFS (SOMASES in Portuguese)" },
+    { "type": "regex", "value": "\">=\"\\s*&|\">=\\d|DATE\\(2026,\\s*3,\\s*1\\)|DATA\\(2026;\\s*3;\\s*1\\)", "description": "Uses a date criterion with a range (from 03/01/2026)" },
+    { "type": "regex", "value": "\"<\"\\s*&|\"<=?\\d|DATE\\(2026,\\s*4,\\s*1\\)|DATA\\(2026;\\s*4;\\s*1\\)|DATE\\(2026,\\s*3,\\s*31\\)|DATA\\(2026;\\s*3;\\s*31\\)", "description": "Closes the range at the end of March" },
+    { "type": "regex", "value": "C\\$?2:C\\$?500", "description": "Respects the stated range (down to row 500)" },
+    { "type": "regex", "value": "=SOMASES\\([^)]*;", "description": "Writes the formula in Portuguese with semicolons" },
+    { "type": "regex", "value": "real dates?|actual dates?|true dates?|not (be )?text|ISNUMBER|ÉNÚM|test|data de verdade|teste", "description": "Reminds to check that the date column holds real dates or suggests a test" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "backend-node-07-sql-injection",
+  "input": "I built the query like this in pg: db.query(`SELECT * FROM users WHERE email = '${email}'`). Is that ok?",
+  "checks": [
+    { "type": "regex", "value": "injection", "description": "Points out the SQL injection risk" },
+    { "type": "regex", "value": "\\$1|parameteriz|placeholder|parameters?", "description": "Shows the parameterized query" },
+    { "type": "regex", "value": "\\[\\s*email\\s*\\]", "description": "Passes the value in the parameters array" },
+    { "type": "regex", "value": "SELECT \\*|columns|exposed fields|passwordHash|password_hash", "description": "Reminds not to return internal columns" }
+  ]
+}

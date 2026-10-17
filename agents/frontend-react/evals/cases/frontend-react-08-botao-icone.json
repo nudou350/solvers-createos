@@ -1,0 +1,21 @@
+{
+  "id": "frontend-react-08-botao-icone",
+  "input": "I have a button with only a trash can icon. Is it accessible?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "aria-label",
+      "description": "Accessible name with aria-label"
+    },
+    {
+      "type": "regex",
+      "value": "aria-hidden",
+      "description": "Decorative icon hidden from the screen reader"
+    },
+    {
+      "type": "regex",
+      "value": "<button",
+      "description": "Uses the native <button>"
+    }
+  ]
+}

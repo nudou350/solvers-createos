@@ -1,0 +1,12 @@
+{
+  "id": "planilhas-dados-08-tabela-dinamica",
+  "input": "How do I build a PivotTable with salesperson in the rows, month in the columns and the sum of sales? I use Excel 365.",
+  "checks": [
+    { "type": "regex", "value": "Insert.{0,40}PivotTable|Inserir.{0,40}Tabela Din[aâ]mica", "description": "Gives the Insert > PivotTable path" },
+    { "type": "regex", "value": "group", "description": "Groups the dates by month" },
+    { "type": "regex", "value": "rows.{0,80}columns|columns.{0,80}rows|linhas.{0,80}colunas|colunas.{0,80}linhas", "description": "Explains where to drag each field (rows and columns)" },
+    { "type": "regex", "value": "Values|sum|Valores|soma", "description": "Sets the sum in the values field" },
+    { "type": "regex", "value": "tabular|header|no merged cells|without merged cells|real dates?|true dates?|actual dates?|text|cabe[cç]alho|data de verdade", "description": "Reminds of the dataset conditions (tabular, header, real dates)" },
+    { "type": "regex", "value": "refresh|atualizar", "description": "Warns that the PivotTable needs to be refreshed" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "02-schengen-validade",
+  "input": "My passport expires in August 2027 and I'm going to Italy from May 20, 2027 to June 5, 2027. Can I go?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "3 months|three months",
+      "description": "Applies the rule of 3 months after leaving Schengen"
+    },
+    {
+      "type": "regex",
+      "value": "renew",
+      "description": "Recommends renewing or assesses the renewal risk"
+    },
+    {
+      "type": "regex",
+      "value": "confirm",
+      "description": "Asks them to confirm with an official source"
+    }
+  ]
+}

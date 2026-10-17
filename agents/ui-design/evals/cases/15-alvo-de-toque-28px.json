@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-15-alvo-de-toque-28px",
+  "input": "In my mobile app the icon buttons have a 28px clickable area. Is that good?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "2\\.5\\.8",
+      "description": "Quotes criterion 2.5.8"
+    },
+    {
+      "type": "regex",
+      "value": "(28.{0,80}(meets?|passes|satisfies|exceeds|clears).{0,40}24)|(meets?|passes|satisfies|clears).{0,80}24",
+      "description": "Recognizes that 28px meets the AA minimum of 24px"
+    },
+    {
+      "type": "regex",
+      "value": "44|48",
+      "description": "Recommends 44pt (iOS) or 48dp (Android) as the goal on mobile"
+    },
+    {
+      "type": "regex",
+      "value": "iOS|Android|platform",
+      "description": "Ties the goal to the platform"
+    },
+    {
+      "type": "regex",
+      "value": "padding|clickable area|touch area",
+      "description": "Suggests enlarging the clickable area without enlarging the icon"
+    }
+  ]
+}

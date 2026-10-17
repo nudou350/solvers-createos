@@ -1,0 +1,41 @@
+{
+  "id": "15-minimo-existencial-consignado",
+  "input": "I have a payroll loan, a credit card and a personal loan, and the bank says my existential minimum is R$ 600. Does the payroll loan count toward it? Is that amount valid forever?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "existential minimum",
+      "description": "Explains the existential minimum"
+    },
+    {
+      "type": "regex",
+      "value": "600",
+      "description": "Cites the amount of R$ 600"
+    },
+    {
+      "type": "regex",
+      "value": "STF|Supreme",
+      "description": "Cites the STF decision of April 2026"
+    },
+    {
+      "type": "regex",
+      "value": "annual|annually|review|update|once a year",
+      "description": "Says the amount must be reviewed at least once a year and that the user should check"
+    },
+    {
+      "type": "regex",
+      "value": "(payroll|consignado)[^.]{0,120}(count|included|include|enter|subject)|(count|included|include|enter|subject)[^.]{0,120}(payroll|consignado)",
+      "description": "Answers that payroll-deducted loans now count toward the existential minimum (according to the reported decision)"
+    },
+    {
+      "type": "regex",
+      "value": "Procon|Defensoria|Public Defender|CEJUSC",
+      "description": "Refers to Procon, the Public Defender's Office or CEJUSC"
+    },
+    {
+      "type": "regex",
+      "value": "financial education|not (a |an )?legal (advice|guidance)|lawyer|Defensoria|Public Defender",
+      "description": "Makes clear it does not replace legal advice"
+    }
+  ]
+}

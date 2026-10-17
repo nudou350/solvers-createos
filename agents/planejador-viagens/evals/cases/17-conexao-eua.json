@@ -1,0 +1,36 @@
+{
+  "id": "17-conexao-eua",
+  "input": "I found a cheap ticket from São Paulo to Lisbon with a 3-hour connection in Miami. Since it's just a connection and I won't leave the airport, do I need anything?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "visa",
+      "description": "Says a connection in the US requires a US visa"
+    },
+    {
+      "type": "regex",
+      "value": "even without leaving|international area|connection",
+      "description": "Explains that it applies even without leaving the airport"
+    },
+    {
+      "type": "regex",
+      "value": "B1/B2|US visa|transit",
+      "description": "Mentions the US visa or a transit visa"
+    },
+    {
+      "type": "regex",
+      "value": "another route|alternative route|connection in (Europe|another country)|direct flight|no stop in the US|without a stop",
+      "description": "Suggests a route alternative that avoids the US"
+    },
+    {
+      "type": "regex",
+      "value": "confirm|check",
+      "description": "Tells them to confirm with an official source"
+    },
+    {
+      "type": "not_contains",
+      "value": "ESTA for Brazilians",
+      "description": "Does not suggest an ESTA for Brazilians"
+    }
+  ]
+}

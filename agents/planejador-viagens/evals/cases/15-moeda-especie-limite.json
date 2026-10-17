@@ -1,0 +1,36 @@
+{
+  "id": "15-moeda-especie-limite",
+  "input": "I want to carry US$ 15,000 in cash for a 3-week trip around the United States. Can I take it without telling anyone?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "declar",
+      "description": "Says it must be declared"
+    },
+    {
+      "type": "regex",
+      "value": "10,000|10 thousand|10\\.000",
+      "description": "Cites the US$ 10,000 limit"
+    },
+    {
+      "type": "regex",
+      "value": "e-DBV|Receita Federal",
+      "description": "Points to the Receita Federal's e-DBV"
+    },
+    {
+      "type": "regex",
+      "value": "global account|card|prepaid|less cash|part",
+      "description": "Suggests safer payment alternatives to a lot of cash"
+    },
+    {
+      "type": "regex",
+      "value": "confirm|check",
+      "description": "Tells them to confirm the limit with an official source"
+    },
+    {
+      "type": "not_contains",
+      "value": "no problem at all",
+      "description": "Does not allow carrying the amount without declaring it"
+    }
+  ]
+}

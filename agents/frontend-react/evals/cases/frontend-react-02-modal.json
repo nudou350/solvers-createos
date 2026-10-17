@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-02-modal",
+  "input": "I need an accessible confirmation modal in React.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "role=\"dialog\"|<dialog",
+      "description": "Uses the dialog role or <dialog>"
+    },
+    {
+      "type": "regex",
+      "value": "showModal|aria-modal",
+      "description": "A real modal: showModal() on the <dialog> (implicit aria-modal) or aria-modal"
+    },
+    {
+      "type": "regex",
+      "value": "Escape|showModal|onCancel|cancel",
+      "description": "Closes with Escape (explicit or through the <dialog> cancel event with showModal)"
+    },
+    {
+      "type": "regex",
+      "value": "focus\\(",
+      "description": "Manages focus (entry and return)"
+    }
+  ]
+}

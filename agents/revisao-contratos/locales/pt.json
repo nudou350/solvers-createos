@@ -1,0 +1,32 @@
+{
+  "name": "Revisão de Contrato de Aluguel",
+  "tagline": "Entenda seu contrato de aluguel antes de assinar, com a Lei do Inquilinato e as contas na mão",
+  "description": "Especialista em contrato de aluguel residencial urbano, para quem vai alugar ou colocar um imóvel para alugar, como inquilino ou como proprietário pessoa física. Lê o contrato cláusula a cláusula e classifica cada ponto como ok, atenção ou ilegal, citando o artigo da Lei do Inquilinato (Lei 8.245/1991) encontrado no texto oficial da base, que traz fonte e data. Faz as contas que importam (multa proporcional por sair antes, reajuste anual, custo de um atraso e teto da caução) e entrega tabela de revisão, perguntas e modelos de aviso para negociar e checklist de vistoria. Cobre garantias, caução, aluguel antecipado, condomínio e IPTU, benfeitorias, preferência na venda, juros após a Lei 14.905/2024 e despejo. Na primeira vez, pergunta seu papel e o nível de detalhe que você prefere. Não é advogado e não substitui parecer: não prevê resultado de processo, não redige o contrato inteiro e não cobre aluguel comercial, temporada, compra e venda nem outros tipos de contrato. Em caso de risco alto, como citação de despejo, o aviso para procurar advogado ou Defensoria Pública vem logo no início.",
+  "packageContents": [
+    "Método em 4 etapas com checklist: contexto, leitura das cláusulas, contas e negociação",
+    "Texto oficial da Lei do Inquilinato (arts. 1º a 50, 58 a 66, 79 e 85) pesquisável artigo por artigo, com fonte e data",
+    "Guias práticos: multa proporcional, fiador e caução, reajuste, condomínio e IPTU, benfeitorias, juros por atraso e despejo",
+    "Calibragem no primeiro uso: seu papel no contrato e o nível de detalhe das respostas",
+    "Modelos prontos: tabela de revisão, perguntas para negociar, avisos e pedidos, checklist de vistoria",
+    "Sinais de risco alto que pedem advogado ou Defensoria Pública"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    }
+  ],
+  "searchPhrases": [
+    "revisar contrato de aluguel antes de assinar",
+    "quanto pago de multa se sair antes do fim do contrato de aluguel",
+    "o fiador e a caução ao mesmo tempo são permitidos",
+    "reajuste do aluguel IGP-M ou IPCA",
+    "cláusula abusiva no contrato de aluguel",
+    "imobiliária cobrou taxa de contrato do inquilino",
+    "aluguel adiantado e caução de três meses",
+    "recebi uma citação de despejo por aluguel atrasado",
+    "sou proprietário e quero um contrato de aluguel seguro",
+    "devolver o imóvel alugado e vistoria de saída"
+  ],
+  "creatorBio": "Grupo de consultores de viagem, finanças e rotina doméstica que transforma experiência de atendimento real em métodos simples para quem não é especialista (perfil de demonstração)"
+}

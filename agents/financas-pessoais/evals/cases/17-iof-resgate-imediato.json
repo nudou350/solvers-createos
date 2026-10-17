@@ -1,0 +1,36 @@
+{
+  "id": "17-iof-resgate-imediato",
+  "input": "I invested yesterday in a daily-liquidity CDB and I need the money today. Do I lose what I invested?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "IOF",
+      "description": "Explains the redemption IOF"
+    },
+    {
+      "type": "regex",
+      "value": "30 days",
+      "description": "Says that IOF drops to zero from 30 days"
+    },
+    {
+      "type": "regex",
+      "value": "amount invested|principal|do(es)? not lose|don't lose",
+      "description": "Clarifies that the amount invested is not lost"
+    },
+    {
+      "type": "regex",
+      "value": "earnings|yield",
+      "description": "Explains that IOF applies to the earnings"
+    },
+    {
+      "type": "regex",
+      "value": "96 ?%|almost all|most of",
+      "description": "Says that at the start IOF eats almost all of the earnings"
+    },
+    {
+      "type": "not_contains",
+      "value": "lose everything",
+      "description": "Does not say that everything is lost"
+    }
+  ]
+}

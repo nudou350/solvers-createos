@@ -1,0 +1,26 @@
+{
+  "name": "solvers-react-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guarantee verification environment for the React Front-end Solver: runs the delivery tests in a sandbox.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:json": "vitest run --reporter=json"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jsdom": "^30.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

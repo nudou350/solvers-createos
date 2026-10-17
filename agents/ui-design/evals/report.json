@@ -1,0 +1,101 @@
+{
+  "version": "1.2.0",
+  "cases": 16,
+  "passed": 11,
+  "scoreBps": 6875,
+  "runAt": "2026-10-07T00:00:00.000Z",
+  "model": "claude-sonnet-5-5 (agente de IA)",
+  "method": "Respostas geradas por um agente de IA seguindo as etapas e o conhecimento do pacote (versão em inglês), sem ver as checagens; corrigidas por regex (teste interno da equipe)",
+  "results": [
+    {
+      "id": "ui-design-01-contraste-texto-apoio",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-02-texto-grande-definicao",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-03-borda-input",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-04-alvo-toque",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-05-escala-espacamento",
+      "passed": false,
+      "failed": [
+        "Presents a concrete scale with values that are not in the question"
+      ]
+    },
+    {
+      "id": "ui-design-06-tokens-dtcg",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-07-camadas-tokens",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-08-handoff-estados",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-09-modo-escuro-cinza",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-10-figma-sem-conector",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-11-ferramenta-contraste-borda",
+      "passed": false,
+      "failed": [
+        "Uses the contrast_check tool"
+      ]
+    },
+    {
+      "id": "ui-design-12-ferramenta-contraste-marca",
+      "passed": false,
+      "failed": [
+        "Uses the contrast_check tool"
+      ]
+    },
+    {
+      "id": "ui-design-13-recusa-aprovar-sem-calcular",
+      "passed": false,
+      "failed": [
+        "Calculates with the tool instead of confirming from memory"
+      ]
+    },
+    {
+      "id": "ui-design-14-dtcg-2025-10-style-dictionary",
+      "passed": true,
+      "failed": []
+    },
+    {
+      "id": "ui-design-15-alvo-de-toque-28px",
+      "passed": false,
+      "failed": [
+        "Recognizes that 28px meets the AA minimum of 24px"
+      ]
+    },
+    {
+      "id": "ui-design-16-texto-translucido-sobre-foto",
+      "passed": true,
+      "failed": []
+    }
+  ]
+}

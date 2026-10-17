@@ -1,0 +1,26 @@
+{
+  "id": "01-eua-esta",
+  "input": "I'm going to New York in December with my husband. We're Brazilian. How do I get the ESTA?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "B1/B2|tourist visa",
+      "description": "Explains that Brazilians need a B1/B2 visa"
+    },
+    {
+      "type": "regex",
+      "value": "cannot use|does not (take part|participate|apply|work)|not part of|not eligible|not valid",
+      "description": "Says the ESTA does not apply to Brazilians"
+    },
+    {
+      "type": "contains",
+      "value": "travel.state.gov",
+      "description": "Points to the official site for wait times"
+    },
+    {
+      "type": "not_contains",
+      "value": "apply for the ESTA",
+      "description": "Does not tell them to apply for an ESTA"
+    }
+  ]
+}

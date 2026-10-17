@@ -1,0 +1,21 @@
+{
+  "id": "frontend-react-10-contraste-foco",
+  "input": "I removed the outline from my buttons because I thought it looked ugly.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "focus-visible",
+      "description": "Suggests :focus-visible"
+    },
+    {
+      "type": "regex",
+      "value": "3\\s?:\\s?1|contrast",
+      "description": "Mentions the contrast of the focus indicator"
+    },
+    {
+      "type": "regex",
+      "value": "outline:\\s*\\d|outline-offset|box-shadow",
+      "description": "Shows a replacement focus indicator (outline with a width, outline-offset or box-shadow)"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "frontend-react-15-forwardref-react-19",
+  "input": "I'm on React 19. Do I still need forwardRef on my Input component?",
+  "checks": [
+    { "type": "regex", "value": "\\bref\\b.{0,40}\\bprop\\b|\\bprop\\b.{0,40}\\bref\\b", "description": "Explains that ref is a regular prop in React 19" },
+    { "type": "regex", "value": "forwardRef.{0,160}(unnecessary|no longer (needed|necessary|required)|not (needed|necessary|required)|deprecat|still works)", "description": "Says forwardRef is no longer needed (and will be deprecated)" },
+    { "type": "regex", "value": "ComponentProps|ComponentPropsWithRef|\\{\\s*ref\\b", "description": "Shows the typing or the destructuring of ref" },
+    { "type": "regex", "value": "React 18|React version|version of React", "description": "Notes that in React 18 the behavior is different" }
+  ]
+}

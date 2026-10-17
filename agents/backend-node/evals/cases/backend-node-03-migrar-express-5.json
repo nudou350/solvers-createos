@@ -1,0 +1,12 @@
+{
+  "id": "backend-node-03-migrar-express-5",
+  "input": "I'm going to migrate my project from Express 4 to Express 5. What breaks?",
+  "checks": [
+    { "type": "regex", "value": "\\*splat|wildcard", "description": "Mentions the wildcard route change (/*splat)" },
+    { "type": "regex", "value": "req\\.body.{0,60}undefined|undefined.{0,60}req\\.body", "description": "Warns that req.body is undefined without a parser" },
+    { "type": "regex", "value": "req\\.query.{0,80}(read-only|readonly|read only)|(read-only|readonly|read only).{0,80}req\\.query", "description": "Warns that req.query is read-only" },
+    { "type": "regex", "value": "async.{0,100}(error|reject|promise)|promises?.{0,100}(error handler|handler|error)", "description": "Mentions the automatic handling of rejected promises" },
+    { "type": "regex", "value": "res\\.status\\(\\d+\\)\\.json|res\\.json\\(.{0,40}\\d{3}\\)", "description": "Mentions the new res.json/res.status signature" },
+    { "type": "regex", "value": "Node(\\.js)? 18|codemod", "description": "Mentions the Node 18 minimum or the official codemod" }
+  ]
+}

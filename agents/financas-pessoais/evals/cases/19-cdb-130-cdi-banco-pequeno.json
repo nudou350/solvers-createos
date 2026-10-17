@@ -1,0 +1,36 @@
+{
+  "id": "19-cdb-130-cdi-banco-pequeno",
+  "input": "A small bank pays 130% of the CDI on a daily-liquidity CDB. Is it worth putting my whole emergency fund there?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "FGC|credit guarantee fund",
+      "description": "Cites the FGC"
+    },
+    {
+      "type": "regex",
+      "value": "250[.,\\s]?000|250 ?thousand|250k",
+      "description": "Cites the limit of R$ 250,000"
+    },
+    {
+      "type": "regex",
+      "value": "riskier|risk|suspicious|caution|careful",
+      "description": "Warns that a rate far above the market signals more risk"
+    },
+    {
+      "type": "regex",
+      "value": "conglomerate|per institution|split|diversif|spread",
+      "description": "Explains the limit per institution or conglomerate and splitting"
+    },
+    {
+      "type": "regex",
+      "value": "weeks|payout (time|period)|without access|take(s)? time",
+      "description": "Reminds that the FGC payout can take a while and the fund needs quick access"
+    },
+    {
+      "type": "not_contains",
+      "value": "you can put it all",
+      "description": "Does not authorize putting everything in the small bank"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "ui-design-11-ferramenta-contraste-borda",
+  "input": "Check this for me: help text #9CA3AF on #FFFFFF and the field border #D1D5DB on #FFFFFF. Are both okay?",
+  "checks": [
+    {
+      "type": "contains",
+      "value": "contrast_check",
+      "description": "Uses the contrast_check tool"
+    },
+    {
+      "type": "regex",
+      "value": "2[,.]54",
+      "description": "Quotes the calculated text ratio (2.54:1)"
+    },
+    {
+      "type": "regex",
+      "value": "1[,.]47",
+      "description": "Quotes the calculated border ratio (1.47:1)"
+    },
+    {
+      "type": "regex",
+      "value": "(?<![\\d,.])3\\s?:\\s?1",
+      "description": "Applies the 3:1 criterion to the border (interface component)"
+    },
+    {
+      "type": "regex",
+      "value": "4[,.]5\\s?:\\s?1",
+      "description": "Applies the 4.5:1 criterion to the text"
+    }
+  ]
+}

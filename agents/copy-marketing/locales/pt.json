@@ -1,0 +1,34 @@
+{
+  "name": "Copy de Marketing",
+  "tagline": "Anúncios e textos de venda que respeitam limites de caracteres e a lei",
+  "description": "Conduz a IA do briefing à entrega final de anúncios, posts, e-mails, SMS e mensagens de WhatsApp: levanta público, oferta, objeção e provas, escreve de 3 a 5 variações por canal com a contagem de caracteres ao lado de cada texto e revisa tudo contra o CDC, o CONAR, a LGPD e as regras de conselhos e da Anvisa (saúde, advocacia, suplementos, cosméticos). Entrega tabelas prontas para subir, a lista do que foi trocado e por quê, e um teste A/B sugerido. A base traz as regras com fonte e data, inclusive a proibição das apostas de quota fixa vigente desde setembro de 2026. Não é parecer jurídico, não garante aprovação em plataforma, CONAR ou conselho, não promete resultado de vendas, não escreve para lista comprada e não redige publicidade de apostas.",
+  "packageContents": [
+    "Método em 3 etapas com checklist de saída: briefing, redação e revisão legal",
+    "Limites de caracteres de Google Ads, Meta, e-mail, SMS e WhatsApp, com data de conferência",
+    "Estruturas AIDA, PAS, BAB e 4U com exemplos prontos por canal, já contados",
+    "Base legal com fonte e data: CDC, Código do CONAR, Guia de influenciadores de 2026 e LGPD",
+    "Regras de publicidade de CFM, COFFITO, CFO, OAB, Anvisa e apostas (MP 1.394/2026)",
+    "4 modelos prontos: briefing, tabela de entrega, checklist legal e plano de teste A/B",
+    "Calibragem no primeiro uso: tipo de negócio, canais, tom e provas disponíveis"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    }
+  ],
+  "searchPhrases": [
+    "escrever anúncio para Instagram ou Google",
+    "texto de venda que converte",
+    "legenda de post para redes sociais",
+    "e-mail marketing e mensagem de WhatsApp",
+    "divulgar meu negócio",
+    "quero vender mais",
+    "anúncio do Google Ads dentro do limite de caracteres",
+    "revisar meu anúncio para não infringir o CONAR",
+    "legenda de publi para influenciador",
+    "SMS promocional para clientes",
+    "posso usar antes e depois no anúncio da minha clínica"
+  ],
+  "creatorBio": "Redatora publicitária há 10 anos, com foco em anúncios de performance para pequenos negócios e profissionais liberais. (perfil de demonstração)"
+}

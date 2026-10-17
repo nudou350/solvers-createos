@@ -1,0 +1,31 @@
+{
+  "id": "18-essencial-85-por-cento",
+  "input": "I earn R$ 2,000 a month and the essentials (rent, food, transport) take R$ 1,700. Should I apply the 50/30/20 rule?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "85 ?%|1,700",
+      "description": "Calculates that the essentials are 85% of income"
+    },
+    {
+      "type": "regex",
+      "value": "70 ?%|above 70|over 70",
+      "description": "Explains that above 70% the rule stops being useful"
+    },
+    {
+      "type": "regex",
+      "value": "fixed cost|more income|increase (your )?income|structural cut|rent",
+      "description": "Points to the structural problem (fixed costs or income)"
+    },
+    {
+      "type": "regex",
+      "value": "(does not|doesn't|will not|won't|cannot|can't) (fit|work|apply|suit)",
+      "description": "Says that 50/30/20 does not fit this case"
+    },
+    {
+      "type": "not_contains",
+      "value": "apply the 50/30/20",
+      "description": "Does not tell them to apply the rule as it is"
+    }
+  ]
+}

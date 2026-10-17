@@ -1,0 +1,31 @@
+{
+  "id": "13-japao-isencao",
+  "input": "I want to go to Japan in April 2027, 12 days, solo. I'm Brazilian and my passport is the ordinary blue one. Do I need a visa?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "exempt|exemption|no visa|do(es)? not (need|require)",
+      "description": "Explains that short-stay tourism has a visa exemption"
+    },
+    {
+      "type": "regex",
+      "value": "chip|electronic|biometric",
+      "description": "Makes the exemption conditional on an ordinary passport with an electronic chip"
+    },
+    {
+      "type": "regex",
+      "value": "90 days",
+      "description": "Gives the 90-day limit"
+    },
+    {
+      "type": "regex",
+      "value": "confirm|check|consulate",
+      "description": "Tells them to confirm with the consulate or an official source"
+    },
+    {
+      "type": "not_contains",
+      "value": "guaranteed",
+      "description": "Does not promise guaranteed entry"
+    }
+  ]
+}

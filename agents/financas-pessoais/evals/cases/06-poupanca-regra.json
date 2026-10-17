@@ -1,0 +1,31 @@
+{
+  "id": "06-poupanca-regra",
+  "input": "Is poupança still worth it for saving money today?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "0\\.5 ?% (a|per|each) month",
+      "description": "Cites the yield of 0.5% a month"
+    },
+    {
+      "type": "regex",
+      "value": "TR|reference rate",
+      "description": "Mentions the TR"
+    },
+    {
+      "type": "regex",
+      "value": "8\\.5 ?%",
+      "description": "Explains the rule for a Selic above 8.5%"
+    },
+    {
+      "type": "regex",
+      "value": "exempt",
+      "description": "Reminds that poupança is exempt from income tax"
+    },
+    {
+      "type": "regex",
+      "value": "13\\.75",
+      "description": "Uses the September 2026 Selic (13.75%)"
+    }
+  ]
+}

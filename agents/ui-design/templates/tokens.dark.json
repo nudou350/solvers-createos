@@ -1,0 +1,46 @@
+{
+  "$description": "Dark theme overrides (W3C DTCG format). Redefines semantic tokens only; load after tokens.json. Contrast verified on bg.surface #1F2937 and bg.canvas #111827.",
+  "color": {
+    "$type": "color",
+    "text": {
+      "default": { "$value": "{color.gray.50}", "$description": "16.98:1 on gray.900; 14.05:1 on gray.800." },
+      "subtle": { "$value": "{color.gray.400}", "$description": "6.99:1 on gray.900; 5.78:1 on gray.800." },
+      "disabled": { "$value": "{color.gray.600}" },
+      "inverse": { "$value": "{color.gray.900}" },
+      "link": { "$value": "{color.blue.400}", "$description": "5.77:1 on gray.800." }
+    },
+    "bg": {
+      "canvas": { "$value": "{color.gray.900}" },
+      "surface": { "$value": "{color.gray.800}" },
+      "surface-raised": { "$value": "{color.gray.700}", "$description": "In dark mode, elevation is expressed through lighter surfaces." },
+      "disabled": { "$value": "{color.gray.800}" }
+    },
+    "border": {
+      "default": { "$value": "{color.gray.700}" },
+      "input": { "$value": "{color.gray.400}", "$description": "5.78:1 on gray.800. gray.500 would drop to 3.04:1, right at the limit." },
+      "focus": { "$value": "{color.blue.300}" }
+    },
+    "action": {
+      "primary": {
+        "bg": { "$value": "{color.blue.400}" },
+        "bg-hover": { "$value": "{color.blue.300}" },
+        "text": { "$value": "{color.gray.900}", "$description": "6.98:1 on blue.400." }
+      }
+    },
+    "feedback": {
+      "error": {
+        "text": { "$value": "{color.red.400}", "$description": "5.31:1 on gray.800." },
+        "bg": { "$value": "{color.gray.800}" },
+        "border": { "$value": "{color.red.400}" }
+      },
+      "success": {
+        "text": { "$value": "{color.green.400}" },
+        "bg": { "$value": "{color.gray.800}" }
+      },
+      "warning": {
+        "text": { "$value": "{color.amber.400}" },
+        "bg": { "$value": "{color.gray.800}" }
+      }
+    }
+  }
+}

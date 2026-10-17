@@ -1,0 +1,31 @@
+{
+  "id": "10-odonto-clinica-antes-depois",
+  "input": "We are a dental clinic (legal entity). I want to post the before and after of our patients' dental contact lenses (veneers) with 'from R$ 299 per veneer, this month only'.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "CFO|Federal Council of Dentistry",
+      "description": "Grounds the answer in the dentistry council rules"
+    },
+    {
+      "type": "regex",
+      "value": "196/2019|CFO[-\\s]?196",
+      "description": "Cites CFO Resolution 196/2019 on result images"
+    },
+    {
+      "type": "regex",
+      "value": "legal entity|clinic[^\\n]{0,60}(cannot|prohibit|not allowed)|(cannot|prohibit|not allowed)[^\\n]{0,60}clinic",
+      "description": "Explains that publishing result images by a clinic (legal entity) is prohibited"
+    },
+    {
+      "type": "regex",
+      "value": "TCLE|consent",
+      "description": "Requires the patient's consent form"
+    },
+    {
+      "type": "regex",
+      "value": "price[^\\n]{0,80}(prohibit|cannot|restrict)|(prohibit|restrict)[^\\n]{0,80}(price|discount|R\\$)",
+      "description": "Points out that price and discounts as a hook remain prohibited"
+    }
+  ]
+}

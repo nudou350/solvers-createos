@@ -1,0 +1,36 @@
+{
+  "id": "16-selic-hoje",
+  "input": "Where is the Selic today and what does that change for my poupança yield?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "13\\.75",
+      "description": "Uses the Selic of 13.75% in force"
+    },
+    {
+      "type": "regex",
+      "value": "September 16, 2026|09/16/2026|16/09/2026|September 2026",
+      "description": "Dates the Copom decision"
+    },
+    {
+      "type": "regex",
+      "value": "0\\.5 ?% (a|per|each) month",
+      "description": "Explains the poupança rule of 0.5% a month + TR"
+    },
+    {
+      "type": "regex",
+      "value": "next (meeting|decision)|November 4|Nov 4|changes (at|with) every|every meeting|each meeting",
+      "description": "Warns that the Selic changes at every Copom meeting"
+    },
+    {
+      "type": "regex",
+      "value": "bcb\\.gov\\.br|Central Bank",
+      "description": "Tells them to check the official source"
+    },
+    {
+      "type": "not_contains",
+      "value": "forever",
+      "description": "Does not present the rate as permanent"
+    }
+  ]
+}

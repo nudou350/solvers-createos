@@ -1,0 +1,30 @@
+{
+  "name": "Planejador de Viagens",
+  "tagline": "Roteiro, orçamento e documentos da sua viagem, sem esquecer nada",
+  "description": "Um consultor de viagens que pensa como quem já atendeu centenas de brasileiros: começa pelos documentos e requisitos de entrada, monta um orçamento realista (com IOF, câmbio, seguro e reserva de emergência) e só então desenha um roteiro com ritmo possível de cumprir, fechando com um checklist de datas. Na primeira vez ele pergunta seu ritmo, com quem você viaja e seu estilo de gasto, e lembra disso nas próximas viagens. Tudo o que muda com frequência (visto, ETIAS, taxas, alíquotas) vem com fonte e data, sinalizado para você confirmar no site oficial. Não emite visto nem autorização, não garante aprovação ou entrada em nenhum país, não vende passagem ou hospedagem e não substitui médico ou seguradora. Ideal para quem não é especialista e quer viajar tranquilo.",
+  "packageContents": [
+    "Método em 5 etapas com checklist: perfil, documentos, orçamento, roteiro e checklist final",
+    "Base de conhecimento com fonte e data: documentos e regras de entrada para brasileiros (Mercosul, Schengen, EUA, Reino Unido, Canadá, México, Japão)",
+    "Calculadora de divisão de orçamento (budget_split) que roda no servidor",
+    "Modelos prontos: ficha da viagem, orçamento, roteiro dia a dia e checklist pré-viagem",
+    "Calibragem no primeiro uso e memória das suas preferências entre viagens",
+    "Guias de seguro viagem, vacinas, sazonalidade e antecedência de reservas"
+  ],
+  "requirements": [
+    {
+      "key": "any",
+      "label": "Claude ou ChatGPT"
+    }
+  ],
+  "searchPhrases": [
+    "planejar uma viagem internacional do zero",
+    "montar o roteiro das férias",
+    "preciso de visto para viajar para os Estados Unidos",
+    "quanto custa viajar para a Europa",
+    "documentos, passaporte e visto para viajar",
+    "checklist antes de viajar",
+    "como dividir o orçamento da viagem",
+    "viajar com crianças para Orlando"
+  ],
+  "creatorBio": "Grupo de consultores de viagem, finanças e rotina doméstica que transforma experiência de atendimento real em métodos simples para quem não é especialista (perfil de demonstração)."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "ui-design-04-alvo-toque",
+  "input": "My action icons in a mobile list are 20x20px. Is that adequate?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "24\\s?[x×]\\s?24|24\\s?px",
+      "description": "Quotes the WCAG 2.2 minimum of 24x24px"
+    },
+    {
+      "type": "regex",
+      "value": "2\\.5\\.8",
+      "description": "Quotes criterion 2.5.8"
+    },
+    {
+      "type": "regex",
+      "value": "44\\s?(pt|px|x)|48\\s?(dp|px|x)",
+      "description": "Recommends 44pt (iOS) or 48dp (Android) on mobile"
+    },
+    {
+      "type": "regex",
+      "value": "(touch|clickable|interactive|tappable) area|padding",
+      "description": "Explains that the touch area can grow without enlarging the icon drawing"
+    }
+  ]
+}

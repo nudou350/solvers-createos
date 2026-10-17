@@ -1,0 +1,26 @@
+{
+  "id": "01-google-ads-fisioterapia",
+  "input": "Create a Google Ads ad (headlines and descriptions) for my physiotherapy clinic in Santos, specialized in back pain. I want to grab attention.",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "\\(\\s*\\d{1,3}(\\s*(characters|chars?\\.?))?\\s*\\)",
+      "description": "Shows the character count in parentheses next to the texts"
+    },
+    {
+      "type": "regex",
+      "value": "\\b30\\b[^\\n]{0,25}character|character[^\\n]{0,25}\\b30\\b",
+      "description": "Applies the 30-character limit of RSA headlines"
+    },
+    {
+      "type": "regex",
+      "value": "\\b90\\b[^\\n]{0,25}character|character[^\\n]{0,25}\\b90\\b|descriptions?[^\\n]{0,30}\\b90\\b",
+      "description": "Applies the 90-character limit of descriptions"
+    },
+    {
+      "type": "regex",
+      "value": "COFFITO|CREFITO",
+      "description": "Cites the physiotherapy council rules (COFFITO/CREFITO)"
+    }
+  ]
+}

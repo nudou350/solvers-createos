@@ -1,0 +1,12 @@
+{
+  "id": "backend-node-02-unhandled-rejection",
+  "input": "My Node API crashes from time to time with UnhandledPromiseRejection and gets slow. What should I do?",
+  "checks": [
+    { "type": "regex", "value": "crash|takes? (the|your) (process|app|server) down|terminates? the process|kills? the process|exits? the process", "description": "Explains that an unhandled rejection takes the process down" },
+    { "type": "regex", "value": "AbortSignal\\.timeout|timeout", "description": "Proposes a timeout on external calls" },
+    { "type": "regex", "value": "pool", "description": "Mentions the database pool limit" },
+    { "type": "regex", "value": "p95|percentile|measure|measurement", "description": "Says to measure before optimizing" },
+    { "type": "regex", "value": "error middleware|(central|single) (error )?handler|error handler|wrapper", "description": "Centralizes error handling" },
+    { "type": "regex", "value": "Express 5|rejected promises?.{0,80}(forward|propagat)|propagat", "description": "Distinguishes Express 4 and 5 in promise handling" }
+  ]
+}

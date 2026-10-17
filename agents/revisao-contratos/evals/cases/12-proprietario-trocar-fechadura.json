@@ -1,0 +1,26 @@
+{
+  "id": "12-proprietario-trocar-fechadura",
+  "input": "I'm a landlord and my tenant is two months behind on rent. Can I change the lock and take his things out of the apartment to force him to leave?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "cannot|can't|not allowed|not permitted|prohibited|forbidden|illegal|must not|should not",
+      "description": "Says the landlord cannot take the property back on their own"
+    },
+    {
+      "type": "regex",
+      "value": "art(icle|\\.)?\\s?5(?!\\d)",
+      "description": "Cites art. 5: only an eviction action takes the property back"
+    },
+    {
+      "type": "regex",
+      "value": "eviction action",
+      "description": "Points to the eviction action as the route"
+    },
+    {
+      "type": "regex",
+      "value": "lawyer|attorney",
+      "description": "Recommends a lawyer"
+    }
+  ]
+}

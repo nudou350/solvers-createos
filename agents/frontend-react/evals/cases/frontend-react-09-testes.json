@@ -1,0 +1,26 @@
+{
+  "id": "frontend-react-09-testes",
+  "input": "How do I test a React component without testing implementation details?",
+  "checks": [
+    {
+      "type": "regex",
+      "value": "getByRole",
+      "description": "Prioritizes queries by role"
+    },
+    {
+      "type": "regex",
+      "value": "behavio(u)?r|user",
+      "description": "Focuses on user behavior"
+    },
+    {
+      "type": "regex",
+      "value": "user-?event",
+      "description": "Interacts like the user with user-event"
+    },
+    {
+      "type": "regex",
+      "value": "toHaveAccessibleName|toHaveFocus|toBeInTheDocument|toHaveAttribute\\(\\s*[\"']aria-",
+      "description": "Asserts what the user perceives (jest-dom: name, focus, presence or ARIA state)"
+    }
+  ]
+}
