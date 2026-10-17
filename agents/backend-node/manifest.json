@@ -121,8 +121,7 @@
     ]
   },
   "differentiators": ["liveData", "memory"],
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 22, "royaltyBps": 500 },
+  "pricing": { "priceCents": 2200 },
   "searchPhrases": [
     "build an API in Node.js",
     "create an endpoint with Express",

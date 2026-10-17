@@ -50,7 +50,7 @@ Every path in the manifest (`steps[].file`, `templates[].path`) must be relative
 
 ## Opening phases
 
-Today the **Core phase** applies: invited creators, knowledge in `.md` and `.txt`, templates in `.md`, `.txt` and `.json`, no creator-owned tools, no guarantee. In the **Opening phase** (no promised date) PDF, HTML and CSV in knowledge, tools over the internet (`http`), gates with evidence and platform-run evaluation come in. Do not write a package counting on the Opening phase.
+Today the **Core phase** applies: invited creators, knowledge in `.md` and `.txt`, templates in `.md`, `.txt` and `.json`, no creator-owned tools. In the **Opening phase** (no promised date) PDF, HTML and CSV in knowledge, tools over the internet (`http`), gates with evidence and platform-run evaluation come in. Do not write a package counting on the Opening phase.
 
 ## Hash and version
 

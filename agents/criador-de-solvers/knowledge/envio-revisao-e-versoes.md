@@ -19,9 +19,7 @@ In this phase, **invited creators**. The platform sends an invitation code by em
 1. **Submission**: the creator uploads the ZIP at `/creator/publish`. The site receives the file and replies that it was received.
 2. **Validation**: the server extracts the ZIP in an isolated area and runs the validator. If there is an error, the package comes back with the reason (code, path and how to fix it).
 3. **Review**: a team member reads everything (manifest, steps, knowledge, templates, test cases, automatic scans). Target: up to 5 business days. They can **approve**, **request changes** (you fix and resubmit, on the same version as long as it has not been published) or **reject**, always with the reason.
-4. **Creator confirmation**: once approved, the creator confirms the publication on the site (the final signature is theirs; the platform pays the fee).
-5. **Final platform approval** (new Solver): the team completes the registration. Updates to an already approved Solver do not repeat this step.
-6. **Publication**: the Solver goes onto the storefront.
+4. **Publication**: once approved, the platform publishes the Solver and it goes onto the storefront. The creator does not need to confirm anything and there is no extra registration step. Updates follow the same flow.
 
 If any step fails midway, the state becomes "publication failed" and the team tries again; the storefront only changes at the end.
 
@@ -39,17 +37,13 @@ Approval depends on the review. Never promise the date, the approval or sales. N
 - Each version needs an entry in `versions[]` with a date and a note on what changed.
 - Open sessions on the old version ask to reactivate when used again.
 
-## Direct changes outside review
-
-Changing the price or version directly outside the site flow has no effect on what is served: the server keeps delivering the approved version and **blocks sales** until the difference is resolved. Always use the site flow.
-
 ## Suspension and withdrawal
 
 The platform can **suspend** a Solver immediately (for abuse, rights or security reasons): it stops responding, including for those who have already bought it. The creator can also withdraw the Solver and reactivate it later. If there is doubt about rights or security, suspension comes before discussion.
 
 ## Money
 
-Buying the license pays the creator immediately. That is why review is full and the Solver can be switched off at any time. The refund and dispute rules are part of the creator terms.
+The buyer pays for the license by card (Stripe Checkout) and the creator receives the price minus the platform's 10% fee. That is why review is full and the Solver can be switched off at any time. The refund and dispute rules are part of the creator terms.
 
 ## After publication
 

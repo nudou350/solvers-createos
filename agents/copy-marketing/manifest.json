@@ -113,7 +113,6 @@
   },
   "escalation": { "enabled": false },
   "differentiators": ["liveData", "memory"],
-  "guarantee": { "available": false, "defaultCriteria": [] },
   "trial": {
     "available": true,
     "uses": 3,
@@ -124,7 +123,7 @@
     "summary": "You get the briefing organized and the copy variations for the chosen channel, respecting character limits.",
     "lockedSummary": "the legal review (CDC, CONAR, LGPD and your sector's rules) with a checked count, the delivery table ready to upload and the test plan."
   },
-  "pricing": { "priceUsdc": 12, "royaltyBps": 500 },
+  "pricing": { "priceCents": 1200 },
   "searchPhrases": [
     "write an ad for Instagram or Google",
     "sales copy that converts",

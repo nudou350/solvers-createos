@@ -12,9 +12,8 @@ This knowledge file helps decide the license price, the free trial and the store
 
 ## Price
 
-- `pricing.priceUsdc`: the license price, in dollars. The platform minimum today is **5** (`MANIFEST_PRICE_BELOW_MIN` below that). The minimum exists because the platform pays the network fees of every purchase, so each sale must be large enough to cover them.
+- `pricing.priceCents`: the lifetime license price, in integer US-dollar cents (`{ "priceCents": 900 }` = US$ 9). The platform minimum today is **500** (US$ 5; `MANIFEST_PRICE_BELOW_MIN` below that). The buyer pays by card (Stripe Checkout); the platform keeps a 10% fee and the rest is the creator's. The minimum exists because each sale must cover card processing and review costs.
 - It is a lifetime license to the Solver: the buyer uses it whenever they want. There is no per-use charge.
-- `royaltyBps`: 0 to 1,000 (300 = 3%): the creator's share of the original price, paid by the owner each time the license is transferred to another wallet. A high value makes passing the license on more expensive for the owner.
 - How to set the price: how much time or money does the method save? Compare with the alternative (an hour of consulting, a ready-made template). Maintenance-heavy content (rules that change) justifies a higher price, because you have to keep it updated.
 - The creator must not promise the Solver's future value or returns.
 
@@ -30,10 +29,6 @@ The trial exists to show value **without giving everything away**. If omitted, t
 - `summary` and `lockedSummary`: what the trial gives and what is left to the full version (3 to 400 and 3 to 300 characters).
 
 Golden rule: unlock the **steps that show the reasoning** (profile, diagnosis) and leave the **final deliverable** (the finished report, the plan, the template) to the license. A trial that delivers everything does not sell; a trial that delivers nothing does not convince.
-
-## License cap (`supply`)
-
-`supply.maxLicenses` sets a cap on licenses sold (1 to 1,000,000). The correct promise to the buyer is "the cap today is N and it can only go up", never "only N will exist". With the free trial on, the validator warns (`SUPPLY_WITH_TRIAL`): the trial does not consume a slot.
 
 ## Storefront texts
 

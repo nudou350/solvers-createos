@@ -46,7 +46,7 @@ A few questions on the Solver's **first use**, to adapt the answers to the buyer
 2. If there is no profile, the AI asks the questions in **at most two messages**, explains the reason and accepts a skip.
 3. The AI saves the answers as the profile. If the buyer skips, "skipped" is recorded and the question **does not come back every session**.
 4. The steps read the profile. The buyer can ask to "recalibrate" and the questions are asked again.
-5. Without a memory key (a connection without the second signature), the Solver proceeds with the defaults and says how to reconnect.
+5. If memory is not available (the buyer turned memory off, or it does not respond), the Solver proceeds with the defaults and tells the buyer.
 
 The profile also applies during the free trial.
 

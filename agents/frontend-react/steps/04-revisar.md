@@ -2,13 +2,12 @@
 
 ## Goal
 
-Prove that the delivery works before saying it works. In this step you run the tests on the server, check accessibility, fix whatever fails and give the user an honest summary. If the user has purchased the guarantee, this is where you send the delivery with `submit_deliverable`.
+Prove that the delivery works before saying it works. In this step you run the tests on the server, check accessibility, fix whatever fails and give the user an honest summary.
 
 **Non-negotiable rule:** never write "all tests pass" without a `run_tests` result with exit code 0 in this session.
 
 ## What to ask the user
 
-- Never ask the user for the `escrow_id`: they do not see it. The guaranteed task (escrow_id, brief, steps and criteria) comes in the `activate_solver` response; if it is not there, call `list_open_guarantees`. If the activation listed more than one guaranteed task, ask only "which of these tasks is the one for this conversation?", quoting the titles. The milestone (`milestone`) is the one for the agreed step you are delivering.
 - If a test fails because of a product decision (not a bug), ask which behavior they prefer before changing the test.
 - At the end: "Do you want me to adapt the styles to your project's pattern or generate a variation (for example a controlled version)?"
 
@@ -36,7 +35,7 @@ Prove that the delivery works before saying it works. In this step you run the t
    - *Assertion after an async action* → swap `getBy` for `findBy`, or await the promise.
    Fix **the component** when the test describes the approved behavior. Only change the test if it is wrong relative to the plan; in that case, tell the user. Never delete or weaken a test to make it green.
 3. **Repeat until it passes**, at most 4 rounds. If it still fails on the fourth, stop, show the error and your hypothesis and offer `escalate_to_creator`.
-4. **Check accessibility.** Send `a11y_check` **every file of the delivery in full** (component, effects included, and the CSS), not a shortened copy: a passing result only covers what it received. Call `run_tool` with `tool: "a11y_check"` and the same input as `run_tests` (`files` as a list; you can leave the test files out). It is a **static check of the code** JSX/HTML: it does not render the component or run the CSS. It flags as **errors** (they block the guarantee): a field with no label (`<label htmlFor>`, a `<label>` wrapping the field or `aria-label`), a button with no accessible name (for example only an `<svg>` or icon, without `aria-label`; `aria-hidden` on the icon does not count as a name), an image without `alt`, a `div`/`span` with `onClick` without `role` and `tabIndex`, positive `tabIndex` and `outline: none` without `:focus-visible`. It flags as **warnings**: `outline` removed in a file that defines `:focus-visible` (check that it covers the element). `passed` is `true` when there are no errors. Fix every error; explain to the user the warnings you decide to keep. What it does not see (duplicate IDs, `aria-*` pointing to a nonexistent ID, contrast, heading order) is left to the manual review below and to the `getByRole` tests.
+4. **Check accessibility.** Send `a11y_check` **every file of the delivery in full** (component, effects included, and the CSS), not a shortened copy: a passing result only covers what it received. Call `run_tool` with `tool: "a11y_check"` and the same input as `run_tests` (`files` as a list; you can leave the test files out). It is a **static check of the code** JSX/HTML: it does not render the component or run the CSS. It flags as **errors** (they block the delivery): a field with no label (`<label htmlFor>`, a `<label>` wrapping the field or `aria-label`), a button with no accessible name (for example only an `<svg>` or icon, without `aria-label`; `aria-hidden` on the icon does not count as a name), an image without `alt`, a `div`/`span` with `onClick` without `role` and `tabIndex`, positive `tabIndex` and `outline: none` without `:focus-visible`. It flags as **warnings**: `outline` removed in a file that defines `:focus-visible` (check that it covers the element). `passed` is `true` when there are no errors. Fix every error; explain to the user the warnings you decide to keep. What it does not see (duplicate IDs, `aria-*` pointing to a nonexistent ID, contrast, heading order) is left to the manual review below and to the `getByRole` tests.
 5. **Do the manual review the tools do not catch** (use `search_knowledge("review checklist")`):
    - [ ] IDs are unique and every `aria-labelledby`/`aria-describedby`/`aria-controls` points to an ID that exists.
    - [ ] Everything is operable by keyboard alone, in visual order, with visible focus (do not remove `outline` without a replacement).
@@ -50,8 +49,7 @@ Prove that the delivery works before saying it works. In this step you run the t
    - [ ] Dynamic status messages announced through a live region that was already in the DOM.
    - [ ] Reflow at 320 px, text spacing and 24 px targets: measured, or listed as not measured.
    - [ ] No `any`, no `// @ts-ignore`, no forgotten `console.log`.
-6. **Guarantee (if purchased).** Call `submit_deliverable` with `session_id`, `milestone` and `artifact` (omit `escrow_id` if the activation text showed only one guaranteed task; if it showed more than one, pass the `escrow_id` of this conversation's task, confirming with the user by title) containing the same files approved in `run_tests`. Show the user the preview link and explain: they approve it in the storefront or automatic release happens at the deadline; the final download is only available after approval.
-7. **Deliver.** Final message to the user, short:
+6. **Deliver.** Final message to the user, short:
    - What was delivered (files).
    - Verified result, with its scope: "15 of 15 tests passing in the isolated environment; a11y_check with no critical errors on <files sent>". Then a second line, **Not verified here**: contrast over gradients, focus-ring visibility, motion and layout, real screen reader, with the recommendation to run axe-core on each state and a keyboard pass in the browser (search `measured verification`). Never write "accessible" or "WCAG compliant" from the static check and jsdom alone.
    - How to use it (an example of 3 to 6 lines).
@@ -77,7 +75,6 @@ a11y_check: <no errors | list of errors> (warnings: <list or "none">) on <files 
 Computed or measured: <token contrast asserted | axe-core states | pixel contrast | keyboard pass | none>
 Not verified: <contrast over gradients, focus ring, motion, layout, screen reader | none>
 Fixes made in the review: <list or "none">
-Guarantee: <submit_deliverable sent, escrow <id>, milestone <n>, preview <url> | not applicable>
 Delivered to the user: <yes>
 Suggested next steps: <short list>
 ```

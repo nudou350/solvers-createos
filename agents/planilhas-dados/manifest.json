@@ -109,8 +109,7 @@
     ]
   },
   "differentiators": ["liveData", "memory"],
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 14, "royaltyBps": 500 },
+  "pricing": { "priceCents": 1400 },
   "searchPhrases": [
     "write a formula in Excel",
     "VLOOKUP giving #N/A error",

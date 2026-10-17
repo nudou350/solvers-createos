@@ -116,7 +116,6 @@
     }
   ],
   "tools": [],
-  "guarantee": { "available": false, "defaultCriteria": [] },
   "trial": {
     "available": true,
     "uses": 3,
@@ -127,7 +126,7 @@
     "summary": "You get the monthly diagnosis (where the money goes) and the right order to attack your debts, with the math done and the debt table.",
     "lockedSummary": "the emergency fund and goals calculated for your case, the monthly plan with the next 30 days and the renegotiation and weekly review templates."
   },
-  "pricing": { "priceUsdc": 7, "royaltyBps": 300 },
+  "pricing": { "priceCents": 700 },
   "searchPhrases": [
     "organize my finances",
     "get out of credit card debt",

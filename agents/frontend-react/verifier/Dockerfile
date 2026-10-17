@@ -1,4 +1,4 @@
-# Imagem do verificador da garantia (runner "docker:solvers-react-test").
+# Imagem do verificador de testes (runner "docker:solvers-react-test").
 # Build: docker build -t solvers-react-test agents/frontend-react/verifier
 # Execução (feita pelo servidor):
 #   docker run --rm --network none --cpus 1 --memory 768m --read-only \

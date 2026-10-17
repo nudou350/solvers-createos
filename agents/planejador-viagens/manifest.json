@@ -161,10 +161,6 @@
   },
   "escalation": { "enabled": false },
   "differentiators": ["tool", "liveData", "memory"],
-  "guarantee": {
-    "available": false,
-    "defaultCriteria": []
-  },
   "trial": {
     "available": true,
     "uses": 3,
@@ -177,7 +173,7 @@
     "summary": "You get the trip profile, the documents and entry requirements for your destination, and the budget split by category, including the hidden costs.",
     "lockedSummary": "the day-by-day itinerary at a doable pace and the final checklist for before departure."
   },
-  "pricing": { "priceUsdc": 9, "royaltyBps": 300 },
+  "pricing": { "priceCents": 900 },
   "searchPhrases": [
     "plan an international trip from scratch",
     "build a vacation itinerary",

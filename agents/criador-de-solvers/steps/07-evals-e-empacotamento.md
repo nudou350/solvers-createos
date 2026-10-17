@@ -14,7 +14,7 @@ Agree with the user's client (profile `onde_roda`) on how the ZIP will be delive
 1. **What are the 5 most common requests** a buyer would make to the Solver? Each one becomes a case.
 2. **Which requests should the Solver refuse or limit?** (out of scope, promise of a result, sensitive data). They become edge cases.
 3. **Which mistakes would be the most serious** (a wrong value, an outdated rule, forgetting the disclaimer)? They become checks.
-4. **Price**: how much to charge? The minimum today is **5 (US$5, paid in a US-dollar stablecoin)** (field `priceUsdc`); `royaltyBps` (0 to 1,000; 300 = 3%) is the share of the original price the creator receives each time a license is transferred to another wallet. Do you want to offer a **free trial**? It has to show value without giving everything away.
+4. **Price**: how much to charge for the lifetime license? The minimum today is **US$ 5**, stored in cents in the field `priceCents` (500 or more; US$ 9 = 900). The buyer pays by card; the platform keeps a 10% fee and the rest goes to the creator. Do you want to offer a **free trial**? It has to show value without giving everything away.
 5. **Who is the creator on the storefront?** Name, a short and truthful bio.
 6. **Do you have a final folder name/slug?** (the same as in step 1).
 
@@ -44,7 +44,7 @@ Agree with the user's client (profile `onde_roda`) on how the ZIP will be delive
 
 ### Part B: finish the manifest
 
-7. Complete `pricing` (`priceUsdc` of 5 or more), `creator` (`id` can be any short text, the server replaces it; `name`, `bio`), `requirements`, `packageContents` (3 to 8 items, only what exists), `versions` with the `1.0.0` entry (the current version needs an entry), `terms` with `rightsConfirmed` and `sourcesListed` both `true` and, if desired, `trial` (`uses`, `steps` no greater than the number of steps, `searches`, `tools` empty, `summary` and `lockedSummary`). Do **not** write an `id` in the first version (the server assigns it), nor `platform`, nor `tools`.
+7. Complete `pricing` (`{ "priceCents": 900 }`, with `priceCents` of 500 or more), `creator` (`id` can be any short text, the server replaces it; `name`, `bio`), `requirements`, `packageContents` (3 to 8 items, only what exists), `versions` with the `1.0.0` entry (the current version needs an entry), `terms` with `rightsConfirmed` and `sourcesListed` both `true` and, if desired, `trial` (`uses`, `steps` no greater than the number of steps, `searches`, `tools` empty, `summary` and `lockedSummary`). Do **not** write an `id` in the first version (the server assigns it), nor `platform`, nor `tools`.
 8. **Reviewer `README.md`**: template `readme-do-revisor`. Say what the Solver promises, how each differentiator is proven, which validator warnings remain and why, where the sources come from and who holds the rights, and the step 5 plan. This text never reaches the buyer.
 
 ### Part C: validate
@@ -68,7 +68,7 @@ Agree with the user's client (profile `onde_roda`) on how the ZIP will be delive
     - On the site, open the `/creator/publish` area (solvers.wondervelop.com), sign in and choose the ZIP. For now only invited creators can submit packages.
     - The site validates again; if there is an error, it shows the code, the path and how to fix it.
     - **A team member reviews all the content within 5 business days.** They can approve, request changes (the user fixes and resubmits the same version) or reject with the reason. **Approval is not guaranteed.**
-    - Once approved, the creator confirms the publication on the site. Every new version (even a small one) goes through full review, with a version higher than the published one.
+    - Once approved, the platform publishes the Solver (the user does not need to confirm anything). Every new version (even a small one) goes through full review, with a version higher than the published one.
     - The Solver does not appear on the storefront before that. The platform measures performance afterwards; no rating is promised.
 
 ## Common mistakes

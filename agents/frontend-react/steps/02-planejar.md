@@ -2,7 +2,7 @@
 
 ## Goal
 
-Define the component's contract (props, events, states) and the **list of test cases** before writing the implementation. The tests planned here are the specification: in step 4 they have to pass in `run_tests` and, if there is a guarantee, they become the criterion for releasing the payment.
+Define the component's contract (props, events, states) and the **list of test cases** before writing the implementation. The tests planned here are the specification: in step 4 they have to pass in `run_tests`.
 
 At the end you need to have: the props interface in TypeScript, a state map, a focus and keyboard strategy, and a numbered list of tests approved by the user.
 
@@ -38,7 +38,7 @@ Show the plan and ask for approval in a single message. Ask only if there is a r
    7. Edge cases: empty list, long text, value with spaces.
 5. **Plan the visual accessibility, if there are styles.** List the tokens (text, muted, accent-as-text, focus ring, field border, fill-with-white-text) per theme and palette, the pairs that will be asserted with `contrastRatio` (template `estilos-acessiveis`), any text that sits on a gradient or image (it needs a real measurement), every animation that loops (it needs a visible pause control, not only `prefers-reduced-motion`) and every dynamic status message (it needs a live region that exists from the first render). If the component has an animated exit, plan the `mounted`/`closing` states and the edge cases (reopen during exit, Esc during exit, reduced motion).
 6. **Plan the verification, and say what it cannot prove.** Write a short list: what `run_tests` will prove, what `a11y_check` will prove, what you will compute (token contrast) and what needs a browser (axe-core per state, contrast over gradients, keyboard pass, 320 px reflow). The last item is shown to the user now, not discovered at the end.
-7. **Define the file structure.** Default: `ComponentName.tsx` + `ComponentName.test.tsx` in the same folder. For the guarantee, the delivery goes into the verifier's `src/`, so **imports only relative and only from the available dependencies** (react, react-dom, Testing Library, Vitest). No `@/components`, no icon library.
+7. **Define the file structure.** Default: `ComponentName.tsx` + `ComponentName.test.tsx` in the same folder. The delivery goes into the verifier's `src/` when `run_tests` runs it, so **imports only relative and only from the available dependencies** (react, react-dom, Testing Library, Vitest). No `@/components`, no icon library.
 8. Present the plan to the user in the format below and wait for approval. If the user says to go ahead without approving the test list, proceed and record "approval gate skipped on the user's instruction" in the summary; do not silently treat it as approved.
 
 ## Common mistakes

@@ -138,13 +138,6 @@
     ]
   },
   "differentiators": ["tool", "liveData", "memory"],
-  "guarantee": {
-    "available": false,
-    "defaultCriteria": [
-      "All text pairs with a minimum contrast of 4.5:1",
-      "Tokens delivered as valid DTCG JSON"
-    ]
-  },
   "trial": {
     "available": true,
     "uses": 3,
@@ -156,7 +149,7 @@
     "summary": "You get the screen read and the audit of hierarchy, spacing, typography and contrast, with the issues prioritized and the contrast ratio calculated.",
     "lockedSummary": "the design tokens (light and dark) ready to import and the full handoff with states for the front-end team."
   },
-  "pricing": { "priceUsdc": 19, "royaltyBps": 500 },
+  "pricing": { "priceCents": 1900 },
   "searchPhrases": [
     "review the design of a screen in Figma",
     "does my text have enough contrast",

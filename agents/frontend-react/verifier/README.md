@@ -1,10 +1,10 @@
-# Guarantee verifier: React Front-end Solver
+# Test verifier: React Front-end Solver
 
-The minimal environment the server uses to check whether a Solver delivery passes the tests. It is the `docker:solvers-react-test` runner declared in `manifest.json` (the `run_tests` tool and the guarantee's "All tests pass" criterion).
+The minimal environment the server uses to check whether a Solver delivery passes the tests. It is the `docker:solvers-react-test` runner declared in `manifest.json` (the `run_tests` tool).
 
 ## How it works
 
-1. The AI calls `submit_deliverable` (or `run_tool` with `run_tests`) with the delivery files: `.tsx`/`.ts` components and `*.test.tsx`/`*.test.ts` tests.
+1. The AI calls `run_tool` with `run_tests` with the delivery files: `.tsx`/`.ts` components and `*.test.tsx`/`*.test.ts` tests.
 2. The server writes the files to a temporary folder, which becomes `verifier/src/` inside the container (mounted at `/work/src`, read-only).
 3. The server runs `npx vitest run --reporter=json` in `/work`.
 4. **Exit code 0 = passed.** Any other code (failing test, compile error, no tests found, timeout) = not passed.

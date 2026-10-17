@@ -1,7 +1,7 @@
 {
   "name": "Solver Front-end React",
   "tagline": "Componentes React acessíveis e testados, do jeito que um sênior faria",
-  "description": "Transforma a sua IA numa engenheira front-end sênior de React e TypeScript. Ela levanta os requisitos antes de codar, escolhe o padrão WAI-ARIA certo para cada componente, implementa formulários com validação e gestão de foco e entrega testes com Testing Library e Vitest que exercitam o comportamento real, não detalhes de implementação. Os testes e a checagem estática de acessibilidade rodam no servidor, e a entrega pode ser coberta pela garantia: você só libera o pagamento quando tudo passa. A base traz React 19.x, WCAG 2.2, tokens de design acessíveis (contraste, anel de foco, movimento, mensagens de status), acabamento visual e as armadilhas mais comuns, com fonte e data. Ela calcula o contraste dos seus tokens nos testes e diz exatamente o que verificou e o que ainda precisa de navegador (axe-core, contraste sobre gradiente, teste de teclado). Não substitui teste com leitor de tela real nem um designer de interface, e não monta sites inteiros: o foco é o componente e os estilos dele.",
+  "description": "Transforma a sua IA numa engenheira front-end sênior de React e TypeScript. Ela levanta os requisitos antes de codar, escolhe o padrão WAI-ARIA certo para cada componente, implementa formulários com validação e gestão de foco e entrega testes com Testing Library e Vitest que exercitam o comportamento real, não detalhes de implementação. Os testes e a checagem estática de acessibilidade rodam no servidor, e ela só diz que os testes passam depois de rodá-los de verdade. A base traz React 19.x, WCAG 2.2, tokens de design acessíveis (contraste, anel de foco, movimento, mensagens de status), acabamento visual e as armadilhas mais comuns, com fonte e data. Ela calcula o contraste dos seus tokens nos testes e diz exatamente o que verificou e o que ainda precisa de navegador (axe-core, contraste sobre gradiente, teste de teclado). Não substitui teste com leitor de tela real nem um designer de interface, e não monta sites inteiros: o foco é o componente e os estilos dele.",
   "packageContents": [
     "Método em 4 etapas com checklist de saída em cada uma",
     "Base com fonte e data: padrões WAI-ARIA, formulários, foco e teclado, WCAG 2.2, tokens acessíveis (contraste, anel de foco, movimento), acabamento visual, verificação medida, testes e React 19.x",
@@ -9,8 +9,7 @@
     "Checagem estática de acessibilidade do código JSX/HTML",
     "Modelos de componente e de teste prontos para copiar",
     "Modelo de estilos: CSS de tokens, ajudante de contraste com teste para cada par de cores, botão de pausar animações e mensagem de status anunciada",
-    "Calibragem do seu projeto (versão do React, framework, estilo e biblioteca de componentes) na memória do especialista",
-    "Garantia: pagamento liberado só com todos os testes passando"
+    "Calibragem do seu projeto (versão do React, framework, estilo e biblioteca de componentes) na memória do especialista"
   ],
   "requirements": [
     {

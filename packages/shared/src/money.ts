@@ -1,153 +1,90 @@
-// Money: token base units as bigint end to end, fee/royalty math mirrored byte for byte from the contracts
-// (`SolversMath.feeSplit` / `royaltySplit`, plan §4.7, decisions.md D14/D15). No float math on amounts: numbers only
-// appear at the display edge (`unitsToNumber`) and when reading human-entered prices (`numberToUnits`).
+// Money: integer USD cents end to end (Stripe's `unit_amount`, `payment_ledger.amount_cents`). No float math on
+// amounts: numbers with decimals only appear at the display edge (`centsToDollars`, `formatCents`) and when reading
+// human-entered prices (`dollarsToCents`, `parseDollars`).
 
 /** Basis-point denominator. */
 export const MAX_BPS = 10_000;
-/** Highest primary-sale platform fee the Registry accepts (20%). */
-export const MAX_FEE_BPS = 2_000;
-/** Highest transfer royalty, creator + platform (25% of the original price). */
-export const MAX_TOTAL_ROYALTY_BPS = 2_500;
-
-/**
- * Documented default for the payment token's decimals: TIP-20 tokens always have 6. The real value comes from config
- * (`PAYMENT_TOKEN_DECIMALS`, checked against `decimals()` on-chain at boot, `PublicConfig.paymentToken.decimals`).
- */
-export const DEFAULT_TOKEN_DECIMALS = 6;
-/** Default minimum purchase in whole stablecoin units (license, credits, guarantee); the contract stores it in base units. */
-export const DEFAULT_MIN_PRICE = 5;
-
-const BPS = BigInt(MAX_BPS);
-
-function assertDecimals(decimals: number): void {
-  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 36) throw new RangeError(`invalid decimals: ${decimals}`);
-}
+/** Platform fee on every sale (10%); the creator gets the rest, including the rounding remainder. */
+export const PLATFORM_FEE_BPS = 1_000;
+/** Minimum price of a Solver license, in cents (US$ 5). */
+export const MIN_PRICE_CENTS = 500;
+/** Currency of every price and charge (Stripe lowercase code). */
+export const CURRENCY = "usd";
 
 function assertBps(name: string, bps: number, max = MAX_BPS): void {
   if (!Number.isInteger(bps) || bps < 0 || bps > max) throw new RangeError(`invalid ${name}: ${bps} (expected an integer in 0..${max})`);
 }
 
-function assertAmount(name: string, amount: bigint): void {
-  if (typeof amount !== "bigint" || amount < 0n) throw new RangeError(`invalid ${name}: ${String(amount)} (expected a non-negative bigint)`);
+function assertCents(name: string, cents: number): void {
+  if (!Number.isSafeInteger(cents) || cents < 0) throw new RangeError(`invalid ${name}: ${String(cents)} (expected a non-negative integer of cents)`);
 }
 
-/** `10^decimals` as bigint. */
-export function unitScale(decimals: number): bigint {
-  assertDecimals(decimals);
-  return 10n ** BigInt(decimals);
-}
-
-/** Default `minPrice` in base units: `5 × 10^decimals` (5_000_000 for a 6-decimal token). */
-export function DEFAULT_MIN_PRICE_UNITS(decimals: number = DEFAULT_TOKEN_DECIMALS): bigint {
-  return BigInt(DEFAULT_MIN_PRICE) * unitScale(decimals);
+/** True for a valid amount of cents: a non-negative safe integer. */
+export function isCents(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 /**
- * Primary-sale split, mirror of `SolversMath.feeSplit`: `fee = amount × bps / 10_000` (floor), `rest = amount − fee`
- * (the rounding remainder goes to the creator).
+ * Sale split: `fee = amount × bps / 10_000` (floor), `rest = amount − fee` (the rounding remainder goes to the
+ * creator). Default fee: `PLATFORM_FEE_BPS` (10%).
  */
-export function feeSplit(amount: bigint, feeBps: number): { fee: bigint; rest: bigint } {
-  assertAmount("amount", amount);
+export function feeSplit(amountCents: number, feeBps: number = PLATFORM_FEE_BPS): { fee: number; rest: number } {
+  assertCents("amountCents", amountCents);
   assertBps("feeBps", feeBps);
-  const fee = (amount * BigInt(feeBps)) / BPS;
-  return { fee, rest: amount - fee };
+  const fee = Math.floor((amountCents * feeBps) / MAX_BPS);
+  return { fee, rest: amountCents - fee };
 }
 
-/**
- * Transfer royalty, mirror of `SolversMath.royaltySplit`: each share is a floored bps of the ORIGINAL price (dust stays
- * with the payer). The creator share is at most `MAX_TOTAL_ROYALTY_BPS`; the platform share is clamped so the total
- * never exceeds it: `effectivePlatformBps = min(platformBps, MAX_TOTAL_ROYALTY_BPS − creatorBps)`.
- */
-export function royaltySplit(
-  originalPrice: bigint,
-  creatorBps: number,
-  platformBps: number,
-): { creatorAmount: bigint; platformAmount: bigint; total: bigint } {
-  assertAmount("originalPrice", originalPrice);
-  assertBps("creatorBps", creatorBps, MAX_TOTAL_ROYALTY_BPS);
-  assertBps("platformBps", platformBps);
-  const effectivePlatformBps = Math.min(platformBps, MAX_TOTAL_ROYALTY_BPS - creatorBps);
-  const creatorAmount = (originalPrice * BigInt(creatorBps)) / BPS;
-  const platformAmount = (originalPrice * BigInt(effectivePlatformBps)) / BPS;
-  return { creatorAmount, platformAmount, total: creatorAmount + platformAmount };
-}
-
-// ----- Unit conversion -----
+// ----- Conversion and display -----
 
 const DECIMAL_RE = /^(\d+)(?:\.(\d+))?$/;
 
 /**
- * Exact decimal string -> base units (`"12.5"`, 6 -> `12_500_000n`). Rejects signs, exponents and more fractional
- * digits than `decimals` (unless the extra digits are zeros): money is never rounded silently.
+ * Exact decimal string of dollars -> cents (`"12.5"` -> `1250`). Rejects signs, exponents and more than 2 fractional
+ * digits (unless the extra digits are zeros): money is never rounded silently.
  */
-export function toUnits(amount: string, decimals: number): bigint {
-  const scale = unitScale(decimals);
+export function parseDollars(amount: string): number {
   const m = DECIMAL_RE.exec(amount.trim());
   if (!m) throw new RangeError(`invalid amount: ${JSON.stringify(amount)}`);
-  const int = m[1]!;
   let frac = m[2] ?? "";
-  if (frac.length > decimals) {
-    if (/[^0]/.test(frac.slice(decimals))) throw new RangeError(`amount ${amount} has more than ${decimals} decimals`);
-    frac = frac.slice(0, decimals);
+  if (frac.length > 2) {
+    if (/[^0]/.test(frac.slice(2))) throw new RangeError(`amount ${amount} has more than 2 decimals`);
+    frac = frac.slice(0, 2);
   }
-  return BigInt(int) * scale + BigInt(frac.padEnd(decimals, "0") || "0");
+  const cents = Number(m[1]!) * 100 + Number(frac.padEnd(2, "0"));
+  assertCents("amount", cents);
+  return cents;
 }
 
-/** Base units -> exact decimal string without trailing zeros (`12_500_000n`, 6 -> `"12.5"`). */
-export function fromUnits(units: bigint, decimals: number): string {
-  const scale = unitScale(decimals);
-  const neg = units < 0n;
-  const abs = neg ? -units : units;
-  const int = abs / scale;
-  const frac = decimals === 0 ? "" : (abs % scale).toString().padStart(decimals, "0").replace(/0+$/, "");
-  return `${neg ? "-" : ""}${int}${frac ? `.${frac}` : ""}`;
-}
-
-/** Shortest decimal representation of a finite number, expanding exponent notation (`1e-7` -> `"0.0000001"`). */
-function plainDecimal(n: number): string {
-  const s = String(n);
-  const m = /^(\d+)(?:\.(\d+))?e([+-]\d+)$/.exec(s);
-  if (!m) return s;
-  const digits = m[1]! + (m[2] ?? "");
-  const point = m[1]!.length + Number(m[3]);
-  if (point <= 0) return `0.${"0".repeat(-point)}${digits}`;
-  if (point >= digits.length) return digits + "0".repeat(point - digits.length);
-  return `${digits.slice(0, point)}.${digits.slice(point)}`;
+/** Cents -> exact decimal string of dollars without trailing zeros (`1250` -> `"12.5"`, `900` -> `"9"`). */
+export function fromCents(cents: number): string {
+  if (!Number.isSafeInteger(cents)) throw new RangeError(`invalid cents: ${cents}`);
+  const neg = cents < 0;
+  const abs = Math.abs(cents);
+  const frac = String(abs % 100).padStart(2, "0").replace(/0+$/, "");
+  return `${neg ? "-" : ""}${Math.floor(abs / 100)}${frac ? `.${frac}` : ""}`;
 }
 
 /**
- * Human-entered or manifest price (a JS number, e.g. `pricing.priceUsdc`) -> base units. Uses the number's shortest
- * decimal form (what was typed: `1.005` stays `1.005`) and rounds half up at `decimals`, so float noise such as
- * `0.1 + 0.2` becomes `300_000n` at 6 decimals.
+ * Human-entered dollars as a JS number -> cents, rounding float noise (`0.1 + 0.2` -> `30`). Throws when the value
+ * really has more than 2 decimals (`1.005`).
  */
-export function numberToUnits(amount: number, decimals: number): bigint {
+export function dollarsToCents(amount: number): number {
   if (!Number.isFinite(amount) || amount < 0) throw new RangeError(`invalid amount: ${amount}`);
-  const scale = unitScale(decimals);
-  const [int = "0", frac = ""] = plainDecimal(amount).split(".");
-  let units = BigInt(int) * scale + BigInt(frac.slice(0, decimals).padEnd(decimals, "0") || "0");
-  if (frac.replace(/0+$/, "").length > decimals) {
-    // Money is never rounded silently: extra decimals are accepted only when they are binary float noise (e.g.
-    // 0.1 + 0.2 = 0.30000000000000004), i.e. the value rounded to `decimals` is the same double within a few ULPs.
-    if (frac.charCodeAt(decimals) >= 53 /* 5 */) units += 1n;
-    const rounded = Number(fromUnits(units, decimals));
-    if (Math.abs(rounded - amount) > Number.EPSILON * Math.max(1, Math.abs(amount)) * 8) {
-      throw new RangeError(`${amount} has more than ${decimals} decimal places`);
-    }
+  const cents = Math.round(amount * 100);
+  if (Math.abs(cents / 100 - amount) > Number.EPSILON * Math.max(1, amount) * 8) {
+    throw new RangeError(`${amount} has more than 2 decimal places`);
   }
-  return units;
+  assertCents("amount", cents);
+  return cents;
 }
 
-/** Base units -> the nearest JS number, for display and legacy numeric API fields only. */
-export function unitsToNumber(units: bigint | number | string, decimals: number): number {
-  return Number(fromUnits(BigInt(units), decimals));
+/** Cents -> dollars as a JS number, for display only. */
+export function centsToDollars(cents: number): number {
+  return Number(fromCents(cents));
 }
 
-/** @deprecated Use `numberToUnits(amount, decimals)` with the configured decimals. Kept while apps/ is ported. */
-export function usdcToUnits(amount: number, decimals: number = DEFAULT_TOKEN_DECIMALS): bigint {
-  return numberToUnits(amount, decimals);
-}
-
-/** @deprecated Use `unitsToNumber(units, decimals)` with the configured decimals. Kept while apps/ is ported. */
-export function unitsToUsdc(units: bigint | number | string, decimals: number = DEFAULT_TOKEN_DECIMALS): number {
-  return unitsToNumber(units, decimals);
+/** Cents -> `"$9.00"` (or the locale's form). */
+export function formatCents(cents: number, locale = "en-US"): string {
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cents / 100);
 }

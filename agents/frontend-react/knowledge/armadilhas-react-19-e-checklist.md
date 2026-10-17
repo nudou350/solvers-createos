@@ -109,7 +109,7 @@ Virtualizing has an accessibility and product cost: the browser's find (Ctrl+F) 
 - [ ] TypeScript with no `any`, `@ts-ignore` or unjustified `!`.
 - [ ] No derived state in an effect; effects with cleanup.
 - [ ] No `console.log`, no dead code, no TODO.
-- [ ] Imports only from dependencies available in the project (and in the verifier, if there is a guarantee).
+- [ ] Imports only from dependencies available in the project (and in the verifier, when the tests run in `run_tests`).
 
 **Tests**
 - [ ] Every ready-when criterion has at least one test.

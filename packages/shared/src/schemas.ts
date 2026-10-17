@@ -1,10 +1,7 @@
 import { z } from "zod";
-import { Address } from "./evm.js";
-import { AgentSupply } from "./supply.js";
 
 // Core data contract shared by server, api-client and web. Field names are part of the API: the web uses the same
-// names. Prices in these display schemas are numbers of whole stablecoin units (formatting edge); amounts that are
-// computed with or sent on-chain travel as bigint base units (`UnitsString` in evm.ts).
+// names. Prices are integer USD cents (money.ts); people are identified by `users.id` (uuid).
 
 export const Requirement = z.object({
   type: z.enum(["client", "connector", "plan"]),
@@ -18,11 +15,11 @@ export const Requirement = z.object({
   helpUrl: z.string().url().optional(),
 });
 
-/** Agent status names (on-chain codes in onchain.ts `AGENT_STATUS`). */
+/** Agent status names. */
 export const AgentStatus = z.enum(["pending", "active", "suspended", "retired"]);
 
 export const Agent = z.object({
-  /** Package id: 32 hex characters (on-chain `agentId = agentIdToBytes32(id)`). */
+  /** Package id: 32 hex characters (manifest `id`). */
   id: z.string(),
   slug: z.string(),
   name: z.string(),
@@ -32,7 +29,8 @@ export const Agent = z.object({
   creatorId: z.string(),
   version: z.string(),
   versionHash: z.string(),
-  priceUsdc: z.number(),
+  /** Lifetime license price, in cents. */
+  priceCents: z.number().int().nonnegative(),
   /** Has a free trial (limits in AgentDetail.trial). */
   trialAvailable: z.boolean(),
   userRating: z.number(),
@@ -41,14 +39,6 @@ export const Agent = z.object({
   evalScore: z.number(),
   requirements: z.array(Requirement),
   packageContents: z.array(z.string()),
-  guaranteeAvailable: z.boolean(),
-  /**
-   * Creator share of the transfer royalty, in bps of the license's original price (fixed at registration, editable only
-   * before the first sale). The platform share is `PublicConfig.royalty.platformBps`.
-   */
-  royaltyBps: z.number().default(0),
-  /** License cap. The default keeps older clients and data parsing: unlimited. */
-  supply: AgentSupply.default({ max: null, sold: 0, left: null }),
   /** Platform Solver (e.g. the Solver creator): free, no license or purchase, DB only. */
   platform: z.boolean().default(false),
   /** Proven differentiators (PACKAGE_SPEC.md 4.2): tool, verifier, liveData, memory, escalation. Empty for v0 packages. */
@@ -69,12 +59,13 @@ export const Creator = z.object({
 });
 
 export const License = z.object({
-  /** ERC-721 token id of the license, as a decimal string. */
+  /** License id (uuid). */
   id: z.string(),
   agentId: z.string(),
-  ownerWallet: Address,
+  /** Owner (`users.id`). */
+  userId: z.string(),
   acquiredAt: z.string(),
-  /** Only lifetime licenses exist (pay-per-use ended). */
+  /** Only lifetime licenses exist. */
   type: z.literal("permanent"),
 });
 
@@ -90,50 +81,21 @@ export const ImageRef = z.object({
 export const Review = z.object({
   id: z.string(),
   agentId: z.string(),
-  authorWallet: Address,
+  authorUserId: z.string(),
   rating: z.number().int().min(1).max(5),
   text: z.string(),
   createdAt: z.string(),
   verifiedPurchase: z.literal(true),
-  /** Reviewer's profile name (null: the storefront shows the shortened wallet). */
+  /** Reviewer's profile name (null: the storefront shows a generic "Verified buyer"). */
   authorName: z.string().nullable(),
   /** Photos the buyer attached (up to MAX_REVIEW_IMAGES). */
   images: z.array(ImageRef).default([]),
 });
 
-/** `submitted` is a DB-only state (deliverable received, not yet verified); the rest mirror `MILESTONE_STATUS`. */
-export const MilestoneStatus = z.enum(["pending", "submitted", "passed", "approved", "disputed", "refunded"]);
-
-export const Milestone = z.object({
-  title: z.string(),
-  criteria: z.string(),
-  status: MilestoneStatus,
-});
-
-/** Mirrors the derived `ESCROW_STATUS` (`Completed` is shown as "approved"). */
-export const EscrowStatus = z.enum(["active", "approved", "disputed", "refunded"]);
-
-export const Escrow = z.object({
-  /** On-chain escrow id. */
-  id: z.string(),
-  /** Task title, written by the buyer. */
-  title: z.string(),
-  agentId: z.string(),
-  buyerWallet: Address,
-  amountUsdc: z.number(),
-  status: EscrowStatus,
-  milestones: z.array(Milestone),
-  autoReleaseAt: z.string(),
-  /** Delivery deadline (ISO). */
-  deliveryDeadline: z.string().nullable(),
-  /** Platform fee frozen at creation (bps). */
-  feeBps: z.number().nullable(),
-});
-
 /** Note in the Solver's memory (saved at the user's request). */
 export const MemoryNote = z.object({ id: z.string(), text: z.string(), at: z.string() });
 
-/** Solver memory: encrypted on the server (never on-chain). `summary` may be empty; profile and notes are optional (PACKAGE_SPEC.md 11). */
+/** Solver memory: encrypted on the server. `summary` may be empty; profile and notes are optional (PACKAGE_SPEC.md 11). */
 export const Memory = z.object({
   id: z.string(),
   agentId: z.string(),
@@ -144,14 +106,11 @@ export const Memory = z.object({
   updatedAt: z.string(),
 });
 
-export const GuaranteeLevel = z.enum(["limited", "full", "none"]);
-
 export const UserReputation = z.object({
-  wallet: Address,
+  userId: z.string(),
   score: z.number(),
   purchases: z.number(),
   disputesLost: z.number(),
-  guaranteeLevel: GuaranteeLevel,
 });
 
 export type Requirement = z.infer<typeof Requirement>;
@@ -161,10 +120,5 @@ export type Creator = z.infer<typeof Creator>;
 export type License = z.infer<typeof License>;
 export type ImageRef = z.infer<typeof ImageRef>;
 export type Review = z.infer<typeof Review>;
-export type MilestoneStatus = z.infer<typeof MilestoneStatus>;
-export type Milestone = z.infer<typeof Milestone>;
-export type EscrowStatus = z.infer<typeof EscrowStatus>;
-export type Escrow = z.infer<typeof Escrow>;
 export type Memory = z.infer<typeof Memory>;
-export type GuaranteeLevel = z.infer<typeof GuaranteeLevel>;
 export type UserReputation = z.infer<typeof UserReputation>;

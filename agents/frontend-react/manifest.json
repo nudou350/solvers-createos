@@ -4,7 +4,7 @@
   "slug": "frontend-react",
   "name": "Front-end React Solver",
   "tagline": "Accessible, tested React components, the way a senior engineer would build them",
-  "description": "Turns your AI into a senior front-end engineer for React and TypeScript. It gathers the requirements before writing code, picks the right WAI-ARIA pattern for each component, builds forms with validation and focus management, and delivers Testing Library and Vitest tests that exercise real behavior instead of implementation details. The tests and a static accessibility check run on the server, and the delivery can be covered by the guarantee: you only release the payment when everything passes. The knowledge base covers React 19.x, WCAG 2.2, accessible design tokens (contrast, focus ring, motion, status messages), visual polish and the most common pitfalls, each with a source and a date. It computes the contrast of your color tokens in the tests and tells you exactly what it verified and what still needs a browser (axe-core, contrast over gradients, a keyboard pass). It does not replace testing with a real screen reader or a human interface designer, and it does not build whole sites: the focus is the component and its styles.",
+  "description": "Turns your AI into a senior front-end engineer for React and TypeScript. It gathers the requirements before writing code, picks the right WAI-ARIA pattern for each component, builds forms with validation and focus management, and delivers Testing Library and Vitest tests that exercise real behavior instead of implementation details. The tests and a static accessibility check run on the server, and it only says the tests pass after a real run. The knowledge base covers React 19.x, WCAG 2.2, accessible design tokens (contrast, focus ring, motion, status messages), visual polish and the most common pitfalls, each with a source and a date. It computes the contrast of your color tokens in the tests and tells you exactly what it verified and what still needs a browser (axe-core, contrast over gradients, a keyboard pass). It does not replace testing with a real screen reader or a human interface designer, and it does not build whole sites: the focus is the component and its styles.",
   "category": "Desenvolvimento",
   "version": "1.3.0",
   "creator": {
@@ -25,8 +25,7 @@
     "A static accessibility check for JSX/HTML code",
     "Ready-to-copy component and test templates",
     "A styles template: token CSS, a contrast helper with tests for every color pair, a pause-animations control and a live-region status message",
-    "Setup for your project (React version, framework, styling and component library) saved in the specialist's memory",
-    "Guarantee: payment is released only when all tests pass"
+    "Setup for your project (React version, framework, styling and component library) saved in the specialist's memory"
   ],
   "usesMemory": true,
   "steps": [
@@ -79,7 +78,7 @@
     },
     {
       "name": "a11y_check",
-      "description": "Static check of JSX/HTML code (it does not render the component): field with no label (label htmlFor, label wrapping the field or aria-label), button with no accessible name (for example icon only), image with no alt, clickable div or span without role and tabIndex, positive tabIndex and removed outline. Input: the same as run_tests, { files: [{ path, content }] }. Output: passed (no errors), issues (errors, which block the guarantee) and warnings (for example outline removed with :focus-visible in the same file). It does not check contrast, duplicate IDs or heading order. Use it after implementing and before delivering.",
+      "description": "Static check of JSX/HTML code (it does not render the component): field with no label (label htmlFor, label wrapping the field or aria-label), button with no accessible name (for example icon only), image with no alt, clickable div or span without role and tabIndex, positive tabIndex and removed outline. Input: the same as run_tests, { files: [{ path, content }] }. Output: passed (no errors), issues (errors, which must be fixed before delivering) and warnings (for example outline removed with :focus-visible in the same file). It does not check contrast, duplicate IDs or heading order. Use it after implementing and before delivering.",
       "runner": "node:a11y",
       "inputSchema": {
         "type": "object",
@@ -151,34 +150,6 @@
     ]
   },
   "differentiators": ["tool", "verifier", "liveData", "memory"],
-  "guarantee": {
-    "available": true,
-    "defaultCriteria": [
-      "All tests pass in the server's isolated environment",
-      "No critical accessibility errors in a11y_check",
-      "TypeScript component with typed props and no explicit any",
-      "Every behavior agreed in the planning step has a test"
-    ],
-    "priceUsdc": 19,
-    "milestones": [
-      {
-        "title": "Component plan",
-        "criteria": ["Props and states defined", "Test case list approved by you"],
-        "sharePct": 30,
-        "verify": "manual"
-      },
-      {
-        "title": "Component and tests",
-        "criteria": [
-          "All tests pass in the server's isolated environment",
-          "No critical accessibility errors in a11y_check",
-          "TypeScript component with typed props and no explicit any",
-          "Every behavior agreed in the planning step has a test"
-        ],
-        "sharePct": 70
-      }
-    ]
-  },
   "trial": {
     "available": true,
     "uses": 3,
@@ -194,9 +165,9 @@
     },
     "scope": "In the trial, 1 component per use; if the request is a page, build the main section and show what the license would cover for the rest.",
     "summary": "You get the confirmed requirements, the plan for props, states and tests, and the component with its tests written, and you can run the accessibility check and the tests on the server once.",
-    "lockedSummary": "the final review with tests running as many times as you need, the delivery summary and the guarantee, with payment released only when everything passes."
+    "lockedSummary": "the final review with tests running as many times as you need and the delivery summary."
   },
-  "pricing": { "priceUsdc": 19, "royaltyBps": 500 },
+  "pricing": { "priceCents": 1900 },
   "searchPhrases": [
     "build an accessible React component",
     "React login form with tests",
@@ -254,7 +225,7 @@
     {
       "version": "1.0.0",
       "releasedAt": "2026-09-30T12:00:00Z",
-      "notes": "First public version: 4-step method, a knowledge base of WAI-ARIA patterns, React 19 and Testing Library, server-side tests (Vitest) and an accessibility check. Guarantee available."
+      "notes": "First public version: 4-step method, a knowledge base of WAI-ARIA patterns, React 19 and Testing Library, server-side tests (Vitest) and an accessibility check."
     }
   ]
 }

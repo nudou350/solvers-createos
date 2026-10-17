@@ -42,13 +42,11 @@ The manifest is strict in `specVersion: 1`: **an unknown field is an error** (`M
 - `knowledge`: `{ updatedAt, reviewEveryDays, sources[] }`. `updatedAt` in YYYY-MM-DD, `reviewEveryDays` from 1 to 730, `sources` with at least 1 source as text.
 - `templates[]`: `{ name, path, title, description }`. `name` in lowercase letters, digits, hyphen and underscore. The `path` starts with `templates/`. Only what is declared is delivered.
 - `tools[]`: **empty** for a new creator in this phase (`TOOL_FORBIDDEN_RUNNER`).
-- `guarantee`: `{ "available": false, "defaultCriteria": [] }`. Turning the guarantee on is an error for a new creator (`MANIFEST_GUARANTEE_FORBIDDEN`).
 
 ## Price, free trial and offer
 
-- `pricing`: `{ priceUsdc, royaltyBps }`. `priceUsdc` in dollars (paid in a US-dollar stablecoin), at least the platform's minimum price (today 5; `MANIFEST_PRICE_BELOW_MIN`). `royaltyBps` from 0 to 1,000 (300 = 3%), the creator's share of the original price each time a license is transferred to another wallet.
+- `pricing`: `{ "priceCents": 900 }`. `priceCents` is the lifetime license price in integer US-dollar cents (900 = US$ 9), at least the platform minimum of 500 (US$ 5; `MANIFEST_PRICE_BELOW_MIN` below that). The buyer pays by card (Stripe Checkout); the platform keeps a 10% fee and the rest is the creator's. There is no other pricing field.
 - `trial`: free trial, optional: `{ available?, uses (1 to 10), steps (steps unlocked, at most the total), searches, tools, templates[], scope?, summary, lockedSummary }`. Without `trial`, there is no trial. For a new creator, `tools` stays `{}`.
-- `supply`: `{ maxLicenses }`, a cap on licenses sold (1 to 1,000,000). Optional, it only goes up over time. Combining `supply` with a free trial raises the warning `SUPPLY_WITH_TRIAL`.
 - `catalogOnly`: removed; raises a warning.
 
 ## Dependencies between fields

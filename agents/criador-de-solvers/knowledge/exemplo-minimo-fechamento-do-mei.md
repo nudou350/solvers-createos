@@ -61,8 +61,7 @@ Differentiators: `liveData` (dated base), `memory` (activity calibration, used i
     { "id": "activity", "ask": "What is your MEI's activity: commerce, services or both?", "why": "The DAS amount changes depending on the activity", "options": ["Commerce", "Services", "Both"] }
   ] },
 
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 9, "royaltyBps": 0 },
+  "pricing": { "priceCents": 900 },
   "trial": { "uses": 3, "steps": 2, "searches": 3, "tools": {}, "templates": [], "summary": "You run steps 1 and 2: the month's revenue, remaining limit and DAS checked in the base.", "lockedSummary": "The month report and the ready-made template are in the full version." },
   "versions": [ { "version": "1.0.0", "releasedAt": "2026-10-02", "notes": "First version" } ]
 }

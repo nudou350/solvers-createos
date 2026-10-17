@@ -122,7 +122,6 @@
     }
   ],
   "tools": [],
-  "guarantee": { "available": false, "defaultCriteria": [] },
   "trial": {
     "available": true,
     "uses": 3,
@@ -132,7 +131,7 @@
     "summary": "You get the reading of your rental contract: clauses classified as ok, attention or illegal, with the article of the law for each point.",
     "lockedSummary": "the calculations with your contract's numbers (penalty for leaving early, rent adjustment and late payment), the questions and notice templates to negotiate with, and the final delivery as a table."
   },
-  "pricing": { "priceUsdc": 12, "royaltyBps": 400 },
+  "pricing": { "priceCents": 1200 },
   "searchPhrases": [
     "review a rental contract before signing",
     "how much penalty do I pay if I leave before the end of my lease in Brazil",

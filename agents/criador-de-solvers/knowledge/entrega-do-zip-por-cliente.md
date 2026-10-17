@@ -64,4 +64,4 @@ If the files exist only as text in the conversation, create each one with `z.wri
 
 ## Submission
 
-On the site, the creator area (`/creator/publish`) receives the ZIP: the server validates again and shows the errors, if any. Then a team member reviews the package within 5 business days. The Solver only appears on the storefront after approval and after the creator confirms the publication.
+On the site, the creator area (`/creator/publish`) receives the ZIP: the server validates again and shows the errors, if any. Then a team member reviews the package within 5 business days. The Solver only appears on the storefront after approval; once approved, the platform publishes it.

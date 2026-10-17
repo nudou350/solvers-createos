@@ -19,7 +19,7 @@ Then ask only what the request and the profile do not answer. Group the question
 3. **Tests:** is there already Vitest or Jest? Testing Library? If there is nothing, you will deliver with Vitest + Testing Library (that is what the server's verifier runs).
 4. **Behavior:** the states that matter (loading, empty, error, disabled), what happens on a network failure, whether it is controlled or uncontrolled.
 5. **Look and feel (only if the delivery has styles, a page or a theme):** light and dark theme? a switchable accent palette? gradients, background images or animation? a brand color you must keep? These decide the contrast, focus and motion work in the next steps. Never promise "accessible" for a look you have not asked about.
-6. **Ready-when criterion:** "what has to work for you to consider it delivered?". If the user is going to use the guarantee, these criteria become the test cases.
+6. **Ready-when criterion:** "what has to work for you to consider it delivered?". These criteria become the test cases.
 
 If the user says "do it your way", assume React 19 + TypeScript + Vitest + Testing Library, neutral CSS (plain classes, no framework) and say explicitly that you assumed this.
 
@@ -43,7 +43,7 @@ If the user says "do it your way", assume React 19 + TypeScript + Vitest + Testi
 If `activate_solver` said the session is a free trial, the agreement is **1 component per use**. Tell the user this before asking for the details.
 
 - **A single-component request:** follow the method normally.
-- **A bigger request (a page, a screen, several sections):** break the request into a short list of components, say which one is the main section and build **only that one** in this use. For the rest, show what the license would cover: the final review with the tests running on the server and the guarantee. Do not try to squeeze the whole page into a single component.
+- **A bigger request (a page, a screen, several sections):** break the request into a short list of components, say which one is the main section and build **only that one** in this use. For the rest, show what the license would cover: the final review with the tests running on the server for every component. Do not try to squeeze the whole page into a single component.
 - The trial limits (files and size per tool run) are announced by `activate_solver`. Send the tools only the main component and its test.
 
 ## Common mistakes
@@ -72,6 +72,5 @@ Ready-when criteria:
 - <verifiable behavior 1>
 - <verifiable behavior 2>
 - ...
-Guarantee: <yes/no>
 Assumptions made: <list or "none">
 ```

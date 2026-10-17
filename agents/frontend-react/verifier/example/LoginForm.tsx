@@ -69,7 +69,7 @@ export function LoginForm({ onSubmit, minPasswordLength = 8, title = "Sign in" }
     const field = event.target.name as Field;
     const value = event.target.value;
     setValues((prev) => ({ ...prev, [field]: value }));
-    // Revalida em tempo real apenas campos que já mostram erro: não acusa quem ainda está digitando.
+    // Revalida enquanto a pessoa digita apenas campos que já mostram erro: não acusa quem ainda está digitando.
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: validateField(field, value, minPasswordLength) }));
     }

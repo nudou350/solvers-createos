@@ -4,7 +4,7 @@ English | [Português](PACKAGE_SPEC.pt-BR.md)
 
 Status: **approved by the owner on 2026-09-30** (D1-D14 confirmed; review within 5 business days). Reviewed in two rounds by independent reviewers (consistency with the code; security, operations and product). **Implemented on 2026-10-02 on the `feat/criador-solvers` branch (committed, not deployed yet): P0 to P4, P5 partial (only the honest rating labels) and P8** (see §22 and the "Implementation deviations" block). **P6** (pre-opening) and **P7** (Opening) remain pending. Operational guide: `docs/creator-guide.md`.
 Scope: package format, validation, submission, manual review, publication, delivery to the user and the "Solver Builder".
-Basis: the current code (`apps/server/src/runtime/*`, `mcp/*`, `knowledge/*`, `memory/*`, `cli/publish.ts`, the Tempo contracts in `contracts/src`) and `docs/architecture.md`.
+Basis: the current code (`apps/server/src/runtime/*`, `mcp/*`, `knowledge/*`, `memory/*`, `sandbox/*`, `cli/publish.ts`) and `docs/architecture.md`. Identity is the user's email (magic link); payments are Stripe Checkout in integer USD cents; code a Solver writes runs in a CreateOS sandbox, which also proves step gates (`steps[].verify`, §5.3).
 
 Language: packages are **English-primary** (manifest, steps, knowledge, templates and evals are written in English) and can optionally ship a Portuguese (pt-BR) translation of the storefront text in `locales/pt.json`. The five step-section titles are in English too (§5.1; the old Portuguese titles are still accepted for older packages). One thing stays in Portuguese today because the code still expects it: the manifest `category` values (§4.1). This document describes it as it is.
 
@@ -22,30 +22,30 @@ Legend: **[exists]** already works and stays; **[changes]** exists and changes; 
 4. The **Solver Builder** is a free platform Solver that guides the assembly of the package, consults the server's validator and hands over the ZIP (§19).
 5. In the Core phase, knowledge is `.md`/`.txt` (the user's own AI converts PDFs locally, at no cost to us). PDF, HTML and CSV arrive in the Opening phase, with isolated reading.
 6. "Adapting to the user" is a **calibration** on first use plus **notes** saved when the user asks, both in encrypted memory.
-7. Whoever registers the Solver on-chain (the `SolversRegistry` contract on Tempo) is **the creator**, who co-signs on the site (§15). The platform does not hold third-party keys. The **final on-chain approval** of every new Solver is signed by you, with the cold wallet, off the VPS.
+7. Publication is done by the **platform**: once the reviewer approves a version, the server publishes it (§15). The creator never signs anything; their account is their email.
 8. Every new version goes through the full manual review, with a diff of all files.
 9. The 8 current packages (folders in `agents/`; 6 published and 2 unpublished) keep working unchanged (§18).
 
 ### 0.2 Decisions (confirmed on 2026-09-30)
 
-D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10, D12 and D13 were answered explicitly; the others held by the recommended default, with no objection. Editing shared infrastructure (D5) only happens in P4, with the VPS in view.
+D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10 and D13 were answered explicitly; the others held by the recommended default, with no objection. Editing shared infrastructure (D5) only happens in P4, with the VPS in view.
 
 | # | Decision | Default applied | If you disagree |
 |---|---|---|---|
-| D1 | Open uploads to anyone or start by invite? | **Invite** (a code sent by email, bound to the wallet on first login; D14), opening only after §2.2 | Changes §2, §14 and phase P4 |
-| D2 | Who signs the on-chain registration of third-party creators? | **The creator co-signs** on the site; the platform relay is the fee payer. It is the only viable route: `registerAgent` and `updateVersion` require the creator's signature (`NotCreator` otherwise), and the server does not hold the key (§15) | Custody of third-party keys, which the code blocks on mainnet |
-| D3 | A free platform Solver (the Builder)? | **Database only**, no on-chain registration (the Registry's `minPrice` is 5 USD-stablecoin units and applies to the whole marketplace) | Zeroing `minPrice` removes the floor for everyone |
-| D4 | Third-party creators' performance rating on the storefront? | **No** in the Core phase. Buyer reviews only. The on-chain rating only for platform packages | Requires the platform to generate the eval answers (§12) |
+| D1 | Open uploads to anyone or start by invite? | **Invite** (a code sent by email, bound to the creator's account on first login; D14), opening only after §2.2 | Changes §2, §14 and phase P4 |
+| D2 | Who publishes third-party Solvers? | **The platform**, right after the reviewer's approval. The creator has no extra step | |
+| D3 | A free platform Solver (the Builder)? | **Database only**, `pricing.priceCents: 0`, no license and no purchase (the US$ 5 minimum applies to every other Solver) | |
+| D4 | Third-party creators' performance rating on the storefront? | **No** in the Core phase. Buyer reviews only. The performance rating only for platform packages | Requires the platform to generate the eval answers (§12) |
 | D5 | Where do ZIPs and published packages live? | `/var/www/solvers/shared/{submissions,packages}`: inside `/var/www/<project>` (the VPS guide's convention), in the `shared/` folder that `deploy.sh` already uses for what survives between releases. **Requires editing shared VPS infrastructure**: `/opt/deploy/backup.sh` (backup) and the global `nginx.conf` (the upload `limit_req` zone). I need your authorization for each | Without this there is no backup of third-party packages |
 | D6 | Calibration and memory notes included from the start? | **Yes** (Core), with the adjustments in §10 and §11 | |
-| D7 | Before opening to strangers: removal and refund policy, terms with data clauses, legal review, and economics against a bad creator (deposit above zero or withholding the payout for N days) | **Prerequisites of the Opening phase**, not open questions (§2.2) | |
+| D7 | Before opening to strangers: removal and refund policy, terms with data clauses, legal review, and economics against a bad creator (withholding the payout for N days) | **Prerequisites of the Opening phase**, not open questions (§2.2) | |
 | D8 | Core caps | ZIP 50 MB, 10,000 chunks, file 10 MB, `.md`/`.txt` only (§3.2). Larger caps only after a benchmark in the Opening phase | |
-| D9 | Who reviews? | **You**, 100% of versions, with a full diff and a 5-business-day target. Confirm you have the time, or say who else can review (the queue accepts more than one admin in `ADMIN_WALLETS`) | Defines Core capacity |
-| D10 | Final on-chain approval | For **every new Solver**, you sign `approveAgent` with the cold wallet (`cli:approve`; the platform relay pays the fee, so the cold wallet holds no tokens). Version updates do not need that signature | Keeping the key on the VPS defeats the purpose of the cold wallet |
-| D11 | Guarantee in production | The VPS environment keeps `GUARANTEE_MIN_SALES=0` (the `frontend-react` guarantee demo depends on it). Third parties do not offer a guarantee: the **validator rejects it** (`MANIFEST_GUARANTEE_FORBIDDEN`). The real values return before the Opening phase (§2.2) | Turning the rule on now switches off the demo guarantee |
-| D12 | Which network does the Core open on? | The Tempo testnet **Moderato** first (faucet stablecoins). The co-signing flow (§15.2) already serves mainnet; the creator keys that `cli:publish` generates for platform packages are refused on mainnet and must not be used for third parties | On mainnet, real money starts being paid to creators (see D13) |
-| D13 | Categories and consumer risk in the Core phase | Allowed: `Desenvolvimento` (Development), `Design`, `Dia a dia` (Everyday), `Negócios` (Business), `Viagens` (Travel), `Conteúdo` (Content), `Escrita` (Writing), `Outros` (Other). **Not** for third parties in the Core phase: `Finanças` (Finance), `Jurídico` (Legal) and health. Tax or regulatory content within the allowed ones needs a disclaimer in the text (the reviewer checks). A purchase pays the creator immediately and there is no refund: the risk is accepted while it is testnet/invite-only | Releasing the regulated categories before legal review exposes you |
-| D14 | How to invite | **An invite code sent by email** (table `creator_invites`); the wallet is bound on first login. You do not need to know anyone's address | Inviting by wallet address requires the creator to send it first |
+| D9 | Who reviews? | **You**, 100% of versions, with a full diff and a 5-business-day target. Confirm you have the time, or say who else can review (the queue accepts more than one admin in `ADMIN_USER_IDS`) | Defines Core capacity |
+| D10 | Final approval | The reviewer's approval **is** the final approval: the server publishes the approved version at once (§15.3). Updates follow the same path | |
+| D13 | Categories and consumer risk in the Core phase | Allowed: `Desenvolvimento` (Development), `Design`, `Dia a dia` (Everyday), `Negócios` (Business), `Viagens` (Travel), `Conteúdo` (Content), `Escrita` (Writing), `Outros` (Other). **Not** for third parties in the Core phase: `Finanças` (Finance), `Jurídico` (Legal) and health. Tax or regulatory content within the allowed ones needs a disclaimer in the text (the reviewer checks). Payouts to creators are recorded in the ledger (90% of each sale) and paid out manually; the risk is accepted while it is invite-only and in Stripe test mode | Releasing the regulated categories before legal review exposes you |
+| D14 | How to invite | **An invite code sent by email** (table `creator_invites`); it is bound to the account on first login | |
+
+D11 and D12 covered features that no longer exist and were dropped.
 
 ### 0.3 Glossary
 
@@ -55,14 +55,12 @@ D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10, D12 and
 * **Front matter**: a metadata header at the top of a `.md` file (between `---`).
 * **egress**: user data leaving our server for a creator's service.
 * **SSRF**: making the server call internal addresses it should not.
-* **Fee payer**: whoever pays the network fee of a Tempo transaction (type `0x76`); here, the platform's RELAY key (the user needs no tokens for fees).
-* **`scoreBps`**: a rating in basis points (8750 = 87.5%). **`versionHash`**: the package's fingerprint, stored on-chain.
+* **`scoreBps`**: a rating in basis points (8750 = 87.5%). **`versionHash`**: the package's fingerprint, stored with each published version.
 * **Staging**: a test area for the submitted package before approval.
 * **MCP**: the protocol through which the user's Claude/ChatGPT talks to our server (the "connector").
-* **On-chain / co-sign**: written by the Solvers contracts on Tempo; "co-sign" = the creator signs one batched transaction in their wallet, and the platform relay pays the fee.
+* **Sandbox**: an isolated CreateOS microVM where code a Solver writes runs and where `steps[].verify` checks run (§5.3).
 * **Kill switch**: shutting a Solver down instantly (it stops answering, including for those who already bought).
 * **PM2**: the VPS process manager; **ZIP**: the compressed file in which the creator delivers the package.
-* **Cold wallet**: a key kept off the server (here, the on-chain admin's).
 
 ---
 
@@ -71,7 +69,7 @@ D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10, D12 and
 1. **The value stays on the server.** If you can copy everything into a folder and paste it into the chat, it is a skill.
 2. **The validator is the format.** The schema lives in code (zod). Documentation, the Builder and the CLI consume the same validator; none reimplements validation. The text of this spec that the Builder carries in its knowledge is there to explain; the one that decides whether a package is valid is always the validator.
 3. **Early, actionable errors.** Every error has a code, a path and how to fix it (Appendix A).
-4. **Honesty about what is measured.** No rating is shown or written on-chain without its method being stated and without the platform having produced it (§12).
+4. **Honesty about what is measured.** No rating is shown or stored without its method being stated and without the platform having produced it (§12).
 5. **Third-party content is untrusted.** Everything the creator writes reaches the user's model and may try to instruct it against the user. This guides review, scanning and scope (§17).
 6. **Minimal personal data.** What is on the user's computer stays there; only what passes through the MCP tools reaches the server (§17 (item 2)).
 7. **Authority on the server, not in the manifest.** Fields such as `platform`, `specVersion` and internal runners only take effect if the server agrees.
@@ -92,7 +90,6 @@ D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10, D12 and
 | Gates | Text | + with evidence (§5.2) |
 | Calibration and memory notes | Yes (§10, §11) | Yes |
 | Public performance rating | Platform packages only | Third parties: only a rating produced by the platform (§12) |
-| Guarantee (escrow) | Platform packages only | Third parties, after their own rules (§9) |
 | Review | Manual, 100% of versions | Manual; queue with limits and an entry fee |
 | Caps | ZIP 50 MB, 10,000 chunks, file 10 MB | Defined after a benchmark (§16) |
 
@@ -101,12 +98,11 @@ D5 (shared VPS infrastructure), D9 (review in **5 business days**), D10, D12 and
 Nothing in the "Opening" column is released to strangers before everything below is done:
 
 1. **Legal**: creator terms with data-handling and copyright clauses; a reporting, takedown and deadline policy; privacy texts; review by a lawyer. The Finance, Legal and Health categories only for verified creators and with a mandatory disclaimer (§17 (item 6)).
-2. **Economics**: a rule against a bad creator. Today the deposit is 0, so slashing (`proposeSlash` -> 72 h -> `executeSlash`) has nothing to confiscate, and a license purchase pays the creator immediately, with no refund. The path that does not change the contracts is to require a deposit above zero (`minStake`, Registry configuration only); withholding the payout for N days would require a contract upgrade.
-3. **Kill switch tested** (§15.4): suspending drops open sessions and blocks sales, including direct on-chain ones.
-4. **Production aligned**: `GUARANTEE_MIN_SALES` and `GUARANTEE_MIN_RATING` with the rule's values in the real environment (the demo uses 0; D11). Changing `infra/setup-vps.sh` is not enough: the production `.env` has to be adjusted.
-5. **Measured capacity** (an ingestion benchmark and a separate process, §16) and an **upload security test**. The `http` security test is a prerequisite for turning `http` on, not for opening.
-6. **Creator dashboard** (profile, verified contact, secrets, payouts, tickets) and **buyer support** defined.
-7. **Free trial per person** (Privy's verified email; implemented: wallets linked to the same verified email share one trial, `apps/server/src/auth/person.ts`): a per-wallet trial is disposable.
+2. **Economics**: a rule against a bad creator. A license purchase is recorded as a creator payout right away; the path is to withhold payouts for N days and to keep refunds possible through Stripe.
+3. **Kill switch tested** (§15.4): suspending drops open sessions and blocks sales.
+4. **Measured capacity** (an ingestion benchmark and a separate process, §16) and an **upload security test**. The `http` security test is a prerequisite for turning `http` on, not for opening.
+5. **Creator dashboard** (profile, verified contact, secrets, payouts, tickets) and **buyer support** defined.
+6. **Free trial per person**: the identity is a verified email (magic link), so a trial is per person, not per disposable account.
 
 These items are distributed across the phases of §22 (P4, P6) and the checkpoint.
 
@@ -161,7 +157,7 @@ Every path written in the manifest (`steps[].file`, `templates[].path`) must: be
 
 ### 3.4 Hash **[exists]**
 
-`packageHash` (a deterministic sha256 of path and content, CRLF normalized in text extensions, without `evals/report.json`) stays the same and remains the on-chain `versionHash` (`bytes32` in the Registry). The hash is computed **once**, at approval, over the published folder, and stored in the database; the server does not recompute it on every load. `locales/pt.json` is part of the hash like any other file.
+`packageHash` (a deterministic sha256 of path and content, CRLF normalized in text extensions, without `evals/report.json`) stays the same and is stored as the version's `versionHash`. The hash is computed **once**, at approval, over the published folder, and stored in the database; the server does not recompute it on every load. `locales/pt.json` is part of the hash like any other file.
 
 ### 3.5 Localization (`locales/`) **[new, Core]**
 
@@ -207,13 +203,13 @@ How the catalog serves it:
 | Field | Type and rule | Default | Phase | Status |
 |---|---|---|---|---|
 | `specVersion` | `1`. In third-party submissions the server requires `1` | v0 if absent (platform packages only) | Core | new |
-| `id` | 32 lowercase hex characters. **Absent in the 1st version**: the server assigns it and binds it to the creator's wallet. In later versions it is required and must belong to the signed-in creator | server assigns | Core | changes |
+| `id` | 32 lowercase hex characters. **Absent in the 1st version**: the server assigns it and binds it to the creator's account. In later versions it is required and must belong to the signed-in creator | server assigns | Core | changes |
 | `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`, 3-40, and **must not look like an `id`** (32 hex: `MANIFEST_SLUG_LOOKS_LIKE_ID`). `id` and `slug` form a single namespace in the duplicate check. A list of reserved slugs (brands and platform); only the owner of the `id` reuses one. The server now indexes `id` and `slug` in separate maps (today they share the same `Map` and `findAgentRow` does `id = x OR slug = x` with no ordering) | — | Core | changes |
-| `name` | 3-32 UTF-8 **bytes** (validator rule `MANIFEST_NAME_TOO_LONG`; the contracts do not store the name) | — | Core | changes |
+| `name` | 3-32 UTF-8 **bytes** (validator rule `MANIFEST_NAME_TOO_LONG`) | — | Core | changes |
 | `tagline` | 10-100 characters | — | Core | changes |
 | `description` | 120-2,000 characters: what it delivers, for whom, what it does **not** do | — | Core | exists |
 | `category` | `Desenvolvimento` (Development), `Design`, `Dia a dia` (Everyday), `Negócios` (Business), `Jurídico` (Legal), `Finanças` (Finance), `Viagens` (Travel), `Conteúdo` (Content), `Escrita` (Writing), `Outros` (Other) (list in the config; the stored value is the Portuguese identifier). Third parties in the Core phase: only those allowed in D13 (`MANIFEST_CATEGORY_FORBIDDEN`); `Finanças` and `Jurídico` wait for the Opening phase | — | Core | changes |
-| `version` | numeric `MAJOR.MINOR.PATCH`, no pre-release, up to 16 **bytes** (`MAX_VERSION_LEN` in `contracts/src/SolversTypes.sol`); greater than the published one | — | Core | changes |
+| `version` | numeric `MAJOR.MINOR.PATCH`, no pre-release, up to 16 **bytes** (`MAX_VERSION_LEN`); greater than the published one | — | Core | changes |
 | `creator` | `{ id, name, bio, avatarUrl? }`. On submission, the server overwrites `id` with the creator's profile identifier (`creators.id`, text generated at sign-up) | — | Core | changes |
 | `requirements[]` | `{ type: client/connector/plan, label (required), key?, optional?, howTo? (<=600), helpUrl? (https, on an allowlist) }` | `[]` | Core | exists |
 | `packageContents[]` | 3-8 items; the validator checks them against reality (`CONTENTS_MISMATCH`) | — | Core | changes |
@@ -223,17 +219,15 @@ How the catalog serves it:
 | `terms` | `{ rightsConfirmed: true, sourcesListed: true }` | — | Core | new |
 | `platform` | `true` only in a platform package. In third-party submissions the server rejects it. The authority is a server list (`PLATFORM_AGENTS`: slug and `id`), not this field | `false` | Core | new |
 | `usesMemory` | `true` if it uses `get_memory`/`save_memory`; if absent, deduced from the steps. Must be `true` with `onboarding` | deduction | Core | exists |
-| `steps[]` | 1-12; `{ file, title?, gate[] }`; `gate`: 0-6 items (text; an object with `evidence` in the Opening phase, §5.2) | — | Core | exists |
+| `steps[]` | 1-12; `{ file, title?, gate[], verify? }`; `gate`: 0-6 items (text; an object with `evidence` in the Opening phase, §5.2); `verify`: 0-10 checks run in the session's sandbox before the step advances (§5.3; platform packages) | — | Core | changes |
 | `knowledge` | `{ updatedAt, reviewEveryDays, sources[] }` | — | Core | new |
 | `templates[]` | `{ name, path, title, description }` (§7) | `[]` | Core | new |
 | `tools[]` | Core: platform package only. Third parties: Opening (§8) | `[]` | Core/Opening | changes |
 | `onboarding` | `{ questions[1..5] }` (§10) | — | Core | new |
 | `escalation` | `{ enabled: boolean }`. The creator's contact comes from their profile, not from the ZIP | `{enabled:false}` | Core | new |
 | `differentiators[]` | a subset of `tool`, `verifier`, `liveData`, `memory`, `escalation` (§4.2) | `[]` | Core | new |
-| `guarantee` | as today. Third parties: `available: true` is an **error** in the Core phase (`MANIFEST_GUARANTEE_FORBIDDEN`, §9) | `{available:false}` | Core | exists |
-| `pricing` | `{ priceUsdc, royaltyBps }`. `priceUsdc` is the price in **USD-stablecoin units** (the field keeps its historical name; the payment token is a TIP-20 USD stablecoin with 6 decimals) and must be >= the Registry's `minPrice` (5 today). `royaltyBps` (validator: 0-1,000) is the **creator share of the transfer royalty**, in bps of the license's ORIGINAL price: whoever transfers a license pays it on-chain, plus the platform share (a Registry setting, 500 by default); both together are capped at 2,500 bps (`RoyaltyTooHigh`). It is fixed at registration and can only be changed (`setRoyaltyBps`) before the first sale (`RoyaltyLocked` afterwards) | — | Core | exists |
-| `supply` | `{ maxLicenses }`: an integer from 1 to 1,000,000; the cap on licenses sold. The CURRENT limit is enforced and verifiable on-chain (the Registry's `setSupplyCap`; a license purchase fails with `SoldOut`) and counts licenses issued over the solver's lifetime (`totalSales`): transferring or burning does not reopen a slot. The contract only prevents **lowering** the cap (`SupplyCapCannotDecrease`): the creator can raise it later (up to unlimited) and a solver created with no cap is unlimited, so the promise to the buyer is "the limit today is N and it can only go up", never "only N will exist". `cli:publish` creates the cap and only **raises** it (a `maxLicenses` lower than the on-chain value is ignored with a warning). Independent of `trial` | unlimited | Core | new |
-| `trial` | as today (`available`, `uses`, `steps`, `searches`, `tools`, `summary`, `lockedSummary`), plus `templates[]` (names unlocked in the trial; default none). Independent of `supply`: the trial does not consume a slot | no trial | Core | exists/changes |
+| `pricing` | `{ priceCents }`: the lifetime license price in **integer US-dollar cents** (`900` = US$ 9.00), at least `500` (US$ 5, `MANIFEST_PRICE_BELOW_MIN`); `0` only for a free platform Solver (D3). The buyer pays by card through Stripe Checkout; the platform keeps 10% (floored to the cent) and the rest is the creator's. There is no other pricing field | — | Core | changes |
+| `trial` | as today (`available`, `uses`, `steps`, `searches`, `tools`, `summary`, `lockedSummary`), plus `templates[]` (names unlocked in the trial; default none) | no trial | Core | exists/changes |
 | `catalogOnly` | removed from v1 (it has no effect in the code); warning `CATALOG_ONLY_IGNORED` | — | — | changes |
 
 ### 4.2 Declared differentiators **[Core]**
@@ -241,7 +235,7 @@ How the catalog serves it:
 | Value | What the creator declares | How the validator checks (warning) |
 |---|---|---|
 | `tool` | An executable tool on the server | `tools.length >= 1` and each one is used in some step |
-| `verifier` | A result verified automatically | A test-based guarantee (platform only) |
+| `verifier` | A result verified automatically | `run_tests` with a test runner, or `steps[].verify` checks (platform only) |
 | `liveData` | Live data: dated and maintained knowledge, or a tool that queries an external source | `knowledge.updatedAt` within `reviewEveryDays`, **no** file with an expired `valid_until` and >= 50% with `source_date`; or an `http` tool (Opening) |
 | `memory` | Adapts to the user | `onboarding` present **and** at least one step uses the profile (the step text mentions the profile); the reviewer checks |
 | `escalation` | The creator handles complex cases | `escalation.enabled` **and** a **verified** contact channel (Telegram linking by code, §14.1), without falling back to the platform admin's chat; `escalate_to_creator` now respects `enabled` (today it ignores it) |
@@ -250,9 +244,9 @@ How the catalog serves it:
 
 **Honesty about the Core phase**: third parties have neither `tool` nor `verifier` (the two differentiators that most distinguish a Solver from a skill), which only arrive in the Opening phase. In the Core phase, the third-party product is **guided process + live, cited knowledge + memory + creator support**. That already beats an ordinary skill, but it is less than the full promise, and the storefront must not promise a tool or verification on these packages.
 
-### 4.3 Limits that come from the contracts
+### 4.3 Size limits
 
-`version` <= 16 bytes (`MAX_VERSION_LEN`) and the metadata URI <= 200 bytes (`MAX_URI_LEN`) come from the contracts (`contracts/src/SolversTypes.sol`). `name` <= 32 bytes is kept as a validator rule (the old on-chain limit; the Registry no longer stores the name). The current packages go through a validator report in P1; exceptions (for example, a 93-character `tagline` in `revisao-contratos`, the "Escrita" category in `copy-marketing`) are covered by the limits above.
+`version` <= 16 bytes (`MAX_VERSION_LEN`) and `name` <= 32 bytes are validator rules. The current packages go through a validator report in P1; exceptions (for example, a 93-character `tagline` in `revisao-contratos`, the "Escrita" category in `copy-marketing`) are covered by the limits above.
 
 ---
 
@@ -283,11 +277,41 @@ Content rules (an automatic scan for the reviewer, who decides):
 
 * **Text** gate: as today; the server does not check it.
 * **Evidence** gate: `{ "text": "Tests passing", "evidence": { "tool": "run_tests" } }`. A single format: `tool` only. To advance, `next_step` checks in `tool_runs` whether the tool ran **in the session's current step** with `ok = true` and, if the tool has a `passField` (`builtin` only, which returns `passed: boolean`), with `passed = true`.
-* New table `tool_runs(id, session_id, agent_id, step_index, tool, ok, passed, response_hash, created_at)`, written **inside** `run_tool` (including on error). `usage_events` is **not** suitable: it only stores a generic `tool = "run_tool"`, has no step or result, is only written when the handler returns, and feeds the on-chain batches.
+* New table `tool_runs(id, session_id, agent_id, step_index, tool, ok, passed, response_hash, created_at)`, written **inside** `run_tool` (including on error). `usage_events` is **not** suitable: it only stores a generic `tool = "run_tool"`, has no step or result, and is only written when the handler returns.
 * **Failures**: an execution error (runner, timeout, HTTP 5xx) refunds the trial balance; a negative result (`ok: true, passed: false`) consumes it. After 3 consecutive execution errors in the same step, the gate is waived with a warning (`evidence_waived`) and escalation is offered.
 * For an `http` tool, the evidence is **attested by the creator's service** and only `ok` counts (the storefront does not present it as independent proof).
 
 Evidence is a verifiable minimum: the server knows the tool ran, not that the work is good.
+
+### 5.3 Gates proven by execution (`steps[].verify`) **[new, Core: platform packages]**
+
+A step can carry `verify`: checks that **run in the session's sandbox** (a CreateOS microVM, the same one where `sandbox_run` executes the code the Solver wrote) before `next_step` lets the user move on. The checklist stops being declarative: the gate is proven by a real execution.
+
+```jsonc
+{
+  "file": "steps/04-deploy.md",
+  "title": "Deploy and prove it runs",
+  "gate": ["Build passes in the sandbox", "Health endpoint answers 200"],
+  "verify": [
+    { "label": "Build passes in the sandbox", "command": "bash", "args": ["-lc", "cd /workspace && npm run build"], "expectExit": 0 },
+    { "label": "Health endpoint answers 200", "command": "bash", "args": ["-lc", "curl -fsS localhost:3000/health"] }
+  ]
+}
+```
+
+| Field | Rule |
+|---|---|
+| `label` | 1-200 characters; must match a line of the step's `gate` (the human-readable checklist). A label with no matching gate line is a validator warning |
+| `command` | the executable run in the sandbox (usually `bash`) |
+| `args` | optional; up to 50 arguments |
+| `expectExit` | optional; the exit code that counts as passing, default `0` |
+
+How it runs (`apps/server/src/sandbox/verify.ts`, `runStepVerify`):
+
+1. `next_step` runs every check of the current step, in order, in the session's sandbox (it is created on demand).
+2. **All passed**: the step advances and the response shows each check as proof (label, exit code, `execMs`); each run is recorded in `sandbox_runs` with `kind = "verify"`.
+3. **One failed**: the step does **not** advance; the response returns that check's stdout and stderr (truncated) to the model, which fixes the code and calls `next_step` again.
+4. Up to 10 checks per step. Third-party packages cannot declare `verify` in the Core phase (it executes code on the platform's account); the types live in `packages/shared` (`VerifyCheck`, `VerifyResult`).
 
 ---
 
@@ -347,7 +371,7 @@ This covers exactly the case we already have (e.g. Desenrola, a Brazilian debt-r
 
 Knowledge never leaves as a file, only as chunks. Real limits and limitations:
 
-1. **Watermark**: today it is one of **8 phrases** chosen by the wallet's hash (`engine.ts`). That gives 3 bits: it serves as a **hint**, not as proof or individual tracing. This document does not promise "tracing".
+1. **Watermark**: today it is one of **8 phrases** chosen by the user id's hash (`engine.ts`). That gives 3 bits: it serves as a **hint**, not as proof or individual tracing. This document does not promise "tracing".
 2. **Daily `search_knowledge` quota per license** [new, Core]: an initial value of 300 per day, configurable; above that, the response is "daily limit reached". Without it, a 5-to-9-USD license allows sweeping the whole base within hours (the current rate of 60 calls per minute does not limit the total). Even with the quota, a base of 10,000 chunks at 5 chunks per search is swept in about a week: the quota makes copying more expensive, it does not prevent it.
 3. **Sweep detection** (nearly identical queries, many distinct chunks per day) raises an alert to the admin.
 4. **Free trial**: serves only files marked `trial: true` in the front matter (default: none); beyond that, the `trial.searches` balance applies.
@@ -406,7 +430,7 @@ Requirements (all mandatory before release):
 3. **Output**: validated by `outputSchema` (short strings), a 256 KB cap read in streaming (body already decompressed), treated as **untrusted data**, marked in the return value.
 4. **Secrets**: only the name in the manifest; the value lives in `package_secrets`, encrypted with the server's KEK, injected on the server, never returned or logged; no raw `fetch` error message goes to a log or a response.
 5. **Limits**: default timeout 10 s (maximum 20 s), a global concurrency cap, a limit per tool and per creator (the 60-call quota belongs only to the free trial and does not protect a paid session). No connection reuse across creators.
-6. **Identity**: no header carrying a wallet or session; if the creator needs a per-user id, they receive an HMAC per (user, agent).
+6. **Identity**: no header carrying a user id or session; if the creator needs a per-user id, they receive an HMAC per (user, agent).
 7. **Transparency and consent**: `egress: true` is mandatory; the storefront says "this tool sends the information you provide to a service run by the creator" and the preflight asks the user to confirm before the first call.
 8. **Domain**: proof through `/.well-known/solvers-verify.txt` with the package's `id`, **re-verified weekly** (that check is another access to a creator URL and uses the **same secure client** as item 1); shared-hosting domains (`vercel.app`, `github.io`, `workers.dev`, `netlify.app` and similar) are rejected.
 9. **Changing the endpoint or the fields sent is a MAJOR change** (§15.4) and requires a full review.
@@ -414,10 +438,9 @@ Requirements (all mandatory before release):
 
 ---
 
-## 9. Verifier and guarantee
+## 9. Verifier
 
-* The Docker verifier (`verifier/`) and escrow remain **platform-exclusive**.
-* **Third parties: no guarantee in the Core phase.** The code already has the rule: only someone with `GUARANTEE_MIN_SALES` sales (default 10) and a minimum rating offers a guarantee (`store/mappers.ts`); "20 USD for a new account" is the cap on the **buyer's** open guarantees (`shared/rules.ts`). But the VPS environment turns it off for the demo (`GUARANTEE_MIN_SALES=0`, D11), so the prohibition comes from the **validator**: `guarantee.available: true` in a third-party submission is the error `MANIFEST_GUARANTEE_FORBIDDEN`. With `verify: "manual"` the payment goes out on its own after 72 h and disputes land on you; releasing this to third parties is left until after the Opening phase.
+* The test verifier (`verifier/`, the `run_tests` runner, now executed in a CreateOS sandbox) and `steps[].verify` (§5.3) remain **platform-exclusive**.
 * A creator's own verifier: reserved (together with the `container` runner).
 
 ---
@@ -447,7 +470,7 @@ Every question can be skipped (there is no `required`). It requires `usesMemory:
 4. The steps read the profile through `get_memory`. The profile is **user data**, marked as such; it cannot remove gates.
 5. "Recalibrate" repeats the questions and replaces the profile (including `skipped`).
 
-**Without a memory key** (a connection without the second signature, where `memoryKeyFor` returns empty today): the return is `onboarding_unavailable`, the Solver carries on with defaults and says how to reconnect. There is no eternal calibration.
+**Memory turned off** (the user deleted their memory or the package has `usesMemory: false`): the return is `onboarding_unavailable` and the Solver carries on with defaults. There is no eternal calibration.
 
 The profile applies in the free trial.
 
@@ -457,7 +480,7 @@ The profile applies in the free trial.
 
 ### 11.1 Format
 
-The `memories` table and the encryption (AES-256-GCM, a key derived from the wallet signature) **do not change**. The encrypted content is already a JSON with `summary`; v1 adds two optional fields, so there is **no migration** and the current packages stay the same:
+The `memories` table and the encryption (AES-256-GCM, a per-user key wrapped by the server's `MEMORY_KEK`) **do not change**. The encrypted content is already a JSON with `summary`; v1 adds two optional fields, so there is **no migration** and the current packages stay the same:
 
 ```jsonc
 {
@@ -483,7 +506,7 @@ Limits: `summary` <= 4,000 characters (as today), `profile` <= 2,000, up to 30 n
 2. **Concurrency**: every `kind` becomes read, merge, write (today `saveMemory` rewrites only `{summary}` and would erase `profile` and `notes`). `SELECT … FOR UPDATE` does not lock a row that does not exist yet, so the first write uses `INSERT … ON CONFLICT DO NOTHING` and then locks the row; only then does it merge. Parallel calls do not lose data.
 3. **Whatever reads the old format** has to be updated: `store/me.ts` (`/me/memories`), the `Memory` type in `packages/shared` and `Memories.tsx` now show profile and notes; deleting still removes the row.
 
-**Product rule**: notes only **at the user's request** ("save this so I don't forget"); the profile only in calibration. The MCP server's instruction says so. In the interface the name is **"specialist memory"**: it is not on the blockchain, only encrypted on the server and tied to the wallet.
+**Product rule**: notes only **at the user's request** ("save this so I don't forget"); the profile only in calibration. The MCP server's instruction says so. In the interface the name is **"specialist memory"**: encrypted on the server and tied to the user's account.
 
 ---
 
@@ -517,11 +540,11 @@ Limits: `summary` <= 4,000 characters (as today), `profile` <= 2,000, up to 30 n
 | `platform_run` | **The platform** generates the answers with its own model and real tools, and an automatic judge (plus the checks) scores them; it keeps the answers and the reasoning | Storefront: "evaluated by the platform" **[Opening]** |
 | `verified` | A reproducible execution with a verifier (tests running on the server) | Storefront: "verified performance" (platform only) |
 
-**Golden rule**: the on-chain `scoreBps` (`setEval(agentId, versionHash, scoreBps, evalHash)`, signed by the VERIFIER key) is only written from `platform_run` or `verified`. A `judge` over answers written by the creator **does not exist**: whoever writes the ideal answer would pass, and the judge can be instructed by the text itself. The platform's LLM cost has a per-creator budget.
+**Golden rule**: the stored `scoreBps` (per `(agentId, versionHash)`) is only written from `platform_run` or `verified`. A `judge` over answers written by the creator **does not exist**: whoever writes the ideal answer would pass, and the judge can be instructed by the text itself. The platform's LLM cost has a per-creator budget.
 
-**Current ratings** (the 6 published): they were generated by the team (answers from an agent with the specialist active, without seeing the checks) and scored by regex. The storefront and `find_solver` used to say "verified performance"; **since 2026-10-02 (P5 partial, `feat/criador-solvers` branch)** they say "internal team test (automatic checks)" and, with no rating (`evalScoreBps = 0`), "No reviews yet", until they are redone with `platform_run`. "Verified" only applies to `evalMethod: verified`, which does not exist yet (nor does the `evalMethod` field: the Registry stores a numeric `scoreBps` per version). No new rating is written without a valid method.
+**Current ratings** (the 6 published): they were generated by the team (answers from an agent with the specialist active, without seeing the checks) and scored by regex. The storefront and `find_solver` used to say "verified performance"; **since 2026-10-02 (P5 partial, `feat/criador-solvers` branch)** they say "internal team test (automatic checks)" and, with no rating (`evalScoreBps = 0`), "No reviews yet", until they are redone with `platform_run`. "Verified" only applies to `evalMethod: verified`, which does not exist yet (nor does the `evalMethod` field: the server stores a numeric `scoreBps` per version). No new rating is written without a valid method.
 
-**Version-scoped ratings** (decision D6): the Registry keeps one eval per `(agentId, versionHash)`. `updateVersion` changes nothing in it; readers (`currentEval`) treat an eval whose `versionHash` differs from the agent's current one as "not measured for this version" until `setEval` is called for the new hash. The label rule does not change: "internal team test", never "verified".
+**Version-scoped ratings** (decision D6): the server keeps one eval per `(agentId, versionHash)`. Publishing a new version changes nothing in it; readers treat an eval whose `versionHash` differs from the agent's current one as "not measured for this version" until the new hash is evaluated. The label rule does not change: "internal team test", never "verified".
 
 ### 12.3 `report.json` **[changes]**
 
@@ -569,7 +592,7 @@ An error blocks the submission; a warning goes to the reviewer. The full catalog
 
 ### 14.1 Who submits
 
-* **Core**: only **invited** creators. You generate a code (table `creator_invites(code, email, wallet, created_at, used_at)`), send it by email, and the creator enters it after logging in (Privy): their wallet is bound to the invite and `creators.invited` becomes `true`. The profile requires a name, a bio, acceptance of the terms and a **verified escalation contact**: the creator links Telegram themselves: `POST /creator/telegram-link` generates a `LINK-XXXXXXXX` code (only the hash is stored in `creators`, 15 min, single use, 5 per hour) and the creator sends it to the bot (`/link <code>`, alias `/vincular`, or the deep link `/start <code>`), handled by `solvers-tempo-worker`, which writes `creators.telegramChatId` (`cli:invite set-chat` remains as an admin shortcut); the server sends no email. The table row is only created by `cli/publish.ts`; the creator's profile is created at sign-up (a new route), with a generated `creators.id`.
+* **Core**: only **invited** creators. You generate a code (table `creator_invites(code, email, user_id, created_at, used_at)`), send it by email, and the creator enters it after signing in with their email (magic link): their account is bound to the invite and `creators.invited` becomes `true`. The profile requires a name, a bio, acceptance of the terms and a **verified escalation contact**: the creator links Telegram themselves: `POST /creator/telegram-link` generates a `LINK-XXXXXXXX` code (only the hash is stored in `creators`, 15 min, single use, 5 per hour) and the creator sends it to the bot (`/link <code>`, alias `/vincular`, or the deep link `/start <code>`), handled by the worker process, which writes `creators.telegramChatId` (`cli:invite set-chat` remains as an admin shortcut); the server sends no email. The table row is only created by `cli/publish.ts`; the creator's profile is created at sign-up (a new route), with a generated `creators.id`.
 * **Opening**: any signed-in user with a complete profile, with limits (3 pending and 5 submissions per day per creator) and an entry fee defined in §2.2.
 
 This **replaces** the decision in `FRONT_PLAN.md:13` ("admin approval for each creator's first 2"): now it is 100% of versions.
@@ -583,30 +606,26 @@ submitted → validating ─error→ rejected_validation
           pending_review ─→ changes_requested ─new submission (same version)→ validating
                 │        └→ rejected
                 ▼ approve (records the approved version: hash, price, version)
-   awaiting_creator_signature ─creator co-signs register/update→ awaiting_onchain_approval
-                                                                        │ (new Solver only; you sign approveAgent)
-                                                                        ▼
-                                          publishing ─fails→ publish_failed (admin retries)
-                                               ▼
-                                           published ─→ superseded (new version published)
-                                               ├→ suspended ⇄ published (suspend and resume)
-                                               └→ withdrawn ⇄ published (creator withdraws and reactivates)
+            publishing ─fails→ publish_failed (admin retries)
+                ▼
+            published ─→ superseded (new version published)
+                ├→ suspended ⇄ published (suspend and resume)
+                └→ withdrawn ⇄ published (creator withdraws and reactivates)
 ```
 
-When updating an already-approved Solver, `awaiting_onchain_approval` is skipped (`updateVersion` keeps the on-chain `Active` status). There is no `draft` (the submission is all at once). Resubmitting after `changes_requested` keeps the same `version` if it has not been published yet; once published, the new version must be greater.
+Updates follow the same path. There is no `draft` (the submission is all at once). Resubmitting after `changes_requested` keeps the same `version` if it has not been published yet; once published, the new version must be greater.
 
 ### 14.3 Tables **[new]**
 
 ```
-package_submissions(id, creator_wallet, slug, version, status, zip_path, size_bytes,
+package_submissions(id, creator_user_id, slug, version, status, zip_path, size_bytes,
                     manifest jsonb, validation jsonb, scans jsonb, created_at, updated_at)
-package_reviews(id, submission_id, reviewer_wallet, action, notes, checklist jsonb,
+package_reviews(id, submission_id, reviewer_user_id, action, notes, checklist jsonb,
                 version_hash, diff_snapshot jsonb, ip, created_at)       -- immutable (INSERT only)
 ingest_jobs(id, submission_id, status, files_total, files_done, chunks_done, error, started_at, finished_at)
-agent_published_versions(agent_id, version, version_hash, price_usdc, approved_at, approve_tx)
-creator_invites(code, email, wallet, created_at, used_at)
-agents.platform_status ('active'|'suspended')   -- NEVER written by the indexer (§15.4)
-agents.sync_flag ('ok'|'unapproved_chain_version')
+agent_published_versions(agent_id, version, version_hash, price_cents, approved_at)
+creator_invites(code, email, user_id, created_at, used_at)
+agents.platform_status ('active'|'suspended')   -- the kill switch (§15.4)
 tool_runs(...), package_secrets(...)   -- Opening (§5.2, §8.3)
 ```
 
@@ -617,14 +636,11 @@ tool_runs(...), package_secrets(...)   -- Opening (§5.2, §8.3)
 | `POST /api/creator/submissions` | invited creator | Receives the ZIP in **streaming** to disk, creates the submission (`submitted`) and answers **202**; the worker validates (§13) |
 | `GET /api/creator/submissions[/:id]` | creator | State, validator errors, reviewer notes |
 | `GET /api/admin/submissions?status=` and `/:id` | admin | Queue and preview |
-| `POST /api/admin/submissions/:id/(approve|request-changes|reject)` | admin | A reason is mandatory; `approve` records the approved version and moves to `awaiting_creator_signature` |
-| `GET /api/tx/publication/:submissionId` | creator | What is still missing on-chain (the next step), read from the chain at that moment |
-| `POST /api/tx/(register-agent|update-version|update-pricing)` | creator | Builds the call batch **at the moment of the click** (one Tempo transaction, simulated before it is returned; the wallet sets a short `validBefore` window), with the platform relay as fee payer, for the creator to sign. Reads price, hash, version, royalty and license cap **from the approved record and the validated manifest, never from the client**; checks `wallet == creator_wallet` and the submission's state. `update-pricing` only exists for an update with changed terms (`registerAgent` already writes the price) |
-| `POST /api/tx/publication/confirm` | creator | Confirms the publication by **transaction hash**: the server reads the receipt and checks the events against the approved id, `versionHash`, price and terms |
-| `POST /api/admin/submissions/:id/finish` | admin | Completes the publication (§15.3, step 5) when the on-chain approval event does not arrive on its own |
+| `POST /api/admin/submissions/:id/(approve|request-changes|reject)` | admin | A reason is mandatory; `approve` records the approved version and starts the publication (`publishing`, §15.3) |
+| `POST /api/admin/submissions/:id/finish` | admin | Retries the publication of an approved submission (after `publish_failed`); idempotent |
 | `GET /api/spec/manifest.schema.json` | public | Schema |
 
-**Admin** = a wallet in `ADMIN_WALLETS` (an environment variable), confirmed by login. **Approving on the site signs nothing on-chain** (§15.2).
+**Admin** = a user id in `ADMIN_USER_IDS` (an environment variable), confirmed by login.
 
 **Nginx**: a dedicated `location` for the upload, with `client_max_body_size 60m`, `proxy_request_buffering off` (otherwise nginx buffers the body on the system's shared disk), `client_body_timeout`, its own `limit_req` and authentication checked before reading the body; the route is mounted before `express.json` (256 KB). The `limit_req_zone` is defined in the **global** `nginx.conf` (shared infrastructure; D5). **To verify**: if the domain sits behind Cloudflare, the plan's body cap may be below 50 MB.
 
@@ -652,7 +668,7 @@ Limitation of human review: it does not guarantee finding an injection hidden in
 
 ---
 
-## 15. Publication, on-chain and versions
+## 15. Publication and versions
 
 ### 15.1 Storage
 
@@ -662,31 +678,27 @@ Limitation of human review: it does not guarantee finding an injection hidden in
 * Outside git and the release, so they survive deploys (which `rm -rf` old releases). `shared/` is the folder `deploy.sh` already uses for data that survives (the VPS guide defines `/var/www/<project>`, not `shared/`). **Needs backup**: the guide's weekly backup tarballs `/var/www/<project>` with 4 weeks' retention, so 20 GB here becomes 80 GB on the 97 GB disk; that is why the shared `/opt/deploy/backup.sh` has to be edited (D5) to exclude ZIPs and `_archive` from the tarball and include only what matters (published packages and the database), with cleanup of rejected ZIPs (30 days) and archived versions.
 * The server serves **one version per package**: the active one. Open sessions on an old version receive `session_outdated` (409) and reactivate, **as today** (`assertSessionCurrent`). The previous version's chunks are deleted only after the new one is ready (no window without RAG).
 
-### 15.2 Who signs on-chain (decision D2)
+### 15.2 Who publishes (decision D2)
 
-* `registerAgent`, `updateVersion` and `updatePricing` (also `setRoyaltyBps` and `setSupplyCap`) require the **creator's** signature (`NotCreator` otherwise). The server does not hold that key (embedded Privy; only the public address is known), and the creator keys `cli:publish` generates for platform packages are **refused on mainnet**. So the flow is the same as the other `/tx/*`: the server builds the call batch (a new Solver: `[approve(staking, minStake)?, registerAgent, setSupplyCap?]`; an update: `updateVersion` plus the changed terms); the creator's wallet signs **one** Tempo transaction in the browser and the platform relay co-signs as fee payer; the site then confirms it by hash (`/api/tx/publication/confirm`). Every **new version** needs that signature again.
-* `approveAgent` requires the Registry's **default admin**, which is a cold wallet off the VPS (the key is given to the CLI with `--key-file`; on mainnet the server refuses to load an admin key). That is why "Approve" on the site only unlocks; **you sign `approveAgent` locally** (`cli:approve`, in this phase), and the RELAY key pays the fee (the cold wallet holds no tokens). A new version of an already-approved agent keeps the `Active` status on-chain, so the update depends only on the flow above. The same goes for suspending on-chain (`suspendAgent`, `cli:suspend`; §15.4).
-* If `minStake` goes above 0, the creator needs that amount of the payment token for the deposit (the Registry pulls it into `SolversStaking` at registration).
+* The **platform** publishes. The reviewer's approval is the only human step; the creator signs nothing and holds no key. Every **new version** goes through the same review.
 
 ### 15.3 Publication sequence (the code's order, which the spec does not invert)
 
-1. **Approval on the site.** Records the approved version (hash, price, version) in `agent_published_versions` **before any transaction**, and moves to `awaiting_creator_signature`. Recording afterwards would be too late: the confirmation indexes the transaction immediately (`syncAgent`) and the indexer would see the legitimate publication as "unapproved".
+1. **Approval on the site.** Records the approved version (hash, price, version) in `agent_published_versions` and moves to `publishing`.
 2. **Knowledge**: the staging chunks are renamed to the real version.
-3. **Chain, creator's part**: `registerAgent` (new Solver) or `updateVersion` (update), co-signed on the site in one batched transaction; `updatePricing` only if the price changed. `updateVersion` does **not** erase the ratings of earlier versions (D6), but the new version reads as "not measured" until `setEval` for its `versionHash` (platform packages only, §12).
-4. **Chain, admin's part** (new Solver only): `awaiting_onchain_approval`; you sign `approveAgent` with the cold wallet (`cli:approve <slug|submissionId>`).
-5. **Catalog**: triggered by the chain's status event (`AgentStatusChanged`) or by the admin's "Finish" button: upsert of the agent and the search vectors, `syncAgent`, `reloadPackages()` (nobody calls it today), `platform_status = active`.
+3. **Files**: the package moves to `PUBLISHED_DIR` (atomic swap, §15.1). A new version does **not** erase the ratings of earlier versions (D6), but it reads as "not measured" until it is evaluated (platform packages only, §12).
+4. **Catalog**: upsert of the agent (including `price_cents`) and the search vectors, `reloadPackages()`, `platform_status = active`; the submission becomes `published`.
 
-If a step fails, the state goes to `publish_failed` and the admin resumes; the storefront does not change before step 5 (today's `cli:publish` has the same order for this reason). **Backfill**: the versions already published today (6) must be seeded into `agent_published_versions`; without that the indexer would flag all of them as "unapproved".
+If a step fails, the state goes to `publish_failed` and the admin resumes (`finish`); the storefront does not change before step 4. **Backfill**: the versions already published (6) are seeded into `agent_published_versions`.
 
-### 15.4 Versions, on-chain bypass and the kill switch
+### 15.4 Versions and the kill switch
 
-* **Served version = approved version.** The creator can call `updateVersion` and `updatePricing` directly on-chain without going through review. The indexer (`syncAgent`) cannot simply copy the version, hash and price from the chain: it compares with `agent_published_versions`; if they diverge, it sets `agents.sync_flag = unapproved_chain_version`. Effects: the delivered package stays the one on disk (the approved one); the storefront shows the approved price and version; **sales are blocked** (`/api/purchases/intent` answers 409 `price_in_review`, and `assertFreshPrice` would otherwise compare against a different price forever) until the creator reverts on-chain or you approve the new version.
+* **Served version = approved version.** Only the publication flow writes the version, hash and price a package is served and sold with; nothing the creator does outside review changes them.
 * **Semver**: `MAJOR` = changes `tools`, the `http` endpoint, `onboarding`, `requirements` or the structure of `steps`; `MINOR` = new content; `PATCH` = a fix. **All** go through full review with an automatic diff of all files (a reduced checklist would be the channel for the "good version, then swap" scam).
-* **Kill switch**: today the status is only checked in `activate_solver`; `next_step`, `run_tool`, `search_knowledge` and `get_memory` only check that the package exists, and paid sessions last 24 h (and the automatic `delist` says it remains valid for those who already bought). On top of that, `syncAgent` **rewrites `agents.status` with the on-chain account's value on every event** (including `UsageRecorded` and `LicensePurchased`), so a suspension made only in the database reverts to `active` on the next event. In v1:
-  1. Suspension is a **separate** column, `agents.platform_status`, which the indexer never writes.
-  2. **All** MCP tools, the purchase routes (`/api/purchases/intent`, Pix, agent payments), the guarantee `/tx/*` routes and the storefront require `status = active` (chain) **and** `platform_status = active`; `suspended` invalidates open sessions immediately.
-  3. In parallel, you run `suspendAgent` on-chain with the cold wallet (`cli:suspend`, fee paid by the RELAY key), because buying directly through the contract (`purchaseLicense`) only requires on-chain `Active` and would remain possible.
-  4. Resuming is the reverse path (`platform_status = active` and, if it was suspended on-chain, `cli:approve`/reactivation).
+* **Kill switch**: today the status is only checked in `activate_solver`; `next_step`, `run_tool`, `search_knowledge` and `get_memory` only check that the package exists, and paid sessions last 24 h (and the automatic `delist` says it remains valid for those who already bought). In v1:
+  1. Suspension is a **separate** column, `agents.platform_status`, written only by the admin (`cli:suspend`, the review screen).
+  2. **All** MCP tools, the checkout route (`POST /api/checkout`) and the storefront require `status = active` **and** `platform_status = active`; `suspended` invalidates open sessions immediately.
+  3. Resuming is the reverse path (`platform_status = active`).
   What happens to the money of those who already bought from a suspended package is an economic question (§2.2, item 2), not a technical one.
 * After 10 reviews averaging below 3.5, the package leaves the storefront (a rule that [exists], `jobs.ts`).
 
@@ -696,7 +708,7 @@ If a step fails, the state goes to `publish_failed` and the admin resumes; the s
 
 | Item | Rule |
 |---|---|
-| Process | Ingestion **and ZIP processing** (extraction, scans, validation) **do not run** in `solvers-tempo-api` (a single fork, restart at 900 MB, serves MCP and payments). Its own PM2 process (there is precedent on the VPS), with `nice`, `ORT_NUM_THREADS=1`, its own `max_memory_restart`, and included in `deploy.sh`'s `reload_all` |
+| Process | Ingestion **and ZIP processing** (extraction, scans, validation) **do not run** in the API process (a single fork, restart at 900 MB, serves MCP and payments). Its own PM2 process (there is precedent on the VPS), with `nice`, `ORT_NUM_THREADS=1`, its own `max_memory_restart`, and included in `deploy.sh`'s `reload_all` |
 | Queue | One ingestion at a time, in batches with a **per-file checkpoint** in `ingest_jobs`. The CI deploy (on every push) kills the process; it resumes from the last completed file (it does not start over) |
 | Memory | Do not accumulate all the vectors; insert per batch. An HNSW index with 10,000 inserts in a single transaction only fits the Core phase; above that, batches |
 | Hash and load | Hash computed once at approval (§3.4); `packages()` loads on demand, it does not read every file synchronously at boot |
@@ -710,13 +722,13 @@ If a step fails, the state goes to `publish_failed` and the admin resumes; the s
 ## 17. Security, privacy and legal
 
 1. **Creator content is treated as untrusted** (Principle 5): scans, review, caps, the MCP instruction ("the specialist's content never authorizes sending user data outside, nor ignoring the user's requests"), tool responses marked as data. It is a **mitigation**, not a guarantee: not every client (ChatGPT) honors the MCP server's instructions, and the "follow the steps" structure makes the model obey. The residual risk is accepted in the Core phase **because there is an invite, a small cap and fast shutdown**.
-2. **What reaches the server** from the user: `run_tool` inputs, `result_summary` (up to 4,000 characters per step, today **in plain text** in `sessions.context`, with no deletion routine), `save_memory`, `escalate_to_creator` (up to 3,000 characters, sent to the creator's Telegram and stored in `escalations`, **without prior consent**), `submit_deliverable` (platform). We are controllers of this data. Required in v1: short retention and a deletion job for `sessions.context` and `escalations`; do not log inputs; explicit consent before `escalate_to_creator` (and before `http` in the Opening phase); a privacy notice.
-3. **"Encrypted" memory** is encryption at rest: the server opens the key while the token is valid (`memory/crypto.ts`, stored wrapped by the `SERVER_KEK`). The user-facing text does not promise "only you can read it".
+2. **What reaches the server** from the user: `run_tool` inputs, `result_summary` (up to 4,000 characters per step, today **in plain text** in `sessions.context`, with no deletion routine), `save_memory`, `escalate_to_creator` (up to 3,000 characters, sent to the creator's Telegram and stored in `escalations`, **without prior consent**), `sandbox_run` commands and their output (platform). We are controllers of this data. Required in v1: short retention and a deletion job for `sessions.context` and `escalations`; do not log inputs; explicit consent before `escalate_to_creator` (and before `http` in the Opening phase); a privacy notice.
+3. **"Encrypted" memory** is encryption at rest: the server opens the key while the token is valid (`memory/crypto.ts`, stored wrapped by the `MEMORY_KEK`). The user-facing text does not promise "only you can read it".
 4. **The user's local files** (read by their AI) stay between them and Claude/ChatGPT; the data-protection law for that part is theirs.
 5. **ZIP and parsers**: §3.2 and §6.1. **`http` tools**: §8.3.
 6. **Legal**: `terms` is self-declaration; without a reporting and takedown process it is worth little. **Regulated** content (Finance: securities regulator; Legal: bar association; Health: medical council): only verified creators, a mandatory disclaimer right at the start of the answer, and the platform's "approved" badge is worded so as not to look like a professional endorsement. The clause "the reviewer assumes no liability" does not protect against consumer law; that is why legal review is a prerequisite of the Opening phase (§2.2).
-7. **Ranking**: the reviewer checks `searchPhrases` against the content; the "uses" counter (which feeds `trend7d` and the on-chain batches) now deduplicates by wallet and day.
-8. **Audit trail**: `package_reviews` is insert-only, with `version_hash`, the diff snapshot, the checklist, the IP and the `approveAgent` transaction.
+7. **Ranking**: the reviewer checks `searchPhrases` against the content; the "uses" counter (which feeds `trend7d`) now deduplicates by user and day.
+8. **Audit trail**: `package_reviews` is insert-only, with `version_hash`, the diff snapshot, the checklist and the IP.
 9. **A logging failure is never silent**: today's `logUsage` swallows errors (`.catch(() => undefined)`); it now raises an alert.
 
 ---
@@ -726,14 +738,14 @@ If a step fails, the state goes to `publish_failed` and the admin resumes; the s
 * **Current packages (8 in `agents/`, 6 published)**: no `specVersion` = v0; the loader accepts them as today; the new rules are **warnings**. The platform migrates them to v1 when it wants.
 * **Old runners** remain as aliases of `builtin:*`, for platform packages only.
 * **Text gates** remain valid. **Memory**: no migration (§11). **`catalogOnly`**: ignored with a warning.
-* **Current on-chain ratings**: labeled "internal test" until they are redone (§12.2).
-* **Out of v1**: `container`, the creator's verifier, scanned PDFs (OCR), reranking/hybrid search, private per-user RAG, publishing without review, third-party guarantees, a public third-party rating without platform execution.
+* **Current ratings**: labeled "internal test" until they are redone (§12.2).
+* **Out of v1**: `container`, the creator's verifier, scanned PDFs (OCR), reranking/hybrid search, private per-user RAG, publishing without review, third-party `steps[].verify`, a public third-party rating without platform execution.
 
 ---
 
 ## 19. The Solver Builder
 
-A platform Solver (`platform: true`, authority on the server), free, **database only** (no on-chain registration; D3), with no free trial and no license. It **does not contain the schema**: it asks the validator. Its slug is `criador-de-solvers`.
+A platform Solver (`platform: true`, authority on the server), free (`priceCents: 0`), **database only** (D3), with no free trial and no license. It **does not contain the schema**: it asks the validator. Its slug is `criador-de-solvers`.
 
 ### 19.1 Package
 
@@ -790,7 +802,7 @@ The creator sees the reason for a rejection or "changes requested" on the submis
 
 1. Which model and API key does the platform use for `platform_run` (Opening) and how much does it cost per package (12 cases ≈ 12 answers + 12 judgments)?
 2. Format of the CLI (`solvers validate|eval|submit`): in this phase, repository scripts; a public npm package later?
-3. Free trial per person: implemented with Privy's verified email (`apps/server/src/auth/person.ts`, `docs/concepts-guide.md`); the limits come from the manifest.
+3. Free trial per person: the account is a verified email (magic link, `apps/server/src/auth/`); the limits come from the manifest.
 4. Retention of `usage_events` and logs: how long and what to anonymize (the items in §17 (item 2)).
 5. Is the domain behind Cloudflare? That defines the upload cap (§14.4).
 
@@ -802,50 +814,50 @@ Size is **relative** (S, M, L), not a schedule estimate. A phase only starts onc
 
 | Phase | Delivery | Depends on | Size | Acceptance criterion |
 |---|---|---|---|---|
-| **P0** | Spec approved. **Harden the current code** (fixes that pay off even without third parties): containment of manifest paths (§3.3); `slug`/`version` regex; `slug` != `id` format and separate maps; fail on duplicate `id`/`slug`; an `agents.platform_status` column separate from the chain status, checked in **all** MCP tools and in the purchase routes (§15.4); `get_memory`/`save_memory` require an **active session (paid or trial) or a license** (§11.2); `logUsage` no longer swallows errors | D1-D4 | S | New tests cover each fix; suspending through the database drops an open session and survives an indexer event |
+| **P0** | Spec approved. **Harden the current code** (fixes that pay off even without third parties): containment of manifest paths (§3.3); `slug`/`version` regex; `slug` != `id` format and separate maps; fail on duplicate `id`/`slug`; an `agents.platform_status` column separate from the catalog status, checked in **all** MCP tools and in the purchase routes (§15.4); `get_memory`/`save_memory` require an **active session (paid or trial) or a license** (§11.2); `logUsage` no longer swallows errors | D1-D4 | S | New tests cover each fix; suspending through the database drops an open session |
 | **P1** | `validatePackage`, JSON schema, the `validate` script, the code catalog (Appendix A) | P0 | M | One test per Appendix A code; the 8 current packages with no **errors** (in v0, rules for new fields such as `terms` and `evidence` are warnings) |
-| **P2** | Solver Builder v0: a new `platform` access type (no license), **excluded** from the usage-batch job (`jobs.ts`) and with a guard in the purchase routes and `assertFreshPrice`; price and buy button hidden on the storefront; `ownedAgents`, `describeAgent`, `PLATFORM_AGENTS`; `builtin:validate-package` (manifest and steps, §13); `get_template`; `cli:publish --no-chain` | P1, D3 | M | A ZIP generated by the Builder for a new topic passes the **ZIP validation script** |
+| **P2** | Solver Builder v0: a new `platform` access type (no license), with a guard in the checkout route; price and buy button hidden on the storefront; `ownedAgents`, `describeAgent`, `PLATFORM_AGENTS`; `builtin:validate-package` (manifest and steps, §13); `get_template`; `cli:publish` | P1, D3 | M | A ZIP generated by the Builder for a new topic passes the **ZIP validation script** |
 | **P3** | Memory v2 (profile, `skipped`, notes, concurrency, `/me/memories` screens), calibration (the `preflight` text calls `get_memory`), `get_template` for declared templates, `.md`/`.txt` knowledge with metadata, citations, `valid_until`, daily quota, honest watermark text | P1 | M | Calibration flow on a real package; old-format reading intact; a memory test with parallel calls |
-| **P4** | Invite-only submission: `creator_invites`, the creator profile and Telegram linking, ZIP upload (202) and processing in the PM2 worker with checkpoint, staging, the (secure) review screen, Telegram, storage in `shared/`, `/tx/*` with co-signing, `cli:approve`, `cli:suspend`, `agent_published_versions` with backfill, the indexer comparing versions, nginx; `backup.sh` (D5) | P0, P1, P3, D2, D5, D9-D14 | L | A test package goes up through the ZIP, is reviewed and published (every state in §14.2) and appears on the storefront; a version changed directly on-chain does not change what is served and blocks sales; suspending drops an open session and blocks a direct purchase |
+| **P4** | Invite-only submission: `creator_invites`, the creator profile and Telegram linking, ZIP upload (202) and processing in the PM2 worker with checkpoint, staging, the (secure) review screen, Telegram, storage in `shared/`, publication on approval, `cli:suspend`, `agent_published_versions` with backfill, nginx; `backup.sh` (D5) | P0, P1, P3, D2, D5, D9-D14 | L | A test package goes up through the ZIP, is reviewed and published (every state in §14.2) and appears on the storefront; suspending drops an open session and blocks the checkout |
 | **P5** | Storefront and tools with an honest rating method (`evalMethod`, "no reviews yet"), case minimums, privacy texts, retention and deletion of `sessions.context` and `escalations`, consent before `escalate_to_creator` | P4 | S | No screen says "verified" without `verified` |
-| **P6** (pre-opening) | The §2.2 items that depend on code or on you: a free trial per person; creator dashboard (verified contact, payouts, tickets); the economics rule (deposit via `minStake`); terms, reporting policy and legal review (outside the code); capacity benchmark and upload security test; real `GUARANTEE_*` | P5 | L | The §2.2 checklist complete |
+| **P6** (pre-opening) | The §2.2 items that depend on code or on you: a free trial per person; creator dashboard (verified contact, payouts, tickets); the economics rule (payout hold); terms, reporting policy and legal review (outside the code); capacity benchmark and upload security test | P5 | L | The §2.2 checklist complete |
 | **— Opening checkpoint —** | You decide whether to open to strangers | P6 | | |
-| **P7** (Opening) | Isolated parsers (PDF/HTML/CSV); the `http` runner (only turns on **after** the §8.3 security test); gates with evidence (`tool_runs`); `platform_run` (evals run by the platform); third-party guarantee; larger caps | checkpoint | L | Security tests of `http` and the parsers approved |
+| **P7** (Opening) | Isolated parsers (PDF/HTML/CSV); the `http` runner (only turns on **after** the §8.3 security test); gates with evidence (`tool_runs`); `platform_run` (evals run by the platform); third-party `steps[].verify`; larger caps | checkpoint | L | Security tests of `http` and the parsers approved |
 | **P8** | The site's real wizard pointed at the APIs | P4 | M | The wizard publishes the same thing as the script |
 
-**Status (2026-09-30):** P0 and P1 implemented on the `worktree-spec-p0-p1` branch (uncommitted, not deployed). P0: path containment (`runtime/package-paths.ts`, `package-loader.ts`), `slug`/`version` format (`agent-ids.ts`), `id`/`slug` collision, `agents.platform_status` (migration `0010`) checked in all tools, in the purchase route and in the guarantees and never written by the indexer (`indexer/mirror.ts`), memory only with a license or session, a logging failure that is no longer silent. P1: `runtime/validate/*` (the single validator, 67 codes, JSON Schema), `npm run cli:validate` and `cli:schema`. Tests: `test/packages.test.ts`, `platform-status.test.ts`, `platform-status.db.test.ts` (with `TEST_DATABASE_URL`) and `validate.test.ts`. The deploy applies migration `0010` by itself (`infra/deploy.sh` runs `db:migrate`). ZIP reading in `cli:validate` arrives with P4's extractor (today the script reads folders).
+**Status (2026-09-30):** P0 and P1 implemented on the `worktree-spec-p0-p1` branch (uncommitted, not deployed). P0: path containment (`runtime/package-paths.ts`, `package-loader.ts`), `slug`/`version` format (`agent-ids.ts`), `id`/`slug` collision, `agents.platform_status` (migration `0010`) checked in all tools and in the purchase route, memory only with a license or session, a logging failure that is no longer silent. P1: `runtime/validate/*` (the single validator, 67 codes, JSON Schema), `npm run cli:validate` and `cli:schema`. Tests: `test/packages.test.ts`, `platform-status.test.ts`, `platform-status.db.test.ts` (with `TEST_DATABASE_URL`) and `validate.test.ts`. The deploy applies migration `0010` by itself (`infra/deploy.sh` runs `db:migrate`). ZIP reading in `cli:validate` arrives with P4's extractor (today the script reads folders).
 
 **Status (2026-10-02):** implemented on the `feat/criador-solvers` branch (commits `3189fcb`, `f1cdad7`, `fac5c2e`, `0efe6bf`, `18ddc5d`; **not deployed**).
 
-**Tempo rebuild (2026-10-11):** the whole flow was carried over to the Tempo contracts in this repository (fresh database baseline, so the migration numbers below are history). The on-chain calls are the `SolversRegistry` functions named in §15; the creator's batch is sponsored by the platform relay and the cold admin's calls by the RELAY key.
+**Crypto-free rebuild (2026-10-17, this repository):** fresh database baseline (the migration numbers below are history). Identity is `users.id` with email sign-in; publication is done by the platform on approval (§15); prices are `pricing.priceCents` paid through Stripe Checkout; `steps[].verify` gates run in a CreateOS sandbox (§5.3).
 
 | Phase | State | Where it is |
 |---|---|---|
 | P0, P1 | Done (see the 2026-09-30 status above) | `runtime/validate/*`, `cli:validate`, `cli:schema` |
-| P2 | Done | `runtime/platform-agents.ts`, the `platform` access, `builtin:validate-package`, `get_template`, `cli:publish --no-chain`, `agents/criador-de-solvers` |
+| P2 | Done | `runtime/platform-agents.ts`, the `platform` access, `builtin:validate-package`, `get_template`, `cli:publish`, `agents/criador-de-solvers` |
 | P3 | Done | memory v2, calibration, `.md`/`.txt` with metadata and `valid_until` in the RAG |
-| P4 | Done | `creator/`, `submissions/`, `publish/`, `review/`, `worker/`, `cli/invite.ts`, `cli/approve.ts`, `cli/suspend.ts`, migrations 0016 to 0018, `infra/` (PM2 worker, nginx, deploy); screens `/creator/publish`, `/creator/submissions/[id]`, `/admin/reviews` |
-| P5 | **Partial**: only the honest rating labels (§12.2 and §20). Pending: `evalMethod` in the contract, case minimums checked by the server, privacy texts, retention and deletion of `sessions.context` and `escalations`, consent before `escalate_to_creator` | `mcp/agent-text.ts` (`evalLabel`), `apps/web/src/lib/eval-label.ts` |
+| P4 | Done | `creator/`, `submissions/`, `publish/`, `review/`, `worker/`, `cli/invite.ts`, `cli/suspend.ts`, migrations 0016 to 0018, `infra/` (PM2 worker, nginx, deploy); screens `/creator/publish`, `/creator/submissions/[id]`, `/admin/reviews` |
+| P5 | **Partial**: only the honest rating labels (§12.2 and §20). Pending: a stored `evalMethod`, case minimums checked by the server, privacy texts, retention and deletion of `sessions.context` and `escalations`, consent before `escalate_to_creator` | `mcp/agent-text.ts` (`evalLabel`), `apps/web/src/lib/eval-label.ts` |
 | P6 | Pending (pre-opening, §2.2) | |
 | P7 | Pending (Opening) | |
-| P8 | Done, with a deviation: the site has the real flow (profile, ZIP upload, tracking, co-signing), but **not** the wizard that assembles the package; the Solver Builder assembles it. The fake wizard was removed (DEF-18) | `apps/web/src/components/creator/*` |
+| P8 | Done, with a deviation: the site has the real flow (profile, ZIP upload, tracking), but **not** the wizard that assembles the package; the Solver Builder assembles it. The fake wizard was removed (DEF-18) | `apps/web/src/components/creator/*` |
 
 **Implementation deviations** (the code is the truth; the spec above describes the original intent):
 
 * **`platform` access**: the new access type is `platform` and the authority is the server's `PLATFORM_AGENTS` list (the `slug` + `id` pair), never the manifest's `platform` field. The list is only accepted if the package comes from `AGENTS_DIR`; the same `id` or `slug` in a creator's published package brings the load down.
-* **Worker as a PM2 process** (`solvers-tempo-worker`, `infra/ecosystem.config.cjs`): extracts, validates, scans and ingests. Attempts in `package_submissions.attempts` (maximum 3; once exhausted, the submission becomes `rejected_validation` and the admin is notified). `SUBMISSIONS_INLINE=true` processes inside the API (QA only).
-* **Extra review actions**: `revoke` (the admin undoes an unsigned approval; goes back to `changes_requested`, route `POST /api/admin/submissions/:id/revoke`), `expire` (the system, as `system`), `finish`, `suspend` and `resume`. Extra transitions in §14.2: `awaiting_creator_signature` can go to `changes_requested` (revoke) or `rejected` (expire).
-* **Expiry and cleanup**: the `faxina das submissões` job every 6 h: `changes_requested` and `awaiting_creator_signature` submissions idle for more than 30 days become `rejected` and free the slug; ZIPs and folders of rejected ones disappear in 30 days; orphan folders and `.part` files in 1 day (`submissions/cleanup.ts`).
+* **Worker as its own process** (`worker/`): extracts, validates, scans and ingests. Attempts in `package_submissions.attempts` (maximum 3; once exhausted, the submission becomes `rejected_validation` and the admin is notified). `SUBMISSIONS_INLINE=true` processes inside the API (QA only).
+* **Extra review actions**: `revoke` (the admin undoes an approval whose publication failed; goes back to `changes_requested`, route `POST /api/admin/submissions/:id/revoke`), `expire` (the system, as `system`), `finish`, `suspend` and `resume`.
+* **Expiry and cleanup**: the `faxina das submissões` job every 6 h: `changes_requested` submissions idle for more than 30 days become `rejected` and free the slug; ZIPs and folders of rejected ones disappear in 30 days; orphan folders and `.part` files in 1 day (`submissions/cleanup.ts`).
 * **Migrations 0016 to 0018**, all additive: 0016 (tables, columns, an insert-only trigger on `package_reviews`, backfill of `creators.invited` and of the 6 published versions), 0017 (`attempts`) and 0018 (a trigger against `TRUNCATE` on `package_reviews`).
-* **Extra routes**: `GET /api/creator/me`, `POST /api/creator/profile`, `GET /api/tx/publication/:submissionId`, `POST /api/tx/publication/confirm`, `GET /api/admin/submissions/:id/file` and `/knowledge-search`, `POST /api/creator/submissions?resubmit=<id>`. The upload body is raw `application/zip` (not multipart).
-* **Telegram linked by the creator**: `POST /api/creator/telegram-link` + `/link` (alias `/vincular`) in the bot (migration 0019, additive); `cli:invite set-chat <wallet> <chatId>` remains as the admin shortcut (§14.1).
+* **Extra routes**: `GET /api/creator/me`, `POST /api/creator/profile`, `GET /api/admin/submissions/:id/file` and `/knowledge-search`, `POST /api/creator/submissions?resubmit=<id>`. The upload body is raw `application/zip` (not multipart).
+* **Telegram linked by the creator**: `POST /api/creator/telegram-link` + `/link` (alias `/vincular`) in the bot (migration 0019, additive); `cli:invite set-chat <userId> <chatId>` remains as the admin shortcut (§14.1).
 * **nginx**: the upload `limit_req_zone` ended up in the site file (`infra/nginx/solvers`, zone `solvers_upload`), not in the global `nginx.conf` (§14.4).
-* **No `container` and no `http`**: `container` does not exist in v1; `http` and `mcp` are accepted by the manifest schema but **rejected for third parties** (`TOOL_FORBIDDEN_RUNNER`) and not executed. Third parties in the Core phase have no tool and no guarantee.
-* **Rating**: the Registry stores a numeric `scoreBps` per `(agentId, versionHash)` (D6); only the labels changed (P5 partial). There is no `evalMethod` and no `platform_run`.
-* **Kill switch with CLI**: `cli:suspend <slug> [--resume]` does `platform_status` and `suspendAgent` on-chain (closes DEF-22).
-* **Publication**: `updateVersion` no longer zeroes anything (D6): a republished package keeps the ratings of its earlier versions and reads as "not measured for this version" until `setEval` runs for the new `versionHash` (§12.2, §15.3 step 3).
+* **No `container` and no `http`**: `container` does not exist in v1; `http` and `mcp` are accepted by the manifest schema but **rejected for third parties** (`TOOL_FORBIDDEN_RUNNER`) and not executed. Third parties in the Core phase have no tool and no `verify`.
+* **Rating**: the server stores a numeric `scoreBps` per `(agentId, versionHash)` (D6); only the labels changed (P5 partial). There is no `evalMethod` and no `platform_run`.
+* **Kill switch with CLI**: `cli:suspend <slug> [--resume]` sets `platform_status` (closes DEF-22).
+* **Publication**: a new version zeroes nothing (D6): a republished package keeps the ratings of its earlier versions and reads as "not measured for this version" until its `versionHash` is evaluated (§12.2, §15.3 step 3).
 
-The Solver Builder (P2) can be used before P4: the creator sends you the ZIP and you publish it with today's `cli:publish` (on a test network, with creator keys the CLI generates under `CREATOR_KEYS_DIR`). That shortcut **does not apply to third parties, and the CLI refuses those keys on mainnet** (§15.2).
+The Solver Builder (P2) can be used before P4: the creator sends you the ZIP and you publish it with `cli:publish`. That shortcut **does not apply to third parties** (their packages go through §14).
 
 ---
 
@@ -892,9 +904,8 @@ mei-monthly-close/
   "knowledge": { "updatedAt": "2026-09-30", "reviewEveryDays": 90, "sources": ["Receita Federal", "Portal do Empreendedor"] },
   "templates": [ { "name": "monthly-report", "path": "templates/monthly-report.md", "title": "Monthly report", "description": "Revenue, limit and DAS for the month" } ],
   "onboarding": { "questions": [ { "id": "activity", "ask": "What is your MEI's activity: commerce, services or both?", "why": "The DAS amount changes depending on the activity", "options": ["Commerce", "Services", "Both"] } ] },
-  "pricing": { "priceUsdc": 9, "royaltyBps": 0 },
+  "pricing": { "priceCents": 900 },
   "trial": { "uses": 3, "steps": 2, "searches": 3, "tools": {}, "templates": [], "summary": "You get steps 1 and 2: the month's revenue, the remaining limit and the DAS checked against the knowledge base.", "lockedSummary": "The month's report and the ready-made template are in the full version." },
-  "guarantee": { "available": false, "defaultCriteria": [] },
   "versions": [ { "version": "1.0.0", "releasedAt": "2026-09-30", "notes": "First version" } ]
 }
 ```
@@ -925,8 +936,8 @@ tags: [das, amounts]
 | Area | Current file | Change | Phase |
 |---|---|---|---|
 | Loader | `runtime/packages.ts` | Path containment; fail on duplicates; separate `id` and `slug` maps; merge `AGENTS_DIR` + `PUBLISHED_DIR`; cache and stored hash; `reloadPackages()` called on publication | P0/P4 |
-| Status and kill switch | `db/schema.ts`, `mcp/tools.ts`, `payments/routes.ts` (`/api/purchases/intent`), `indexer/sync.ts` | `agents.platform_status` and `sync_flag`; check in all tools; the indexer never writes `platform_status` | P0/P4 |
-| Platform | config (`PLATFORM_AGENTS`), `jobs.ts` (batches), `store/fresh-price.ts` (`assertFreshPrice`), `store/purchase-guards.ts` | The `platform` access excluded from batches and purchase guards | P2 |
+| Status and kill switch | `db/schema.ts`, `mcp/tools.ts`, `payments/stripe-routes.ts` (`POST /api/checkout`) | `agents.platform_status`; check in all tools and in the checkout | P0/P4 |
+| Platform | config (`PLATFORM_AGENTS`), checkout guards | The `platform` access (free, `priceCents: 0`) excluded from purchases | P2 |
 | Schema | `runtime/manifest.ts` | New fields; v1 rules; optional `id` in the 1st version | P1 |
 | Validator | new `runtime/validate.ts` | A single module; JSON schema (`zod-to-json-schema`); `ajv` | P1 |
 | Access | `runtime/access.ts`, `store/catalog.ts` (`ownedAgents`), `mcp/tools.ts` (`describeAgent`) | Free access for `platform`; check `status = active` | P0/P2 |
@@ -934,11 +945,11 @@ tags: [das, amounts]
 | Memory | `memory/*`, `store/me.ts`, `packages/shared`, `Memories.tsx` | Profile and notes; a transaction with locking; screens | P3 |
 | Knowledge | `knowledge/ingest.ts`, `search.ts`, `db/schema.ts` | `.txt`; front matter; `meta`/`valid_until`; citations; daily quota; staging by version | P3/P4 |
 | Submission | new modules and routes | Tables (incl. `creator_invites`), endpoints, PM2 worker, review screen, notifications, creator profile and Telegram linking | P4 |
-| On-chain | `packages/chain`, `store/*`, `cli/*` | Routes `/tx/register-agent`, `update-version`, `update-pricing`; `cli:approve`, `cli:suspend`; `cli:publish --no-chain` for `platform` | P2/P4 |
-| Indexer | `indexer/sync.ts` | Compare with `agent_published_versions` (bypass) | P4 |
+| Publication | `publish/*`, `cli/*` | Publication on approval; `cli:suspend`; `cli:publish` for `platform` | P2/P4 |
+| Gates proven by execution | `runtime/engine.ts`, `sandbox/verify.ts`, `packages/shared` (`VerifyCheck`) | `steps[].verify` run before `next_step` advances (§5.3) | Core |
 | Web | `PublishWizard.tsx`, `/admin/reviews`, `AgentSections`, `AgentCard`, `Memories` | A real wizard; review; honest labels | P4/P5/P8 |
 | Scripts | `scripts/src/eval.ts` | `evalMethod`; the `solvers` script | P1/P7 |
-| Infra | `nginx/solvers`, `ecosystem.config.cjs`, `deploy.sh`, `.env.example`, `setup-vps.sh`, `/opt/deploy/backup.sh` | Upload route; worker; `SUBMISSIONS_DIR`, `PUBLISHED_DIR`, `ADMIN_WALLETS`; backup; real `GUARANTEE_*` (production `.env`) | P4/P6 |
+| Infra | `nginx/solvers`, `ecosystem.config.cjs`, `deploy.sh`, `.env.example`, `setup-vps.sh`, `/opt/deploy/backup.sh` | Upload route; worker; `SUBMISSIONS_DIR`, `PUBLISHED_DIR`, `ADMIN_USER_IDS`; backup | P4/P6 |
 | New dependencies | — | Zip (streaming), multipart, YAML, `ajv`, `zod-to-json-schema`; Opening: PDF, HTML (`parse5`) | P1-P7 |
 
 ---
@@ -969,17 +980,15 @@ tags: [das, amounts]
 | `MANIFEST_ID_OWNER` | E | `id` or `slug` already belongs to another creator |
 | `MANIFEST_SLUG_RESERVED` | E | Reserved slug |
 | `MANIFEST_SLUG_LOOKS_LIKE_ID` | E | Slug in the shape of an `id` (32 hex) |
-| `MANIFEST_GUARANTEE_FORBIDDEN` | E | A third party with `guarantee.available: true` (Core) |
 | `MANIFEST_CATEGORY_FORBIDDEN` | E | A category not allowed for third parties in the Core phase (D13) |
 | `MANIFEST_VERSION_NOT_GREATER` | E | The version is not greater than the published one |
 | `MANIFEST_NAME_TOO_LONG` | E | A name over 32 bytes |
 | `MANIFEST_VERSION_TOO_LONG` | E | A version over 16 bytes |
-| `MANIFEST_PRICE_BELOW_MIN` | E | Price below the Registry's `minPrice` |
+| `MANIFEST_PRICE_BELOW_MIN` | E | `pricing.priceCents` below 500 (US$ 5); only a platform Solver may be `0` |
 | `MANIFEST_PATH_ESCAPE` | E | A manifest path leaves the folder (§3.3) |
 | `MANIFEST_VERSIONS_MISSING` | E | No entry in `versions[]` for the current version |
 | `MANIFEST_DIFFERENTIATOR_UNPROVEN` | A | A declared differentiator the validator cannot prove (§4.2) |
 | `MANIFEST_DIFFERENTIATORS_FEW` | A | Fewer than 2 proven differentiators ("2 of 5" criterion) |
-| `SUPPLY_WITH_TRIAL` | A | `supply` (license cap) with the free trial on: the trial does not consume a slot |
 | `CATALOG_ONLY_IGNORED` | A | The `catalogOnly` field |
 | `CONTENTS_MISMATCH` | A | `packageContents` promises what does not exist |
 | `TERMS_MISSING` | E | No accepted `terms` |

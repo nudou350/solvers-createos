@@ -7,7 +7,7 @@ tags: [best-practices, types, technical, content, consultative, travel, data]
 
 # Best practices by type of Solver
 
-Use this knowledge file in step 1 (type of Solver) and step 3 (process). It is not a validator rule: it is what usually works. For every type the rules of the phase apply: no tools, no guarantee, no Finance, Legal or health category.
+Use this knowledge file in step 1 (type of Solver) and step 3 (process). It is not a validator rule: it is what usually works. For every type the rules of the phase apply: no tools, no Finance, Legal or health category.
 
 ## Technical or code: process and steps
 

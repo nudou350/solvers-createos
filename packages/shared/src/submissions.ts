@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Address } from "./evm.js";
 
 // Package submission contract (PACKAGE_SPEC.md 14). Single source of statuses, transitions and response shapes
 // shared by server, api-client and web. Pure rules: no I/O.
@@ -11,8 +10,6 @@ export const SUBMISSION_STATUSES = [
   "pending_review",
   "changes_requested",
   "rejected",
-  "awaiting_creator_signature",
-  "awaiting_onchain_approval",
   "publishing",
   "publish_failed",
   "published",
@@ -29,8 +26,6 @@ export const SUBMISSION_OPEN_STATUSES: readonly SubmissionStatus[] = [
   "validating",
   "pending_review",
   "changes_requested",
-  "awaiting_creator_signature",
-  "awaiting_onchain_approval",
   "publishing",
   "publish_failed",
 ];
@@ -42,15 +37,14 @@ const TRANSITIONS: Record<SubmissionStatus, readonly SubmissionStatus[]> = {
   submitted: ["validating"],
   validating: ["rejected_validation", "pending_review"],
   rejected_validation: [],
-  pending_review: ["changes_requested", "rejected", "awaiting_creator_signature"],
+  // Approval starts the publication right away.
+  pending_review: ["changes_requested", "rejected", "publishing"],
   // A resubmission with changes goes back to validation in the SAME submission (same unpublished version).
   changes_requested: ["validating", "rejected"],
   rejected: [],
-  // `changes_requested`: the admin revokes the approval before the creator signs; `rejected`: the submission expired (30 days without a signature).
-  awaiting_creator_signature: ["awaiting_onchain_approval", "publishing", "publish_failed", "changes_requested", "rejected"],
-  awaiting_onchain_approval: ["publishing", "publish_failed"],
   publishing: ["published", "publish_failed"],
-  publish_failed: ["publishing", "awaiting_creator_signature", "awaiting_onchain_approval"],
+  // `changes_requested`: the admin revokes an approval whose publication failed.
+  publish_failed: ["publishing", "changes_requested"],
   published: ["superseded", "suspended", "withdrawn"],
   superseded: [],
   suspended: ["published"],
@@ -109,27 +103,23 @@ export const SubmissionView = z.object({
   validation: ValidationReport.nullable(),
   /** Reviewer's reason (changes requested or rejection). */
   reviewerNotes: z.string().nullable(),
-  /** Creator's next step, computed by the server: nothing, co-sign, wait for the admin, etc. */
-  nextAction: z.enum(["none", "fix_and_resubmit", "sign_register", "sign_update", "wait_review", "wait_admin_approval", "wait_publish"]),
+  /** Creator's next step, computed by the server: nothing, fix and resubmit, wait for the review or the publication. */
+  nextAction: z.enum(["none", "fix_and_resubmit", "wait_review", "wait_publish"]),
   error: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type SubmissionView = z.infer<typeof SubmissionView>;
 
-export function nextActionFor(status: SubmissionStatus, isNewAgent: boolean): SubmissionView["nextAction"] {
+export function nextActionFor(status: SubmissionStatus): SubmissionView["nextAction"] {
   switch (status) {
     case "rejected_validation":
     case "changes_requested":
       return "fix_and_resubmit";
-    case "awaiting_creator_signature":
-      return isNewAgent ? "sign_register" : "sign_update";
     case "submitted":
     case "validating":
     case "pending_review":
       return "wait_review";
-    case "awaiting_onchain_approval":
-      return "wait_admin_approval";
     case "publishing":
     case "publish_failed":
       return "wait_publish";
@@ -144,7 +134,8 @@ export const AdminSubmissionRow = z.object({
   slug: z.string(),
   name: z.string().nullable(),
   version: z.string(),
-  creatorWallet: Address,
+  creatorUserId: z.string(),
+  creatorEmail: z.string().nullable(),
   creatorName: z.string().nullable(),
   status: SubmissionStatus,
   isNewAgent: z.boolean(),
@@ -167,7 +158,7 @@ export type SubmissionFileEntry = z.infer<typeof SubmissionFileEntry>;
 /** GET /api/admin/submissions/:id */
 export const AdminSubmissionDetail = z.object({
   submission: SubmissionView,
-  creator: z.object({ wallet: Address, name: z.string().nullable(), bio: z.string().nullable(), contactVerified: z.boolean() }),
+  creator: z.object({ userId: z.string(), email: z.string().nullable(), name: z.string().nullable(), bio: z.string().nullable(), contactVerified: z.boolean() }),
   isNewAgent: z.boolean(),
   /** Manifest as submitted (text to display, never rendered as HTML). */
   manifest: z.record(z.unknown()).nullable(),
@@ -179,7 +170,7 @@ export const AdminSubmissionDetail = z.object({
   /** Declared differentiators and what the validator could prove. */
   differentiators: z.object({ declared: z.array(z.string()), proven: z.array(z.string()) }),
   reviews: z.array(
-    z.object({ id: z.number(), reviewerWallet: Address, action: z.string(), notes: z.string(), checklist: z.record(z.boolean()), createdAt: z.string() }),
+    z.object({ id: z.number(), reviewerUserId: z.string(), action: z.string(), notes: z.string(), checklist: z.record(z.boolean()), createdAt: z.string() }),
   ),
 });
 export type AdminSubmissionDetail = z.infer<typeof AdminSubmissionDetail>;
@@ -202,7 +193,8 @@ export const CreatorProfileInput = z.object({
 export type CreatorProfileInput = z.infer<typeof CreatorProfileInput>;
 
 export const CreatorMe = z.object({
-  wallet: Address,
+  userId: z.string(),
+  email: z.string(),
   hasProfile: z.boolean(),
   invited: z.boolean(),
   termsAccepted: z.boolean(),
@@ -227,7 +219,7 @@ export const TelegramLink = z.object({
 export type TelegramLink = z.infer<typeof TelegramLink>;
 
 /** Slugs third parties cannot claim (brands and the platform). */
-export const RESERVED_SLUGS: readonly string[] = ["solvers", "criador-de-solvers", "admin", "api", "mcp", "oauth", "wondervelop", "anthropic", "claude", "openai", "chatgpt", "usdc"];
+export const RESERVED_SLUGS: readonly string[] = ["solvers", "criador-de-solvers", "admin", "api", "mcp", "oauth", "wondervelop", "anthropic", "claude", "openai", "chatgpt"];
 
 /** Categories allowed for third-party creators (finance, legal and health are excluded). The values are catalog data. */
 export const THIRD_PARTY_CATEGORIES: readonly string[] = ["Desenvolvimento", "Design", "Dia a dia", "Negócios", "Viagens", "Conteúdo", "Escrita", "Outros"];

@@ -77,10 +77,10 @@
       "file": "steps/05-ferramentas-e-verificacao.md",
       "title": "Tools and verification",
       "gate": [
-        "The user understood that, in the Core phase, the package carries no tools, verifier or guarantee",
+        "The user understood that, in the Core phase, the package carries no tools or verifier",
         "Plan for future tools recorded (name, input, output and reason) or the word none",
         "Substitute verification defined: objective gates, templates and test cases",
-        "Manifest without tools and with guarantee.available equal to false"
+        "Manifest without tools and without verifier"
       ]
     },
     {
@@ -270,8 +270,7 @@
       "The Solvers platform review and publication rules"
     ]
   },
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 0, "royaltyBps": 0 },
+  "pricing": { "priceCents": 0 },
   "searchPhrases": [
     "create a Solver",
     "build an AI specialist to sell",

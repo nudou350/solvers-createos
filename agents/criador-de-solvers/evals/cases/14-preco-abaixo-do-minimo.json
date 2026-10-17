@@ -4,7 +4,7 @@
   "checks": [
     {
       "type": "regex",
-      "value": "minimum|5 dollars|\\$5|5 USDC|\\b5\\b",
+      "value": "minimum|5 dollars|\\$5|\\b5\\b",
       "description": "States that the minimum price today is 5 dollars"
     },
     {

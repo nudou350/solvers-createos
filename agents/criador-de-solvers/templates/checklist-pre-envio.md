@@ -11,12 +11,12 @@ Tick each item with the user before uploading the ZIP. If an item is not ticked,
 
 ## Manifest
 
-- [ ] specVersion equal to 1; no id in the first version; no platform; no tools; guarantee.available equal to false.
+- [ ] specVersion equal to 1; no id in the first version; no platform; no tools.
 - [ ] Category among the allowed ones (no Finance, Legal or health).
 - [ ] name of 3 to 32 bytes; tagline of 10 to 100 characters; description of 120 to 2,000 characters, including what it does NOT do.
 - [ ] version in the 1.0.0 format and a matching entry in versions.
 - [ ] terms with rightsConfirmed and sourcesListed equal to true, and the user confirmed it is true.
-- [ ] pricing.priceUsdc equal to or greater than 5; royaltyBps between 0 and 1,000.
+- [ ] pricing.priceCents a whole number equal to or greater than 500 (US$ 5).
 - [ ] packageContents with 3 to 8 items, only what the package really has.
 - [ ] searchPhrases in the words of the buyer, all tied to the real content.
 

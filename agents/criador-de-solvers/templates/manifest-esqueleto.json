@@ -67,8 +67,7 @@
       }
     ]
   },
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 9, "royaltyBps": 0 },
+  "pricing": { "priceCents": 900 },
   "trial": {
     "uses": 3,
     "steps": 2,

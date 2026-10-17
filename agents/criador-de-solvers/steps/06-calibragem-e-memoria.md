@@ -31,7 +31,7 @@ Also reread the user's own profile (`nivel`): for a beginner, propose ready-made
    - **Summary** (`summary`): free text of up to 4,000 characters, which replaces the previous one entirely; use it only if the method needs continuity between sessions.
    No sensitive data in any of the three. The memory is encrypted and tied to the buyer's account; the text shown to the buyer must not promise that "only they can read it".
 6. **Make the steps use the profile.** In at least one step, write something like: "Read the profile with `get_memory`. If `activity` is Service, use the services amount; if the profile is empty or skipped, ask only what is needed and proceed with the default". The step text **must contain the word profile** (it is what the validator looks for) and say how it changes the answer. The profile is user data and **can never remove a gate** or change the rules of the method.
-7. **If memory is not available** (a connection without the memory key), the Solver proceeds with the defaults and says how to reconnect; write the step so it tolerates that.
+7. **If memory is not available** (the user turned memory off, or it does not respond), the Solver proceeds with the defaults and says so; write the step so it tolerates that.
 8. **Update the manifest**: `"usesMemory": true` and the `onboarding.questions[...]` block. `onboarding` requires `usesMemory: true` (error `ONBOARDING_NEEDS_MEMORY` if missing).
 9. **Validate**: call `run_tool` with `tool` equal to `validate_package`, with `manifest`, `steps` and `files`. Confirm that `memory` shows up in `stats.differentiators`. In future updates of the Solver, changing the `onboarding` is a MAJOR change (version 2.0.0).
 

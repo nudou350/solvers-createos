@@ -32,7 +32,7 @@ Each validator response carries `code`, `path`, `message` and `fix`. An **error 
 
 - `MANIFEST_MISSING` (E): there is no `manifest.json` at the package root. Create one with the `manifest-esqueleto` template.
 - `MANIFEST_INVALID_JSON` (E): invalid JSON (a stray comma, quotes, an unclosed key). The message says where. Use a JSON formatter.
-- `MANIFEST_SCHEMA` (E): a field with the wrong type or size; the `path` says which. Examples: tagline outside 10 to 100 characters, description outside 120 to 2,000, `packageContents` with fewer than 3 or more than 8 items, an unknown category, `royaltyBps` outside 0 to 1,000. Fix the field as the message says.
+- `MANIFEST_SCHEMA` (E): a field with the wrong type or size; the `path` says which. Examples: tagline outside 10 to 100 characters, description outside 120 to 2,000, `packageContents` with fewer than 3 or more than 8 items, an unknown category, a `pricing.priceCents` that is not a whole number of cents. Fix the field as the message says.
 - `MANIFEST_UNKNOWN_FIELD` (E): a field that does not exist in the specification. Remove it or use a supported field.
 - `MANIFEST_SPEC_VERSION` (E): `"specVersion": 1` is missing. Add it.
 - `TERMS_MISSING` (E): `"terms": { "rightsConfirmed": true, "sourcesListed": true }` is missing (and the user really must confirm both).
@@ -50,8 +50,7 @@ Each validator response carries `code`, `path`, `message` and `fix`. An **error 
 ## Manifest errors: phase rules
 
 - `MANIFEST_CATEGORY_FORBIDDEN` (E): a category not accepted from new creators (Finance, Legal, health). Narrow the scope to an allowed category or wait for those categories to open. Do not hide the topic by switching the category: the reviewer reads the content.
-- `MANIFEST_GUARANTEE_FORBIDDEN` (E): `guarantee.available: true`. Use `{ "available": false, "defaultCriteria": [] }`.
-- `MANIFEST_PRICE_BELOW_MIN` (E): a price below the platform minimum (today 5). Use the minimum or more.
+- `MANIFEST_PRICE_BELOW_MIN` (E): `pricing.priceCents` below the platform minimum (today 500, that is US$ 5). Use the minimum or more.
 - `MANIFEST_PATH_ESCAPE` (E): a manifest path that leaves the folder or does not start with `steps/` or `templates/`. Use `steps/01-name.md`.
 - `DIFF_ENDPOINT_CHANGED_MINOR` (E): in an update you changed `tools`, `onboarding`, `requirements` or the structure of `steps` without raising the MAJOR version. Raise it (e.g. 1.4.2 to 2.0.0).
 
@@ -59,6 +58,5 @@ Each validator response carries `code`, `path`, `message` and `fix`. An **error 
 
 - `MANIFEST_DIFFERENTIATOR_UNPROVEN` (W): you declared a differentiator that the validator cannot prove. Meet the condition (see the differentiators knowledge file) or remove it from the field.
 - `MANIFEST_DIFFERENTIATORS_FEW` (W): fewer than 2 proven. The reviewer only approves with 2 or more.
-- `SUPPLY_WITH_TRIAL` (W): a license cap with the free trial turned on: the trial does not consume a slot. For real exclusivity, turn the trial off.
 - `CATALOG_ONLY_IGNORED` (W): `catalogOnly` has no effect. Remove it.
-- `CONTENTS_MISMATCH` (W): `packageContents` promises something the package does not have (templates, a tool, a guarantee, memory, a knowledge base). Adjust the list to reality.
+- `CONTENTS_MISMATCH` (W): `packageContents` promises something the package does not have (templates, a tool, automatic verification, memory, a knowledge base). Adjust the list to reality.

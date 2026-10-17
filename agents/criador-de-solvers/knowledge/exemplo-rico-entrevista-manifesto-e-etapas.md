@@ -81,8 +81,7 @@ Differentiators: `memory` (calibration changes the training and the tone, in ste
     { "id": "time_left", "ask": "How much time is left before the interview?", "why": "Decides the size of the practice plan", "options": ["Today or tomorrow", "Up to a week", "More than a week"] }
   ] },
 
-  "guarantee": { "available": false, "defaultCriteria": [] },
-  "pricing": { "priceUsdc": 12, "royaltyBps": 300 },
+  "pricing": { "priceCents": 1200 },
   "trial": { "uses": 3, "steps": 2, "searches": 4, "tools": {}, "templates": ["banco-de-historias"], "summary": "You understand the role and write your first stories with the STAR method, using the story bank.", "lockedSummary": "The practice with feedback, the questions for the interviewer, the plan for the day and the thank-you email are in the full version." },
   "versions": [ { "version": "1.0.0", "releasedAt": "2026-10-02", "notes": "First version: 5 steps, a base with 4 files, 3 templates and calibration in 4 questions" } ]
 }

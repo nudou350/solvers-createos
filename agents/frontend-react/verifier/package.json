@@ -2,7 +2,7 @@
   "name": "solvers-react-test",
   "version": "1.0.0",
   "private": true,
-  "description": "Guarantee verification environment for the React Front-end Solver: runs the delivery tests in a sandbox.",
+  "description": "Test verification environment for the React Front-end Solver: runs the delivery tests in a sandbox.",
   "type": "module",
   "scripts": {
     "test": "vitest run",

@@ -1,0 +1,10 @@
+# Exceptions for tools/crypto-free-check.mjs: one `path-regex:line-regex` per line (both JavaScript regexes; the line
+# regex is case-insensitive). Keep each rule as narrow as possible and say why.
+
+# Pix is Brazil's instant-payment system: domain content of the personal-finance and lease-review Solvers.
+^agents/financas-pessoais/:\bPix\b
+^agents/revisao-contratos/:\bpix\b
+# Portuguese "tempo" means "time" (e.g. "ao mesmo tempo" = "at the same time").
+^agents/[^/]+/locales/pt\.json$:\b(ao mesmo|em|de|no|pouco|muito|todo o|meio|mais|menos|quanto|algum|o) tempo\b
+# The migration contract names the removed features on purpose.
+^docs/hackathon/CONTRACTS\.md$:.

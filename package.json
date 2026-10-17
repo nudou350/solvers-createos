@@ -7,7 +7,8 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "dev": "turbo run dev"
+    "dev": "turbo run dev",
+    "check:crypto": "node tools/crypto-free-check.mjs"
   },
   "devDependencies": {
     "turbo": "^2.11.5",
