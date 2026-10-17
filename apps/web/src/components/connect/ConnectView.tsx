@@ -22,6 +22,7 @@ class OAuthFailure extends Error {
   constructor(
     message: string,
     readonly code?: string,
+    readonly status?: number,
   ) {
     super(message);
   }
@@ -30,7 +31,7 @@ class OAuthFailure extends Error {
 async function getJson<T>(url: string, fallback: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, { credentials: "include", ...init });
   const body = (await res.json().catch(() => ({}))) as T & { error?: string; error_description?: string };
-  if (!res.ok) throw new OAuthFailure(body.error_description ?? body.error ?? fallback, body.error);
+  if (!res.ok) throw new OAuthFailure(body.error_description ?? body.error ?? fallback, body.error, res.status);
   return body;
 }
 
@@ -83,6 +84,8 @@ export function ConnectView({ req }: { req: string | null }) {
       window.location.href = done.redirectTo;
     } catch (e) {
       setStep(null);
+      // The session ended meanwhile: sign in again and come back to this same request.
+      if (e instanceof OAuthFailure && e.status === 401) return signIn();
       setError(localize(e as Error) || t("somethingWrong"));
     }
   }

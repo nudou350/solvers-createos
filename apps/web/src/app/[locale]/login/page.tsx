@@ -10,8 +10,8 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/login">)
   return { title: t("metaTitle"), robots: { index: false } };
 }
 
-/** /login?next=<path>: email sign-in link; `next` is where the person lands once signed in. */
+/** /login?next=<path>[&error=invalid_link]: email sign-in link; `next` is where the person lands once signed in. */
 export default async function LoginPage({ searchParams }: PageProps<"/[locale]/login">) {
   const sp = await searchParams;
-  return <LoginView next={safeNext(param(sp.next))} />;
+  return <LoginView next={safeNext(param(sp.next))} invalidLink={param(sp.error) === "invalid_link"} />;
 }

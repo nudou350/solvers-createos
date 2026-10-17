@@ -95,6 +95,8 @@
     "failed": "Couldn't send the link",
     "signedInAs": "You're signed in as {email}.",
     "goOn": "Continue",
-    "terms": "By continuing you agree to use Solvers' specialists in your own AI assistant. Payments are handled by Stripe."
+    "terms": "By continuing you agree to use Solvers' specialists in your own AI assistant. Payments are handled by Stripe.",
+    "invalidLinkTitle": "This sign-in link no longer works",
+    "invalidLinkText": "It expired or was already used. Enter your email to get a new one."
   }
 }

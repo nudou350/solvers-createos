@@ -95,6 +95,8 @@
     "failed": "Não deu para enviar o link",
     "signedInAs": "Você entrou como {email}.",
     "goOn": "Continuar",
-    "terms": "Ao continuar, você concorda em usar os especialistas do Solvers no seu próprio assistente de IA. Os pagamentos são feitos pela Stripe."
+    "terms": "Ao continuar, você concorda em usar os especialistas do Solvers no seu próprio assistente de IA. Os pagamentos são feitos pela Stripe.",
+    "invalidLinkTitle": "Este link de acesso não funciona mais",
+    "invalidLinkText": "Ele expirou ou já foi usado. Digite seu e-mail para receber um novo."
   }
 }

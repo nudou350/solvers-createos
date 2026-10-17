@@ -26,7 +26,7 @@ function safeLink(link: string | null): string | null {
   }
 }
 
-export function LoginView({ next }: { next: string }) {
+export function LoginView({ next, invalidLink = false }: { next: string; invalidLink?: boolean }) {
   const t = useTranslations("common.login");
   const errorText = useErrorText();
   const { status, me } = useSession();
@@ -81,6 +81,13 @@ export function LoginView({ next }: { next: string }) {
                 {t("goOn")}
               </a>
             </>
+          ) : null}
+
+          {/* The verify route sends an expired or already used link back here with ?error=invalid_link. */}
+          {status === "signed-out" && !sentTo && invalidLink ? (
+            <Notice tone="warn" title={t("invalidLinkTitle")}>
+              {t("invalidLinkText")}
+            </Notice>
           ) : null}
 
           {status === "signed-out" && !sentTo ? (
