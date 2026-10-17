@@ -21,7 +21,8 @@
     "cli:invite": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/invite.ts",
     "cli:images": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/images.ts",
     "cli:suspend": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/suspend.ts",
-    "cli:ledger-export": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/ledger-export.ts"
+    "cli:ledger-export": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/ledger-export.ts",
+    "cli:demo-mcp": "tsx --env-file-if-exists=../../.env --env-file-if-exists=.env src/cli/demo-mcp.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",
