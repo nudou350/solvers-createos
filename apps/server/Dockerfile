@@ -9,10 +9,8 @@ RUN pnpm install --frozen-lockfile --filter "@solvers/server..." \
  && pnpm --filter "@solvers/server..." build
 
 WORKDIR /app/apps/server
-# The embedding model (src/knowledge/embeddings.ts) is fetched at build time so the first boot does not download it;
-# if the download fails here, the server fetches it at boot instead.
-RUN node -e "import('@huggingface/transformers').then((t) => t.pipeline('feature-extraction', 'Xenova/multilingual-e5-small', { dtype: 'q8' }))" \
- || echo "embedding model not prefetched"
+# The embedding model (src/knowledge/embeddings.ts) is downloaded at boot. Images with it baked in failed the
+# CreateOS artifact upload (ERR22), so it stays out of the image.
 
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3038
 EXPOSE 3038
