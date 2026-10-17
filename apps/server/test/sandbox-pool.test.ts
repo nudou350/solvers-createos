@@ -211,7 +211,7 @@ describe("runStepVerify (verifyChecks)", () => {
     assert.equal(r.passed, true);
     assert.deepEqual(r.results.map((x) => [x.label, x.passed, x.exitCode, x.stdout]), [
       ["Node", true, 0, "v24.0.0\n"],
-      ["Py", true, 0, "Python 3.12.0\n"],
+      ["Py", true, 0, "Python 3.13.0\n"],
     ]);
     assert.equal(port.created, 1);
     assert.deepEqual(store.runs.map((x) => x.kind), ["verify", "verify"]);

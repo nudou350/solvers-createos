@@ -150,7 +150,7 @@ function builtin(b: FakeBox, cmd: string, args: readonly string[]): RunOutput {
   if (cmd === "true") return ok("");
   if (cmd === "false") return { ...ok(""), exitCode: 1 };
   if (cmd === "node" && args[0] === "-v") return ok("v24.0.0\n");
-  if (cmd === "python3" && args[0] === "--version") return ok("Python 3.12.0\n");
+  if (cmd === "python3" && args[0] === "--version") return ok("Python 3.13.0\n");
   if (cmd === "cat" && args.length === 1) {
     const f = b.files.get(args[0]!);
     return f == null ? { stdout: "", stderr: `cat: ${args[0]}: No such file or directory\n`, exitCode: 1, execMs: 1 } : ok(f);

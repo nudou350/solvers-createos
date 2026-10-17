@@ -214,7 +214,8 @@ export function createosPort(cfg: SandboxConfig = sandboxConfig()): SandboxPort 
         const res = r.result;
         const stderr = res.error ? `${res.stderr}${res.stderr ? "\n" : ""}${res.error}` : res.stderr;
         const exitCode = res.error && res.exit_code === 0 ? 127 : res.exit_code;
-        return { stdout: res.stdout, stderr, exitCode, execMs: r.exec_ms, timedOut: exitCode === 124 };
+        // CreateOS reports exec_ms with a fraction (e.g. 79.851); sandbox_runs.exec_ms and the model get whole ms.
+        return { stdout: res.stdout, stderr, exitCode, execMs: Math.round(r.exec_ms), timedOut: exitCode === 124 };
       } catch (e) {
         const err = toSandboxError(e);
         if (err.code !== "timeout") throw err;

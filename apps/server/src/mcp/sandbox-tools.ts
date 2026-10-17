@@ -138,7 +138,7 @@ export function registerSandboxTools(server: McpServer, _ctx: McpContext, runSes
     "sandbox_run",
     {
       title: "Run code in the sandbox",
-      description: `Runs a command in this session's isolated CreateOS sandbox (Linux, Node 24, Python 3.12; working directory ${WORKSPACE}), optionally writing files first. Returns stdout, stderr, exit_code, exec_ms and truncated (each stream is cut to 16 KB). Use bash -lc for cd, && and pipes. background: true starts a long-lived process (e.g. an app server) and returns at once with its log file. User code runs only here, never on the user's machine. Network access is limited to package registries and GitHub.`,
+      description: `Runs a command in this session's isolated CreateOS sandbox (Linux, Node 24, Python 3.13; working directory ${WORKSPACE}), optionally writing files first. Returns stdout, stderr, exit_code, exec_ms and truncated (each stream is cut to 16 KB). Use bash -lc for cd, && and pipes. background: true starts a long-lived process (e.g. an app server) and returns at once with its log file. User code runs only here, never on the user's machine. Network access is limited to package registries and GitHub.`,
       inputSchema: {
         session_id,
         command: z.string().min(1).max(4096).describe("Executable, e.g. node, npm, python3, bash"),
