@@ -11,7 +11,7 @@ with a **live preview URL** of the running app.
 It is sold through **Solvers**, a marketplace of AI specialists, with **Stripe Checkout**, and used inside the AI the
 customer already has (Claude, ChatGPT) through our MCP connector. The stack was provisioned with **Stripe Projects**.
 
-**Live (on CreateOS):** web https://production-solvers-web.tyzo.nodeops.app · MCP connector `https://production-solvers-api.tyzo.nodeops.app/mcp` · demo video `<VIDEO_URL>`
+**Live (on CreateOS):** web https://production-solvers-web.tyzo.nodeops.app · MCP connector `https://production-solvers-api.tyzo.nodeops.app/mcp` · demo video https://vimeo.com/1236904942
 
 ---
 
