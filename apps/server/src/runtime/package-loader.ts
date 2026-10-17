@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
 import { localeFilePath, PACKAGE_LOCALE_LANGS, PackageLocale, type AgentTranslations } from "@solvers/shared";
-import { Manifest } from "./manifest.js";
+import { Manifest, type VerifyCheck } from "./manifest.js";
 import { resolveInsidePackage } from "./package-paths.js";
 import { platformVerdict } from "./platform-agents.js";
 import { ManifestV1 } from "./validate/schema-v1.js";
@@ -26,7 +26,7 @@ export type ManifestExtras = {
 export type SolverPackage = {
   manifest: Manifest & ManifestExtras;
   dir: string;
-  steps: { title: string; body: string; gate: string[] }[];
+  steps: { title: string; body: string; gate: string[]; verify: VerifyCheck[] }[];
   /** Computed on demand (reads every file in the package): boot does not pay for it. */
   versionHash: string;
   evalReport: { scoreBps: number; hash: string } | null;
@@ -59,7 +59,7 @@ function listFiles(dir: string): string[] {
 /**
  * Deterministic package hash: sha256 over (relative path + sha256 of the content) of all
  * files in alphabetical order, without dates. Same package => same hash on any machine.
- * The evals report is excluded (it is generated later and has its own on-chain hash).
+ * The evals report is excluded (it is generated later and has its own hash).
  */
 export function packageHash(dir: string): string {
   const h = createHash("sha256");
@@ -164,7 +164,7 @@ export function loadPackage(dir: string, opts: { source?: PackageSource } = {}):
     // The path comes from the manifest: never join it directly (../ and symbolic links would escape the folder).
     const body = readFileSync(resolveInsidePackage(dir, s.file, ["steps/"]), "utf8");
     const title = s.title ?? /^#\s+(.+)$/m.exec(body)?.[1] ?? `Step ${i + 1}`;
-    return { title, body, gate: s.gate };
+    return { title, body, gate: s.gate, verify: s.verify ?? [] };
   });
   const reportPath = join(dir, "evals", "report.json");
   let evalReport: SolverPackage["evalReport"] = null;

@@ -1,7 +1,6 @@
 import { eq, sql } from "drizzle-orm";
-import { DELIST_MAX_RATING, DELIST_MIN_REVIEWS, numberToUnits } from "@solvers/shared";
+import { DELIST_MAX_RATING, DELIST_MIN_REVIEWS } from "@solvers/shared";
 import { db, schema } from "../db/index.js";
-import { env } from "../env.js";
 import { embed } from "../knowledge/embeddings.js";
 import type { SolverPackage } from "../runtime/packages.js";
 import { fullSearchText, manifestSearchText, searchPhrasesOf } from "./catalog-rules.js";
@@ -23,14 +22,12 @@ export type CatalogOptions = {
   agentId?: string;
   /** Creator profile id (`creators.id`) instead of the manifest's `creator.id` (on submissions, the server decides). */
   creatorId?: string;
-  /** Writes (or updates) the creator row from the manifest. False for third parties: the profile comes from sign-up. */
+  /** Writes (or updates) the creator row from the manifest, owned by `creatorUserId`. False for third parties: the profile comes from sign-up. */
   upsertCreator?: boolean;
-  /** Price in token base units instead of the manifest's (platform Solver: 0). */
-  priceUnits?: bigint;
-  /** Also writes `status` on insert AND update (platform Solver without an on-chain agent: `active`). With a chain, the mirror writes it. */
-  status?: string;
-  /** `status` of a brand-new row only (finalization: the chain was just read as Active); an existing row keeps its status. */
-  insertStatus?: string;
+  /** User that owns the creator row written by `upsertCreator`. */
+  creatorUserId?: string;
+  /** Price in USD cents instead of the manifest's (platform Solver: 0). */
+  priceCents?: number;
 };
 
 export type PreparedCatalog = {
@@ -63,26 +60,20 @@ export function agentDetails(pkg: SolverPackage) {
       evalScore: v.version === m.version && pkg.evalReport ? pkg.evalReport.scoreBps / 100 : null,
     })),
     tools: m.tools,
-    guaranteeCriteria: m.guarantee.defaultCriteria,
-    guaranteeTemplate: m.guarantee.available
-      ? {
-          priceUsdc: m.guarantee.priceUsdc ?? m.pricing.priceUsdc,
-          milestones: m.guarantee.milestones ?? [{ title: "Delivery", criteria: m.guarantee.defaultCriteria, sharePct: 100, verify: "tests" as const }],
-        }
-      : undefined,
     catalogOnly: m.catalogOnly ?? false,
   };
 }
 
 /** Writes the agent row and the search vectors. `exec` may be a transaction (`db.transaction`). */
-export async function writeCatalog(prepared: PreparedCatalog, creatorWallet: string, opts: CatalogOptions = {}, exec: Exec = db): Promise<void> {
+export async function writeCatalog(prepared: PreparedCatalog, opts: CatalogOptions = {}, exec: Exec = db): Promise<void> {
   const { pkg, text, phrases, vec, phraseVecs } = prepared;
   const m = pkg.manifest;
   const agentId = opts.agentId ?? m.id;
   if (opts.upsertCreator !== false) {
+    if (!opts.creatorUserId) throw new Error(`creator ${m.creator.id}: upsertCreator needs the owner's user id`);
     await exec
       .insert(schema.creators)
-      .values({ id: m.creator.id, wallet: creatorWallet.toLowerCase(), name: m.creator.name, bio: m.creator.bio, avatarUrl: m.creator.avatarUrl ?? null })
+      .values({ id: m.creator.id, userId: opts.creatorUserId, name: m.creator.name, bio: m.creator.bio, avatarUrl: m.creator.avatarUrl ?? null })
       .onConflictDoUpdate({ target: schema.creators.id, set: { name: m.creator.name, bio: m.creator.bio, avatarUrl: m.creator.avatarUrl ?? null } });
   }
   const values = {
@@ -94,24 +85,19 @@ export async function writeCatalog(prepared: PreparedCatalog, creatorWallet: str
     creatorId: opts.creatorId ?? m.creator.id,
     version: m.version,
     versionHash: pkg.versionHash,
-    price: opts.priceUnits ?? numberToUnits(m.pricing.priceUsdc, env.PAYMENT_TOKEN_DECIMALS),
-    // Lifetime licenses only: pay-per-use is off (the contract keeps the field, always 0 here).
-    pricePerUse: 0n,
-    royaltyBps: m.pricing.royaltyBps,
+    priceCents: opts.priceCents ?? m.pricing.priceCents,
     requirements: m.requirements,
     packageContents: m.packageContents,
     translations: pkg.translations,
-    guaranteeAvailable: m.guarantee.available,
     details: agentDetails(pkg),
     searchText: text,
     embedding: vec,
-    ...(opts.status ? { status: opts.status } : {}),
     updatedAt: new Date(),
   };
-  const insertStatus = opts.status ?? opts.insertStatus;
+  // `platform_status` is only born `active` (column default): republishing never lifts an admin suspension.
   await exec
     .insert(schema.agents)
-    .values({ id: agentId, ...values, ...(insertStatus ? { status: insertStatus } : {}) })
+    .values({ id: agentId, ...values })
     .onConflictDoUpdate({ target: schema.agents.id, set: values });
   await exec.delete(schema.agentSearchVectors).where(eq(schema.agentSearchVectors.agentId, agentId));
   if (phraseVecs.length > 0) {
@@ -120,8 +106,8 @@ export async function writeCatalog(prepared: PreparedCatalog, creatorWallet: str
 }
 
 /** Prepare and write at once (`cli:publish`). */
-export async function upsertCatalog(pkg: SolverPackage, creatorWallet: string, opts: CatalogOptions = {}): Promise<void> {
-  await writeCatalog(await prepareCatalog(pkg), creatorWallet, opts);
+export async function upsertCatalog(pkg: SolverPackage, opts: CatalogOptions = {}): Promise<void> {
+  await writeCatalog(await prepareCatalog(pkg), opts);
 }
 
 /** Back in the store unless the rating is still below the minimum (the job would delist it again). Only after the full catalog. */

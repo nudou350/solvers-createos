@@ -1,17 +1,18 @@
 import { existsSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import { canTransition } from "@solvers/shared";
 import { db, schema } from "../db/index.js";
 import { deleteKnowledgeVersion } from "../knowledge/ingest.js";
-import { EXPIRABLE_STATUSES, EXPIRED_NOTE, filesExpired, orphanFolderStale, partFileStale, REJECTED_FILES_TTL_DAYS, STALE_OPEN_TTL_DAYS, SYSTEM_REVIEWER } from "./cleanup-rules.js";
-import { creatorMessage, notifyCreatorWallet } from "./notify.js";
+import { EXPIRABLE_STATUSES, EXPIRED_NOTE, filesExpired, orphanFolderStale, partFileStale, REJECTED_FILES_TTL_DAYS, STALE_OPEN_TTL_DAYS } from "./cleanup-rules.js";
+import { creatorMessage, notifyCreatorUser } from "./notify.js";
 import { stagingVersion, submissionDir, submissionsRoot, SUBMISSION_ID_RE } from "./paths.js";
 
 // Submissions cleanup (job in jobs.ts, every 6 h). Idempotent; each step fails on its own without breaking the others:
-//  1. expires `changes_requested` and `awaiting_creator_signature` idle for more than 30 days (becomes `rejected`, "expired"
-//     note, an `expire` row in package_reviews signed by "system"; the slug is released and the test knowledge is removed);
+//  1. expires `changes_requested` idle for more than 30 days (becomes `rejected`, "expired" note, an `expire` row in
+//     package_reviews under the creator's account, whose inaction expired it; the slug is released and the test knowledge
+//     is removed);
 //  2. deletes the ZIP and extracted folder of submissions rejected more than 30 days ago;
 //  3. deletes folders in SUBMISSIONS_DIR with no database row (older than 1 day) and `.part` files from interrupted uploads (older than 1 day).
 
@@ -21,7 +22,7 @@ const dayAgo = (days: number) => sql`now() - make_interval(days => ${days})`;
 export async function expireStaleSubmissions(opts: { notify?: boolean; limit?: number } = {}): Promise<number> {
   const s = schema.packageSubmissions;
   const rows = await db
-    .select({ id: s.id, agentId: s.agentId, wallet: s.creatorWallet, slug: s.slug, version: s.version })
+    .select({ id: s.id, agentId: s.agentId, userId: s.creatorUserId, slug: s.slug, version: s.version })
     .from(s)
     .where(and(inArray(s.status, [...EXPIRABLE_STATUSES]), lt(s.updatedAt, dayAgo(STALE_OPEN_TTL_DAYS))))
     .limit(opts.limit ?? 50);
@@ -30,7 +31,7 @@ export async function expireStaleSubmissions(opts: { notify?: boolean; limit?: n
     const expired = await db.transaction(async (tx) => {
       await tx.execute(sql`select id from package_submissions where id = ${r.id} for update`);
       const [fresh] = await tx.select({ status: s.status, approved: s.approved, updatedAt: s.updatedAt }).from(s).where(eq(s.id, r.id));
-      // Rechecked under the lock: the creator may have resubmitted or signed while the job was running.
+      // Rechecked under the lock: the creator may have resubmitted while the job was running.
       if (!fresh || !(EXPIRABLE_STATUSES as readonly string[]).includes(fresh.status)) return false;
       if (!canTransition(fresh.status as never, "rejected")) return false;
       const moved = await tx
@@ -39,18 +40,18 @@ export async function expireStaleSubmissions(opts: { notify?: boolean; limit?: n
         .where(and(eq(s.id, r.id), eq(s.status, fresh.status), lt(s.updatedAt, dayAgo(STALE_OPEN_TTL_DAYS))))
         .returning({ id: s.id });
       if (moved.length === 0) return false;
-      // The approved version that was never signed no longer holds the price/hash: it leaves `agent_published_versions`.
+      // An approved version that never went live no longer holds the price/hash: it leaves `agent_published_versions`.
       if (fresh.approved?.version) {
-        await tx.delete(schema.agentPublishedVersions).where(and(eq(schema.agentPublishedVersions.agentId, r.agentId), eq(schema.agentPublishedVersions.version, fresh.approved.version), isNull(schema.agentPublishedVersions.approveTx)));
+        await tx.delete(schema.agentPublishedVersions).where(and(eq(schema.agentPublishedVersions.agentId, r.agentId), eq(schema.agentPublishedVersions.version, fresh.approved.version)));
       }
-      await tx.insert(schema.packageReviews).values({ submissionId: r.id, reviewerWallet: SYSTEM_REVIEWER, action: "expire", notes: EXPIRED_NOTE, checklist: {}, versionHash: fresh.approved?.versionHash ?? null });
+      await tx.insert(schema.packageReviews).values({ submissionId: r.id, reviewerUserId: r.userId, action: "expire", notes: EXPIRED_NOTE, checklist: {}, versionHash: fresh.approved?.versionHash ?? null });
       return true;
     });
     if (!expired) continue;
     n += 1;
     await deleteKnowledgeVersion(r.agentId, stagingVersion(r.id)).catch((e) => console.warn("[cleanup] staging not removed:", (e as Error).message));
     await rm(submissionDir(r.id), { recursive: true, force: true }).catch(() => undefined);
-    if (opts.notify !== false) await notifyCreatorWallet(r.wallet, creatorMessage("rejected", { id: r.id, slug: r.slug, version: r.version, creatorWallet: r.wallet, name: null }, EXPIRED_NOTE)).catch(() => undefined);
+    if (opts.notify !== false) await notifyCreatorUser(r.userId, creatorMessage("rejected", { id: r.id, slug: r.slug, version: r.version, creatorUserId: r.userId, name: null }, EXPIRED_NOTE)).catch(() => undefined);
   }
   return n;
 }

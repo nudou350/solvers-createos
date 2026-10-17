@@ -4,37 +4,24 @@ import {
   nextActionFor,
   reviewChecklistComplete,
   SUBMISSION_OPEN_STATUSES,
-  DEFAULT_TOKEN_DECIMALS,
-  numberToUnits,
   type AdminSubmissionRow,
   type SubmissionStatus,
   type SubmissionView,
   type ValidationReport,
 } from "@solvers/shared";
+import { isAdminIn } from "../publish/admin-rules.js";
 import { relativePathProblem } from "../runtime/package-paths.js";
+import { formatCents, MIN_PRICE_CENTS } from "../runtime/price.js";
 import type { ZipIssue } from "./zip.js";
 
 // Pure rules of package submission and review (PACKAGE_SPEC.md 14). No database, disk or network: tested in
 // test/submission-rules.test.ts. The handlers (upload, worker, review) only orchestrate.
 
-/** Price floor (6-decimal base units) while the on-chain config does not answer: the contracts' default `minPrice` is 5. */
-export const DEFAULT_MIN_PRICE_UNITS = 5_000_000n;
-export const MAX_ROYALTY_BPS = 1000;
-
 // ---------------------------------------------------------------------------------------------------------------
 // Administrators
 
-/** Wallets of `ADMIN_WALLETS` (comma separated), without spaces or empties. */
-export function adminWallets(list: string): Set<string> {
-  return new Set(
-    list
-      .split(",")
-      .map((w) => w.trim())
-      .filter(Boolean),
-  );
-}
-
-export const isAdminWallet = (wallet: string | undefined, list: string): boolean => !!wallet && adminWallets(list).has(wallet);
+/** Is the user id listed in `ADMIN_USER_IDS` (comma separated)? */
+export const isAdminUser = (userId: string | undefined, list: string): boolean => isAdminIn(userId, list);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Invites
@@ -130,7 +117,7 @@ export function safeManifestFields(raw: unknown): { slug?: string; version?: str
 // ---------------------------------------------------------------------------------------------------------------
 // Approval
 
-export type Approved = { versionHash: string; priceUsdc: string; royaltyBps: number; name: string; version: string };
+export type Approved = { versionHash: string; priceCents: number; name: string; version: string };
 
 /** Is `a` an X.Y.Z version strictly greater than `b`? An invalid format is never greater. */
 export function versionGreater(a: string, b: string): boolean {
@@ -142,24 +129,11 @@ export function versionGreater(a: string, b: string): boolean {
   return false;
 }
 
-/** Manifest price in 6-decimal base units; refuses NaN, negatives and more decimals than the payment token has. */
-export function priceToUnits(priceUsdc: unknown): bigint | null {
-  if (typeof priceUsdc !== "number" || !Number.isFinite(priceUsdc) || priceUsdc <= 0) return null;
-  let units: bigint;
-  try {
-    units = numberToUnits(priceUsdc, DEFAULT_TOKEN_DECIMALS);
-  } catch {
-    return null; // more decimals than the token has
-  }
-  // 9.9999999 does not become 10.000000: what the creator wrote must fit exactly in 6 decimals.
-  return Math.abs(Number(units) / 1_000_000 - priceUsdc) < 1e-9 ? units : null;
-}
-
-export type ApprovalPlan = { ok: true; approved: Approved; priceUnits: bigint } | { ok: false; status: number; code: string; message: string };
+export type ApprovalPlan = { ok: true; approved: Approved } | { ok: false; status: number; code: string; message: string };
 
 /**
- * Checks what the approval will freeze: price >= minPrice and royaltyBps from 0 to 1000. The price comes from the SUBMITTED
- * MANIFEST (never from the admin's request body) and the hash from the extracted folder, computed by the caller.
+ * Checks what the approval will freeze: an integer price in USD cents >= the platform minimum. The price comes from the
+ * SUBMITTED MANIFEST (never from the admin's request body) and the hash from the extracted folder, computed by the caller.
  */
 export function planApproval(args: {
   status: string;
@@ -167,7 +141,7 @@ export function planApproval(args: {
   manifest: Record<string, unknown> | null;
   checklist: Record<string, boolean>;
   versionHash: string;
-  minPriceUnits: bigint;
+  minPriceCents?: number;
 }): ApprovalPlan {
   const fail = (status: number, code: string, message: string): ApprovalPlan => ({ ok: false, status, code, message });
   if (reviewTransitionProblem(args.status, "approve")) {
@@ -177,26 +151,22 @@ export function planApproval(args: {
   if (!reviewChecklistComplete(args.checklist)) return fail(400, "checklist_incomplete", "Check every item on the review checklist to approve.");
   const m = args.manifest;
   if (!m) return fail(409, "no_manifest", "The submission has no manifest.");
-  const pricing = (m.pricing ?? {}) as { priceUsdc?: unknown; royaltyBps?: unknown };
-  const units = priceToUnits(pricing.priceUsdc);
-  if (units === null) return fail(400, "price_invalid", "The manifest price is not a valid amount of the payment stablecoin (up to 6 decimal places).");
-  if (units < args.minPriceUnits) return fail(400, "price_below_min", `The price is below the platform minimum (${Number(args.minPriceUnits) / 1_000_000} in the payment stablecoin).`);
-  const bps = pricing.royaltyBps;
-  if (typeof bps !== "number" || !Number.isInteger(bps) || bps < 0 || bps > MAX_ROYALTY_BPS) {
-    return fail(400, "royalty_invalid", `royaltyBps must be an integer from 0 to ${MAX_ROYALTY_BPS}.`);
-  }
+  const cents = ((m.pricing ?? {}) as { priceCents?: unknown }).priceCents;
+  if (typeof cents !== "number" || !Number.isSafeInteger(cents) || cents <= 0) return fail(400, "price_invalid", "The manifest price (pricing.priceCents) must be a whole number of US cents.");
+  const min = args.minPriceCents ?? MIN_PRICE_CENTS;
+  if (cents < min) return fail(400, "price_below_min", `The price is below the platform minimum (${formatCents(min)}).`);
   if (typeof m.name !== "string" || typeof m.version !== "string") return fail(409, "no_manifest", "The manifest has no valid name and version.");
-  return { ok: true, priceUnits: units, approved: { versionHash: args.versionHash, priceUsdc: units.toString(), royaltyBps: bps, name: m.name, version: m.version } };
+  return { ok: true, approved: { versionHash: args.versionHash, priceCents: cents, name: m.name, version: m.version } };
 }
 
 /** Reviewer action that changes the state: where it goes and from which states. Every action respects `canTransition` AND this list. */
 export const REVIEW_TRANSITIONS = {
-  // publish_failed -> awaiting_creator_signature is also a valid transition, but it is the publication retry (admin), not an approval.
-  approve: { to: "awaiting_creator_signature", from: ["pending_review"] },
+  // Approving starts the publication right away (publish/finalize.ts).
+  approve: { to: "publishing", from: ["pending_review"] },
   request_changes: { to: "changes_requested", from: ["pending_review"] },
   reject: { to: "rejected", from: ["pending_review", "changes_requested"] },
-  // The admin undoes an approval the creator has not signed yet: back to `changes_requested` (note required).
-  revoke: { to: "changes_requested", from: ["awaiting_creator_signature"] },
+  // The admin undoes an approval whose publication failed: back to `changes_requested` (note required).
+  revoke: { to: "changes_requested", from: ["publish_failed"] },
 } as const satisfies Record<string, { to: SubmissionStatus; from: readonly SubmissionStatus[] }>;
 
 export function reviewTransitionProblem(from: string, action: keyof typeof REVIEW_TRANSITIONS): string | null {
@@ -235,7 +205,7 @@ type SubmissionRowLike = {
 };
 
 /** Creator view: never exposes disk paths, the whole manifest nor internal review data. */
-export function toSubmissionView(row: SubmissionRowLike, isNewAgent: boolean): SubmissionView {
+export function toSubmissionView(row: SubmissionRowLike): SubmissionView {
   const name = typeof row.manifest?.name === "string" ? row.manifest.name : null;
   return {
     id: row.id,
@@ -247,21 +217,25 @@ export function toSubmissionView(row: SubmissionRowLike, isNewAgent: boolean): S
     sizeBytes: row.sizeBytes,
     validation: (row.validation as ValidationReport | null) ?? null,
     reviewerNotes: row.reviewerNotes,
-    nextAction: nextActionFor(row.status as SubmissionStatus, isNewAgent),
+    nextAction: nextActionFor(row.status as SubmissionStatus),
     error: row.error,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export function toAdminRow(row: SubmissionRowLike, creator: { wallet: string; name: string | null }, isNewAgent: boolean): AdminSubmissionRow {
+/** Creator columns of the admin rows: account, contact e-mail and profile name. */
+export type AdminCreator = { userId: string; email: string | null; name: string | null };
+
+export function toAdminRow(row: SubmissionRowLike, creator: AdminCreator, isNewAgent: boolean): AdminSubmissionRow {
   const { errors, warnings } = countIssues(row.validation);
   return {
     id: row.id,
     slug: row.slug,
     name: typeof row.manifest?.name === "string" ? row.manifest.name : null,
     version: row.version,
-    creatorWallet: creator.wallet as `0x${string}`,
+    creatorUserId: creator.userId,
+    creatorEmail: creator.email,
     creatorName: creator.name,
     status: row.status as SubmissionStatus,
     isNewAgent,
@@ -275,7 +249,7 @@ export function toAdminRow(row: SubmissionRowLike, creator: { wallet: string; na
 /** Queue row from the list's light columns (`listColumns`): name already truncated and counts already computed in the database. */
 export function toAdminListRow(
   row: { id: string; slug: string; version: string; status: string; name: string | null; errorCount: number; warningCount: number; createdAt: Date; updatedAt: Date },
-  creator: { wallet: string; name: string | null },
+  creator: AdminCreator,
   isNewAgent: boolean,
 ): AdminSubmissionRow {
   return {
@@ -283,7 +257,8 @@ export function toAdminListRow(
     slug: row.slug,
     name: row.name,
     version: row.version,
-    creatorWallet: creator.wallet as `0x${string}`,
+    creatorUserId: creator.userId,
+    creatorEmail: creator.email,
     creatorName: creator.name,
     status: row.status as SubmissionStatus,
     isNewAgent,

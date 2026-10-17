@@ -1,4 +1,5 @@
 import { localeFilePath, PACKAGE_LOCALE_LANGS, PackageLocale, RESERVED_SLUGS, THIRD_PARTY_CATEGORIES } from "@solvers/shared";
+import { formatCents } from "../price.js";
 import { chunkMarkdown } from "../../knowledge/chunk.js";
 import { todayInSaoPaulo } from "../../knowledge/search-rules.js";
 import { VERSION_RE } from "../agent-ids.js";
@@ -57,19 +58,19 @@ export type ValidateOptions = {
   origin?: "platform" | "third_party";
   /** Alias of `origin` (submission-flow contract): `mode: "third_party"` turns on the third-party rules. `origin` wins if both are given. */
   mode?: "platform" | "third_party";
-  /** Logged-in creator (profile id or wallet); used as `existing.creatorId` when that is missing. */
+  /** Logged-in creator (profile id or user id); used as `existing.creatorId` when that is missing. */
   creatorId?: string;
   /** Default: "nucleo". The Open phase ("abertura") adds `http`, PDF/HTML/CSV etc. */
   phase?: "nucleo" | "abertura";
   limits?: Partial<Limits>;
   now?: Date;
-  /** `minPrice` from the Registry config, in whole USD-stablecoin units (currently 5). */
-  minPriceUsdc?: number;
+  /** Lowest license price, in USD cents (MIN_PRICE_CENTS). */
+  minPriceCents?: number;
   reservedSlugs?: readonly string[];
   /**
    * What the database already knows. Two forms, which can be combined:
    * - by function: `creatorId` + `ownerOfId`/`ownerOfSlug` (return the owner of the id/slug);
-   * - by data: `agentId` (id of the creator's Solver being updated; absent on the 1st version), `creatorWallet`,
+   * - by data: `agentId` (id of the creator's Solver being updated; absent on the 1st version), `creatorUserId`,
    *   `publishedVersion` (already published version: the new one must be greater) and `slugs` (slugs that ALREADY belong to OTHER creators).
    */
   existing?: {
@@ -77,7 +78,7 @@ export type ValidateOptions = {
     ownerOfId?: (id: string) => string | undefined;
     ownerOfSlug?: (slug: string) => string | undefined;
     agentId?: string;
-    creatorWallet?: string;
+    creatorUserId?: string;
     publishedVersion?: string;
     slugs?: readonly string[];
   };
@@ -104,7 +105,7 @@ type View = {
   packageContents: string[];
   searchPhrases: string[];
   beforeAfter: { prompt: string; withoutSolver: string; withSolver: string }[];
-  steps: { file: string; gate: GateView[] }[];
+  steps: { file: string; gate: GateView[]; verify?: { label: string }[] }[];
   tools: ToolView[];
   templates?: NonNullable<ManifestV1Type["templates"]>;
   onboarding?: ManifestV1Type["onboarding"];
@@ -113,10 +114,8 @@ type View = {
   platform?: boolean;
   escalation?: ManifestV1Type["escalation"];
   differentiators?: string[];
-  guarantee: { available: boolean; milestones?: { verify?: string }[] };
-  pricing: { priceUsdc: number; royaltyBps: number };
+  pricing: { priceCents: number };
   trial?: { summary: string; lockedSummary: string; available?: boolean };
-  supply?: { maxLicenses: number };
   versions: { version: string; notes: string }[];
 };
 
@@ -141,7 +140,7 @@ const SHARED_HOSTING = [".vercel.app", ".github.io", ".workers.dev", ".netlify.a
 const GLOBAL_NAMES = new Set([
   "list_my_solvers", "find_solver", "get_purchase_link", "activate_solver", "preflight_check", "next_step", "search_knowledge", "run_tool",
   "get_memory", "save_memory", "forget_memory", "get_template", "submit_deliverable", "escalate_to_creator",
-  "session_id", "agent_id", "result_summary", "completed_step", "escrow_id", "available_tools",
+  "session_id", "agent_id", "result_summary", "completed_step", "available_tools",
 ]);
 
 const extOf = (p: string) => {
@@ -324,14 +323,13 @@ export function validatePackage(input: PackageInput, opts: ValidateOptions = {})
   const mp = (field: string) => `manifest.json#${field}`;
 
   // ---- Manifest identity, format and limits
-  if (Buffer.byteLength(m.name) > NAME_MAX_BYTES) add(L("E"), "MANIFEST_NAME_TOO_LONG", mp("name"), `The name is longer than ${NAME_MAX_BYTES} bytes (catalog and license metadata limit)`, "Shorten the name.");
+  if (Buffer.byteLength(m.name) > NAME_MAX_BYTES) add(L("E"), "MANIFEST_NAME_TOO_LONG", mp("name"), `The name is longer than ${NAME_MAX_BYTES} bytes (catalog limit)`, "Shorten the name.");
   if (strict) {
     if (Buffer.byteLength(m.name) < 3) add("E", "MANIFEST_SCHEMA", mp("name"), "The name must be at least 3 characters long", "Write a name.");
     if (m.tagline.length < 10 || m.tagline.length > 100) add("E", "MANIFEST_SCHEMA", mp("tagline"), `The tagline must be 10 to 100 characters long (it has ${m.tagline.length})`, "Rewrite it as a single value statement.");
     if (m.description.length < 120 || m.description.length > 2000) add("E", "MANIFEST_SCHEMA", mp("description"), `The description must be 120 to 2,000 characters long (it has ${m.description.length})`, "Explain what it delivers, for whom, and what it does not do.");
     // Health is not in the list: for third parties in the Core phase it becomes MANIFEST_CATEGORY_FORBIDDEN (below), not "unknown category".
     if (!(CATEGORIES as readonly string[]).includes(m.category) && !(third && phase === "nucleo" && HEALTH_CATEGORY.test(m.category))) add("E", "MANIFEST_SCHEMA", mp("category"), `Unknown category: ${m.category}`, `Use one of: ${CATEGORIES.join(", ")}.`);
-    if (m.pricing.royaltyBps < 0 || m.pricing.royaltyBps > 1000) add("E", "MANIFEST_SCHEMA", mp("pricing.royaltyBps"), "royaltyBps must be between 0 and 1000", "Adjust the royalty.");
     if (m.packageContents.length < 3 || m.packageContents.length > 8) add("E", "MANIFEST_SCHEMA", mp("packageContents"), "packageContents must have 3 to 8 items", "List 3 to 8 things the package delivers.");
   }
   if (third) {
@@ -340,18 +338,12 @@ export function validatePackage(input: PackageInput, opts: ValidateOptions = {})
     if (phase === "nucleo" && !THIRD_PARTY_CATEGORIES.includes(m.category) && ((CATEGORIES as readonly string[]).includes(m.category) || HEALTH_CATEGORY.test(m.category))) {
       add("E", "MANIFEST_CATEGORY_FORBIDDEN", mp("category"), `The category ${m.category} is not accepted from third parties at this stage`, `Use another category (${THIRD_PARTY_CATEGORIES.join(", ")}); regulated content waits for legal review.`);
     }
-    if (phase === "nucleo" && m.guarantee?.available === true) {
-      add("E", "MANIFEST_GUARANTEE_FORBIDDEN", mp("guarantee.available"), "Third parties cannot offer a guarantee yet", "Use guarantee: { available: false, defaultCriteria: [] }.");
-    }
   }
-  if (opts.minPriceUsdc !== undefined && m.pricing.priceUsdc < opts.minPriceUsdc) {
-    add(third || strict ? "E" : "A", "MANIFEST_PRICE_BELOW_MIN", mp("pricing.priceUsdc"), `The price (${m.pricing.priceUsdc} USD) is below the minimum (${opts.minPriceUsdc} USD)`, `Use ${opts.minPriceUsdc} USD or more.`);
+  if (opts.minPriceCents !== undefined && m.pricing.priceCents < opts.minPriceCents) {
+    add(third || strict ? "E" : "A", "MANIFEST_PRICE_BELOW_MIN", mp("pricing.priceCents"), `The price (${formatCents(m.pricing.priceCents)}) is below the minimum (${formatCents(opts.minPriceCents)})`, `Use ${opts.minPriceCents} cents or more.`);
   }
   if (!m.versions.some((v) => v.version === m.version)) {
     add(L("E"), "MANIFEST_VERSIONS_MISSING", mp("versions"), `There is no versions[] entry for version ${m.version}`, "Add { version, releasedAt, notes } for the current version.");
-  }
-  if (strict && m.supply && m.trial && m.trial.available !== false) {
-    add("A", "SUPPLY_WITH_TRIAL", mp("supply"), "The product has a license cap and the free trial is on: the trial does not use up a slot and is per wallet", "For real exclusivity turn the trial off (trial.available: false); otherwise keep it and tell the reviewer.");
   }
   if (m.catalogOnly !== undefined) add("A", "CATALOG_ONLY_IGNORED", mp("catalogOnly"), "catalogOnly has no effect on the server", "Remove the field.");
   if (strict && !(m.terms?.rightsConfirmed === true && m.terms.sourcesListed === true)) {
@@ -364,13 +356,13 @@ export function validatePackage(input: PackageInput, opts: ValidateOptions = {})
   if (reserved.includes(m.slug)) add("E", "MANIFEST_SLUG_RESERVED", mp("slug"), `The slug ${m.slug} is reserved`, "Choose another slug.");
   const ex = opts.existing;
   if (ex) {
-    const me = ex.creatorId ?? opts.creatorId ?? ex.creatorWallet;
+    const me = ex.creatorId ?? opts.creatorId ?? ex.creatorUserId;
     const idOwner = m.id ? ex.ownerOfId?.(m.id) : undefined;
     const slugOwner = ex.ownerOfSlug?.(m.slug);
     if (idOwner !== undefined && idOwner !== me) add("E", "MANIFEST_ID_OWNER", mp("id"), "This id already belongs to another creator", "Remove the id (the server assigns a new one) or use the id of one of your own packages.");
     if ((slugOwner !== undefined && slugOwner !== me) || ex.slugs?.includes(m.slug)) add("E", "MANIFEST_ID_OWNER", mp("slug"), "This slug already belongs to another creator", "Choose another slug.");
     // By data: the manifest `id` must be that of the Solver this creator is updating; on the 1st version it does not exist.
-    const byData = ex.agentId !== undefined || ex.publishedVersion !== undefined || ex.slugs !== undefined || ex.creatorWallet !== undefined;
+    const byData = ex.agentId !== undefined || ex.publishedVersion !== undefined || ex.slugs !== undefined || ex.creatorUserId !== undefined;
     if (m.id && byData) {
       if (ex.agentId !== undefined && m.id !== ex.agentId) add("E", "MANIFEST_ID_OWNER", mp("id"), "This id is not your Solver's id", "Use the id of the Solver you are updating.");
       else if (ex.agentId === undefined && ex.publishedVersion === undefined) add("E", "MANIFEST_ID_OWNER", mp("id"), "This id does not belong to you (on the first version the server assigns the id)", "Remove the id field from the manifest.");
@@ -625,7 +617,7 @@ export function validatePackage(input: PackageInput, opts: ValidateOptions = {})
   const joined = stepTexts.join("\n");
   const proven: string[] = [];
   if (m.tools.length >= 1 && m.tools.every((t) => joined.includes(t.name))) proven.push("tool");
-  if (origin === "platform" && m.guarantee?.available && (m.guarantee.milestones ?? []).some((x) => (x.verify ?? "tests") === "tests")) proven.push("verifier");
+  if (m.steps.some((s) => (s.verify ?? []).length > 0)) proven.push("verifier");
   const k = m.knowledge;
   const fresh = k && isIsoDate(k.updatedAt) ? now.getTime() - new Date(`${k.updatedAt}T00:00:00Z`).getTime() <= k.reviewEveryDays * 86_400_000 : false;
   if ((mdLike > 0 && expired === 0 && withDate / mdLike >= 0.5 && fresh) || m.tools.some((t) => t.runner === "http")) proven.push("liveData");
@@ -643,7 +635,6 @@ export function validatePackage(input: PackageInput, opts: ValidateOptions = {})
   const mismatch = (cond: boolean, what: string) => cond && add("A", "CONTENTS_MISMATCH", mp("packageContents"), `packageContents mentions ${what}, but the package has none`, "Adjust the list to what the package really delivers.");
   mismatch(/template|modelo/.test(pc) && declared.length === 0 && templateFiles.length === 0, "templates");
   mismatch(/ferramenta|\btools?\b/.test(pc) && m.tools.length === 0, "tools");
-  mismatch(/garantia|guarantee/.test(pc) && !m.guarantee?.available, "a guarantee");
   // A missing usesMemory is inferred from the steps (as the loader does).
   const usesMemory = m.usesMemory ?? /(save_memory|get_memory)/.test(joined);
   mismatch(/mem(ó|o)ria|calibra|memory/.test(pc) && !usesMemory && !m.onboarding, "memory");
@@ -663,7 +654,7 @@ function diffHint(d: string): string {
     case "tool":
       return "Declare tools in tools and use them in the steps.";
     default:
-      return "Declare the test-based guarantee (platform packages only).";
+      return "Add steps[].verify checks so a step's gate is proven by running it in the sandbox.";
   }
 }
 

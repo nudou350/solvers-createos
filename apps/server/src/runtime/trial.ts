@@ -24,7 +24,7 @@ export type TrialLimits = {
   lockedSummary: string;
 };
 
-/** What the wallet has already spent of the trial (trials table). */
+/** What the user has already spent of the trial (trials table). */
 export type TrialUsage = { searchesUsed: number; toolRuns: Record<string, number> };
 
 /** The specialist's trial limits, or null when it offers no free trial. */
@@ -60,7 +60,7 @@ export function trialLeft(t: TrialLimits, usage: TrialUsage | null) {
   };
 }
 
-/** The wallet's ongoing trial for the library (GET /me/trials). */
+/** The user's ongoing trial for the library (GET /me/trials). */
 export function myTrial(agentId: string, t: TrialLimits, used: number, usage: TrialUsage, lastUsedAt: Date): MyTrial {
   const left = trialLeft(t, usage);
   return {

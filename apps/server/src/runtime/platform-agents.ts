@@ -1,6 +1,6 @@
 import { HttpError } from "../lib/http.js";
 
-// Platform Solvers (PACKAGE_SPEC.md 4.1 and 19): free, database only (no on-chain record), no license and no
+// Platform Solvers (PACKAGE_SPEC.md 4.1 and 19): free, no license and no
 // free trial. The AUTHORITY is this server-side list, never the manifest's `platform` field: the manifest only counts
 // if the slug+id pair is here. Pure (no env or database), tested in test/platform-agents.test.ts.
 
@@ -47,7 +47,7 @@ export function platformVerdict(m: { id: string; slug: string; platform?: boolea
 export const PLATFORM_NOT_FOR_SALE_CODE = "platform_agent_not_for_sale";
 export const PLATFORM_NOT_FOR_SALE_TEXT = "This is a free platform Solver: it is not sold and has no license. Just activate it with activate_solver.";
 
-/** Blocks purchases, guarantees and every other payment path for a platform Solver (409 `platform_agent_not_for_sale`). */
+/** Blocks purchases and every other payment path for a platform Solver (409 `platform_agent_not_for_sale`). */
 export function assertNotPlatformAgent(row: { id: string }): void {
   if (isPlatformAgentRow(row)) throw new HttpError(409, PLATFORM_NOT_FOR_SALE_TEXT, PLATFORM_NOT_FOR_SALE_CODE);
 }

@@ -22,10 +22,10 @@ const opt = (name: string) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
-const positional = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--phase" && args[i - 1] !== "--min-price");
+const positional = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--phase" && args[i - 1] !== "--min-price-cents");
 
 if (positional.length === 0) {
-  console.error("usage: cli:validate [--all] [--third-party|--platform] [--phase nucleo|abertura] [--min-price N] [--json] <folder or .zip>");
+  console.error("usage: cli:validate [--all] [--third-party|--platform] [--phase nucleo|abertura] [--min-price-cents N] [--json] <folder or .zip>");
   process.exit(2);
 }
 
@@ -36,7 +36,7 @@ const options: ValidateOptions = {
   // A ZIP is a submission: third-party rules apply unless --platform is passed.
   origin: flag("--third-party") || (isZip && !flag("--platform")) ? "third_party" : "platform",
   phase: opt("--phase") === "abertura" ? "abertura" : "nucleo",
-  minPriceUsdc: opt("--min-price") ? Number(opt("--min-price")) : undefined,
+  minPriceCents: opt("--min-price-cents") ? Number(opt("--min-price-cents")) : undefined,
 };
 
 const fmt = (i: { code: string; path: string; message: string; fix: string }) => `    ${i.code} ${i.path}\n      ${i.message}\n      → ${i.fix}`;

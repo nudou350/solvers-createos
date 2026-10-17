@@ -41,7 +41,7 @@ async function list(slug: string) {
   const reviews = await db.select().from(schema.reviews).where(eq(schema.reviews.agentId, agent.id));
   for (const rv of reviews) {
     const imgs = await db.select().from(schema.reviewImages).where(eq(schema.reviewImages.reviewId, rv.id)).orderBy(asc(schema.reviewImages.position));
-    for (const r of imgs) console.log(`  review by ${rv.authorWallet.slice(0, 6)}…  ${r.id}  ${s.url(r.key, "full")}`);
+    for (const r of imgs) console.log(`  review by ${rv.authorUserId.slice(0, 8)}…  ${r.id}  ${s.url(r.key, "full")}`);
   }
 }
 

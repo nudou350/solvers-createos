@@ -4,6 +4,7 @@ source: CreateOS Sandbox docs (Limits and defaults, Concepts, Overview) and the 
 source_url: https://createos.sh/docs/Sandbox/Limits
 source_date: 2026-10-17
 valid_until: 2027-01-15
+trial: true
 tags: [createos, sandbox, limits, plans, shapes, rootfs, devbox, pricing]
 ---
 

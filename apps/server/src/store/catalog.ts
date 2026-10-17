@@ -1,18 +1,14 @@
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
-import type { Agent, AgentDetail, AgentTranslations, CatalogLang, Creator, CreatorProfile, GuaranteeOffer } from "@solvers/shared";
-import { agentIdToBytes32, averageRating, bpsToScore, creatorBioFor, splitGuaranteeAmounts } from "@solvers/shared";
-import { env } from "../env.js";
+import type { Agent, AgentDetail, AgentTranslations, CatalogLang, Creator, CreatorProfile, Review } from "@solvers/shared";
+import { averageRating, bpsToScore, creatorBioFor } from "@solvers/shared";
 import { db, schema } from "../db/index.js";
 import { toImageRefs } from "../images/refs.js";
-import { notFound } from "../lib/http.js";
-import { displayUnits } from "../lib/money.js";
+import { HttpError, notFound } from "../lib/http.js";
 import { isAgentId } from "../runtime/agent-ids.js";
 import { getPackage } from "../runtime/packages.js";
 import { trialInfo } from "../runtime/trial.js";
-import { deploymentOrNull } from "./chain-reads.js";
-import { brlPerUsd } from "./fx.js";
-import { textMatchesHash } from "./review-rules.js";
-import { currentEvalBps, guaranteeOffered, toAgent, toCreator, toReview, type AgentExtras, type CreatorStats } from "./mappers.js";
+import { currentEvalBps, toAgent, toCreator, toReview, type AgentExtras, type CreatorStats } from "./mappers.js";
+import { reviewContentHash } from "./review-rules.js";
 
 type AgentRow = typeof schema.agents.$inferSelect;
 
@@ -64,7 +60,7 @@ const publishedAtSql = sql`coalesce(
 )`;
 
 export async function listAgents(query: ListQuery): Promise<Agent[]> {
-  const conds = [eq(schema.agents.status, "active"), eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)];
+  const conds = [eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)];
   if (query.category) conds.push(eq(schema.agents.category, query.category));
   if (query.q) {
     const like = `%${query.q}%`;
@@ -116,15 +112,13 @@ export async function creatorStats(creatorId: string): Promise<CreatorStats> {
       totalSales: sql<number>`coalesce(sum(${schema.agents.totalSales}), 0)`.mapWith(Number),
       ratingSum: sql<number>`coalesce(sum(${schema.agents.ratingSum}), 0)`.mapWith(Number),
       ratingCount: sql<number>`coalesce(sum(${schema.agents.ratingCount}), 0)`.mapWith(Number),
-      disputesLost: sql<number>`coalesce(sum(${schema.agents.disputesLost}), 0)`.mapWith(Number),
-      agentsPublished: sql<number>`count(*) filter (where ${schema.agents.status} = 'active' and ${schema.agents.platformStatus} = 'active')`.mapWith(Number),
+      agentsPublished: sql<number>`count(*) filter (where ${schema.agents.platformStatus} = 'active')`.mapWith(Number),
     })
     .from(schema.agents)
     .where(eq(schema.agents.creatorId, creatorId));
   return {
     totalSales: s?.totalSales ?? 0,
     avgRating: averageRating(s?.ratingSum ?? 0, s?.ratingCount ?? 0),
-    disputesLost: s?.disputesLost ?? 0,
     agentsPublished: s?.agentsPublished ?? 0,
   };
 }
@@ -155,7 +149,7 @@ export async function listCreators(lang: CatalogLang = "en"): Promise<Creator[]>
     .select()
     .from(schema.creators)
     .where(
-      sql`exists (select 1 from ${schema.agents} a where a.creator_id = ${schema.creators.id} and a.status = 'active' and a.platform_status = 'active' and a.listed)`,
+      sql`exists (select 1 from ${schema.agents} a where a.creator_id = ${schema.creators.id} and a.platform_status = 'active' and a.listed)`,
     )
     .orderBy(schema.creators.name);
   const translations = await creatorTranslations(rows.map((r) => r.id), lang);
@@ -168,7 +162,7 @@ export async function getCreatorProfile(creatorId: string, lang: CatalogLang = "
   const rows = await db
     .select()
     .from(schema.agents)
-    .where(and(eq(schema.agents.creatorId, creatorId), eq(schema.agents.status, "active"), eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)));
+    .where(and(eq(schema.agents.creatorId, creatorId), eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)));
   return { creator, agents: await mapAgents(rows, lang) };
 }
 
@@ -176,17 +170,17 @@ export async function listReviews(agentId: string, limit = 50) {
   const rows = await db
     .select()
     .from(schema.reviews)
-    .where(and(eq(schema.reviews.agentId, agentId), eq(schema.reviews.onchain, true)))
+    .where(eq(schema.reviews.agentId, agentId))
     .orderBy(desc(schema.reviews.createdAt))
     .limit(limit);
-  const wallets = [...new Set(rows.map((r) => r.authorWallet))];
-  const names = wallets.length
+  const authors = [...new Set(rows.map((r) => r.authorUserId))];
+  const names = authors.length
     ? await db
-        .select({ wallet: schema.userProfiles.wallet, name: schema.userProfiles.displayName })
+        .select({ userId: schema.userProfiles.userId, name: schema.userProfiles.displayName })
         .from(schema.userProfiles)
-        .where(inArray(schema.userProfiles.wallet, wallets))
+        .where(inArray(schema.userProfiles.userId, authors))
     : [];
-  const nameOf = new Map(names.map((n) => [n.wallet, n.name]));
+  const nameOf = new Map(names.map((n) => [n.userId, n.name]));
   const imgRows = rows.length
     ? await db
         .select()
@@ -195,8 +189,44 @@ export async function listReviews(agentId: string, limit = 50) {
         .orderBy(asc(schema.reviewImages.position))
     : [];
   const imagesOf = (reviewId: string) => toImageRefs(imgRows.filter((i) => i.reviewId === reviewId));
-  // The text is off-chain: it only shows when its sha256 matches the hash confirmed on-chain.
-  return rows.map((r) => toReview(textMatchesHash(r.text, r.contentHash) ? r : { ...r, text: "" }, nameOf.get(r.authorWallet) ?? null, imagesOf(r.id)));
+  return rows.map((r) => toReview(r, nameOf.get(r.authorUserId) ?? null, imagesOf(r.id)));
+}
+
+/**
+ * Writes the user's review of a Solver (one per user and Solver: a second call edits it). Only license holders review,
+ * so every review is a verified purchase. The rating totals on `agents` move by the difference, in the same transaction.
+ */
+export async function submitReview(userId: string, idOrSlug: string, input: { rating: number; text: string }): Promise<Review> {
+  const agent = await findAgentRow(idOrSlug);
+  const [license] = await db
+    .select({ id: schema.licenses.id })
+    .from(schema.licenses)
+    .where(and(eq(schema.licenses.userId, userId), eq(schema.licenses.agentId, agent.id)))
+    .limit(1);
+  if (!license) throw new HttpError(403, "Only people who bought this specialist can review it.", "license_required");
+  const id = `${agent.id}:${userId}`;
+  const text = input.text.trim();
+  const saved = await db.transaction(async (tx) => {
+    const [prev] = await tx.select({ rating: schema.reviews.rating }).from(schema.reviews).where(eq(schema.reviews.id, id)).for("update");
+    const values = { rating: input.rating, text, contentHash: reviewContentHash(text), versionHash: agent.versionHash };
+    const [row] = await tx
+      .insert(schema.reviews)
+      .values({ id, agentId: agent.id, authorUserId: userId, ...values })
+      .onConflictDoUpdate({ target: schema.reviews.id, set: values })
+      .returning();
+    await tx
+      .update(schema.agents)
+      .set({
+        ratingSum: sql`${schema.agents.ratingSum} + ${input.rating - (prev?.rating ?? 0)}`,
+        ratingCount: sql`${schema.agents.ratingCount} + ${prev ? 0 : 1}`,
+      })
+      .where(eq(schema.agents.id, agent.id));
+    await tx.update(schema.licenses).set({ reviewId: id }).where(eq(schema.licenses.id, license.id));
+    return row!;
+  });
+  const [profile] = await db.select({ name: schema.userProfiles.displayName }).from(schema.userProfiles).where(eq(schema.userProfiles.userId, userId));
+  const images = await db.select().from(schema.reviewImages).where(eq(schema.reviewImages.reviewId, id)).orderBy(asc(schema.reviewImages.position));
+  return toReview(saved, profile?.name ?? null, toImageRefs(images));
 }
 
 export async function getAgentDetail(idOrSlug: string, lang: CatalogLang = "en"): Promise<AgentDetail> {
@@ -213,14 +243,11 @@ export async function getAgentDetail(idOrSlug: string, lang: CatalogLang = "en")
       disputesLost: 0,
       agentsPublished: 1,
     };
-  const rate = await brlPerUsd();
   const dist = await db
     .select({ rating: schema.reviews.rating, n: sql<number>`count(*)`.mapWith(Number) })
     .from(schema.reviews)
-    .where(and(eq(schema.reviews.agentId, row.id), eq(schema.reviews.onchain, true)))
+    .where(eq(schema.reviews.agentId, row.id))
     .groupBy(schema.reviews.rating);
-  const d = deploymentOrNull();
-  const [creatorRow] = await db.select({ wallet: schema.creators.wallet }).from(schema.creators).where(eq(schema.creators.id, row.creatorId));
   return {
     agent,
     creator,
@@ -237,15 +264,7 @@ export async function getAgentDetail(idOrSlug: string, lang: CatalogLang = "en")
       },
     ],
     trial: agentTrial(row.id),
-    priceBrl: Math.round(displayUnits(row.price) * rate * 100) / 100,
     ratingDistribution: [5, 4, 3, 2, 1].map((star) => dist.find((x) => x.rating === star)?.n ?? 0),
-    onchain: {
-      agentId: row.chainIndex !== null ? agentIdToBytes32(row.id) : null,
-      registry: d ? (d.registry.toLowerCase() as `0x${string}`) : null,
-      licenseContract: d ? (d.license.toLowerCase() as `0x${string}`) : null,
-      creatorWallet: (creatorRow?.wallet as `0x${string}` | undefined) ?? null,
-    },
-    guarantee: guaranteeOffer(row, rate),
   };
 }
 
@@ -255,24 +274,11 @@ function agentTrial(agentId: string) {
   return pkg ? trialInfo(pkg) : null;
 }
 
-/** The creator's guaranteed-task template, with the amount of each milestone already computed. */
-export function guaranteeOffer(row: AgentRow, brlRate: number): GuaranteeOffer | null {
-  const t = row.details.guaranteeTemplate;
-  if (!t || !guaranteeOffered(row)) return null;
-  const amounts = splitGuaranteeAmounts(t.priceUsdc, t.milestones.map((m) => m.sharePct), env.PAYMENT_TOKEN_DECIMALS);
-  return {
-    priceUsdc: t.priceUsdc,
-    priceBrl: Math.round(t.priceUsdc * brlRate * 100) / 100,
-    reviewWindowSecs: env.ESCROW_REVIEW_WINDOW_SECS,
-    milestones: t.milestones.map((m, i) => ({ title: m.title, criteria: m.criteria, amountUsdc: amounts[i]!, verify: m.verify ?? "tests" })),
-  };
-}
-
 export async function listCategories(): Promise<{ category: string; count: number }[]> {
   return db
     .select({ category: schema.agents.category, count: sql<number>`count(*)`.mapWith(Number) })
     .from(schema.agents)
-    .where(and(eq(schema.agents.status, "active"), eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)))
+    .where(and(eq(schema.agents.platformStatus, "active"), eq(schema.agents.listed, true)))
     .groupBy(schema.agents.category)
     .orderBy(schema.agents.category);
 }

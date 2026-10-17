@@ -73,5 +73,5 @@ export const QUOTA_WINDOW_MS = 24 * 3600 * 1000;
 export const quotaText = (quota: number): string =>
   `Daily limit reached: this specialist allows ${quota} knowledge base searches per day. Continue with what you already looked up and try again tomorrow.`;
 
-/** `quota` 0 turns the quota off; `used` is what the wallet has already queried in the window. */
+/** `quota` 0 turns the quota off; `used` is what the user has already queried in the window. */
 export const quotaExceeded = (used: number, quota: number): boolean => quota > 0 && used >= quota;

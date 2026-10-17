@@ -8,8 +8,8 @@ import { botUsername, telegramApi } from "../telegram/client.js";
 import { redeemLinkCode } from "../telegram/link-store.js";
 import { runTelegramPolling } from "../telegram/poller.js";
 
-// Dedicated PM2 process (solvers-tempo-worker; PACKAGE_SPEC.md 16): extracts the ZIP, validates, scans and ingests the knowledge
-// into staging, one submission at a time, with checkpoints in ingest_jobs. It runs outside solvers-tempo-api so it doesn't compete
+// Dedicated PM2 process (solvers-createos-worker; PACKAGE_SPEC.md 16): extracts the ZIP, validates, scans and ingests the knowledge
+// into staging, one submission at a time, with checkpoints in ingest_jobs. It runs outside solvers-createos-api so it doesn't compete
 // with MCP and payments. Compiled entry point: dist/worker/index.js (infra/worker-run.sh).
 //
 // It also runs the Telegram linking bot (src/telegram/poller.ts: /vincular and /start with the code from the site).

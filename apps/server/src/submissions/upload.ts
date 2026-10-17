@@ -6,7 +6,7 @@ import type { Request, RequestHandler } from "express";
 import cookieParser from "cookie-parser";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { SUBMISSION_OPEN_STATUSES } from "@solvers/shared";
-import { requireAuth } from "../auth/jwt.js";
+import { requireUser } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { env } from "../env.js";
 import { randomId } from "../lib/crypto.js";
@@ -29,8 +29,8 @@ const PK_HEADERS = [Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from([0x50, 0x
 const err = (status: number, message: string, code: string, extra?: Record<string, unknown>) => new HttpError(status, message, code, extra);
 
 /** Counts how many submissions the creator has in progress and how many they made in the last 24 h. */
-async function uploadCounts(wallet: string): Promise<{ pending: number; last24h: number }> {
-  const mine = eq(schema.packageSubmissions.creatorWallet, wallet);
+async function uploadCounts(userId: string): Promise<{ pending: number; last24h: number }> {
+  const mine = eq(schema.packageSubmissions.creatorUserId, userId);
   const [p] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(schema.packageSubmissions)
@@ -94,8 +94,8 @@ async function kick(id: string) {
 }
 
 const handler: RequestHandler = async (req, res) => {
-  const wallet = req.wallet!;
-  const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.wallet, wallet));
+  const userId = req.userId!;
+  const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.userId, userId));
   const notReady = creatorNotReady(creator);
   if (notReady) {
     throw forbidden(notReady);
@@ -111,10 +111,10 @@ const handler: RequestHandler = async (req, res) => {
   if (resubmit !== undefined) {
     if (!SUBMISSION_ID_RE.test(resubmit)) throw err(400, "Invalid submission identifier.", "bad_request");
     [existing] = await db.select().from(schema.packageSubmissions).where(eq(schema.packageSubmissions.id, resubmit));
-    if (!existing || existing.creatorWallet !== wallet) throw err(404, "Submission not found.", "not_found");
+    if (!existing || existing.creatorUserId !== userId) throw err(404, "Submission not found.", "not_found");
     if (!canResubmit(existing.status)) throw err(409, "You can only resubmit a package on which the reviewer requested changes.", "not_resubmittable", { status: existing.status });
   } else {
-    const limited = uploadLimitProblem(await uploadCounts(wallet), { maxPending: env.SUBMISSION_MAX_PENDING, maxPerDay: env.SUBMISSION_MAX_PER_DAY });
+    const limited = uploadLimitProblem(await uploadCounts(userId), { maxPending: env.SUBMISSION_MAX_PENDING, maxPerDay: env.SUBMISSION_MAX_PER_DAY });
     if (limited) throw err(429, limited.message, limited.code);
   }
 
@@ -169,7 +169,7 @@ const handler: RequestHandler = async (req, res) => {
       await rm(part, { force: true });
       throw err(409, "This submission no longer accepts a new ZIP.", "not_resubmittable");
     }
-    await notifyAdmin(adminMessage("resubmitted", { id, slug: existing.slug, version: existing.version, creatorWallet: wallet, name: (existing.manifest?.name as string | undefined) ?? null }));
+    await notifyAdmin(adminMessage("resubmitted", { id, slug: existing.slug, version: existing.version, creatorUserId: userId, name: (existing.manifest?.name as string | undefined) ?? null }));
     void kick(id);
     res.status(202).json({ id, status: "validating" });
     return;
@@ -179,23 +179,23 @@ const handler: RequestHandler = async (req, res) => {
     await rename(part, zipPathOf(id));
     // Recount under a per-creator lock: two simultaneous uploads cannot get past the pending limit.
     await db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`creator-upload:${wallet}`}, 0))`);
-      const mine = eq(schema.packageSubmissions.creatorWallet, wallet);
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`creator-upload:${userId}`}, 0))`);
+      const mine = eq(schema.packageSubmissions.creatorUserId, userId);
       const [p] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.packageSubmissions).where(and(mine, inArray(schema.packageSubmissions.status, [...SUBMISSION_OPEN_STATUSES])));
       const [d] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.packageSubmissions).where(and(mine, gt(schema.packageSubmissions.createdAt, sql`now() - interval '24 hours'`)));
       const limited = uploadLimitProblem({ pending: p?.n ?? 0, last24h: d?.n ?? 0 }, { maxPending: env.SUBMISSION_MAX_PENDING, maxPerDay: env.SUBMISSION_MAX_PER_DAY });
       if (limited) throw err(429, limited.message, limited.code);
       // The final slug, version and agentId are only known after opening the ZIP: the worker fills them in.
-      await tx.insert(schema.packageSubmissions).values({ id, creatorWallet: wallet, agentId: randomId(16), slug: "", version: "", status: "submitted", zipPath: zipRelPath(id), sizeBytes: size });
+      await tx.insert(schema.packageSubmissions).values({ id, creatorUserId: userId, agentId: randomId(16), slug: "", version: "", status: "submitted", zipPath: zipRelPath(id), sizeBytes: size });
     });
   } catch (e) {
     await rm(dir, { recursive: true, force: true });
     throw e;
   }
-  await notifyAdmin(adminMessage("submitted", { id, slug: "", version: "", creatorWallet: wallet }));
+  await notifyAdmin(adminMessage("submitted", { id, slug: "", version: "", creatorUserId: userId }));
   void kick(id);
   res.status(202).json({ id, status: "submitted" });
 };
 
 /** Route chain: cookie -> login -> handler. CORS and the per-IP limit come from app.ts (where `webCors` and `byIp` exist). */
-export const submissionUploadHandlers: RequestHandler[] = [closeUnreadBody, cookieParser(), requireAuth, handler];
+export const submissionUploadHandlers: RequestHandler[] = [closeUnreadBody, cookieParser(), requireUser, handler];

@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { desc, eq, sql } from "drizzle-orm";
 import { CreatorProfileInput, type CreatorMe, type SubmissionView, type TelegramLink } from "@solvers/shared";
-import { requireAuth, requireWallet } from "../auth/jwt.js";
+import { requireUser, requireUserId } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
-import { env } from "../env.js";
 import { randomId } from "../lib/crypto.js";
 import { h, HttpError, notFound, parse } from "../lib/http.js";
+import { isAdminUser } from "../publish/admin.js";
 import { manifestJsonSchema } from "../runtime/validate/json-schema.js";
 import { adminRouter } from "../submissions/admin-routes.js";
-import { isNewAgent, listColumns, newAgentSet } from "../submissions/lookup.js";
+import { listColumns } from "../submissions/lookup.js";
 import { SUBMISSION_ID_RE } from "../submissions/paths.js";
-import { creatorNotReady, isAdminWallet, normalizeInviteCode, toSubmissionView } from "../submissions/rules.js";
+import { creatorNotReady, normalizeInviteCode, toSubmissionView } from "../submissions/rules.js";
 import { botUsername } from "../telegram/client.js";
 import { deepLinkOf, LINK_MAX_PER_WINDOW } from "../telegram/link-rules.js";
 import { issueLinkCode } from "../telegram/link-store.js";
@@ -24,9 +24,11 @@ export const creatorRouter: Router = Router();
 
 type CreatorRow = typeof schema.creators.$inferSelect;
 
-function meOf(wallet: string, c: CreatorRow | undefined, bot: string | null): CreatorMe {
+async function meOf(userId: string, c: CreatorRow | undefined, bot: string | null): Promise<CreatorMe> {
+  const [user] = await db.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, userId));
   return {
-    wallet: wallet as CreatorMe["wallet"],
+    userId,
+    email: user?.email ?? "",
     hasProfile: !!c,
     invited: c?.invited ?? false,
     termsAccepted: c?.termsAcceptedAt != null,
@@ -36,7 +38,7 @@ function meOf(wallet: string, c: CreatorRow | undefined, bot: string | null): Cr
     // the admin can also link it with cli:invite set-chat).
     contactVerified: c?.telegramChatId != null,
     canSubmit: creatorNotReady(c) === null,
-    isAdmin: isAdminWallet(wallet, env.ADMIN_WALLETS),
+    isAdmin: isAdminUser(userId),
     telegramBot: bot ? { username: bot } : null,
   };
 }
@@ -44,17 +46,17 @@ function meOf(wallet: string, c: CreatorRow | undefined, bot: string | null): Cr
 /** The bot's @username (cached), or null: GET /creator/me never fails because of Telegram. */
 const botOf = (): Promise<string | null> => botUsername().catch(() => null);
 
-async function creatorOf(wallet: string): Promise<CreatorRow | undefined> {
-  const [c] = await db.select().from(schema.creators).where(eq(schema.creators.wallet, wallet));
+async function creatorOf(userId: string): Promise<CreatorRow | undefined> {
+  const [c] = await db.select().from(schema.creators).where(eq(schema.creators.userId, userId));
   return c;
 }
 
 creatorRouter.get(
   "/creator/me",
-  requireAuth,
+  requireUser,
   h(async (req): Promise<CreatorMe> => {
-    const wallet = requireWallet(req);
-    return meOf(wallet, await creatorOf(wallet), await botOf());
+    const userId = requireUserId(req);
+    return meOf(userId, await creatorOf(userId), await botOf());
   }),
 );
 
@@ -65,12 +67,12 @@ creatorRouter.get(
  */
 creatorRouter.post(
   "/creator/telegram-link",
-  requireAuth,
+  requireUser,
   h(async (req): Promise<TelegramLink> => {
-    const wallet = requireWallet(req);
+    const userId = requireUserId(req);
     const bot = await botUsername();
     if (!bot) throw new HttpError(503, "Telegram linking is unavailable right now. Try again in a few minutes or contact the team.", "telegram_unavailable");
-    const r = await issueLinkCode(wallet);
+    const r = await issueLinkCode(userId);
     if (r.status === "no_profile") throw new HttpError(403, "Save your creator profile before linking Telegram.", "profile_required");
     if (r.status === "limited") {
       throw new HttpError(429, `You have already generated ${LINK_MAX_PER_WINDOW} codes in the last hour. Try again in ${Math.ceil(r.retryAfterSec / 60)} min.`, "too_many_codes", { retryAfterSec: r.retryAfterSec });
@@ -80,19 +82,19 @@ creatorRouter.post(
 );
 
 /**
- * Profile sign-up/update. The first sign-up needs a valid unused invite: the wallet becomes the invite's owner and
+ * Profile sign-up/update. The first sign-up needs a valid unused invite: the user becomes the invite's owner and
  * `creators.invited` becomes true, all in one transaction (two sign-ups with the same code cannot both pass).
  */
 creatorRouter.post(
   "/creator/profile",
-  requireAuth,
+  requireUser,
   h(async (req): Promise<CreatorMe> => {
-    const wallet = requireWallet(req);
+    const userId = requireUserId(req);
     const body = parse(CreatorProfileInput, req.body);
     await db.transaction(async (tx) => {
-      // Lock per wallet: two submissions of the same form become a single sign-up.
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`creator-profile:${wallet}`}, 0))`);
-      const [existing] = await tx.select().from(schema.creators).where(eq(schema.creators.wallet, wallet));
+      // Lock per user: two submissions of the same form become a single sign-up.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`creator-profile:${userId}`}, 0))`);
+      const [existing] = await tx.select().from(schema.creators).where(eq(schema.creators.userId, userId));
       if (existing?.invited) {
         await tx
           .update(schema.creators)
@@ -104,7 +106,7 @@ creatorRouter.post(
       const code = normalizeInviteCode(body.inviteCode);
       const claimed = await tx
         .update(schema.creatorInvites)
-        .set({ wallet, usedAt: new Date() })
+        .set({ userId, usedAt: new Date() })
         .where(sql`${schema.creatorInvites.code} = ${code} and ${schema.creatorInvites.usedAt} is null`)
         .returning({ code: schema.creatorInvites.code });
       if (claimed.length === 0) {
@@ -116,41 +118,40 @@ creatorRouter.post(
       if (existing) {
         await tx.update(schema.creators).set({ name: body.name, bio: body.bio, invited: true, termsAcceptedAt: now }).where(eq(schema.creators.id, existing.id));
       } else {
-        await tx.insert(schema.creators).values({ id: `cr_${randomId(8)}`, wallet, name: body.name, bio: body.bio, invited: true, termsAcceptedAt: now });
+        await tx.insert(schema.creators).values({ id: `cr_${randomId(8)}`, userId, name: body.name, bio: body.bio, invited: true, termsAcceptedAt: now });
       }
     });
-    return meOf(wallet, await creatorOf(wallet), await botOf());
+    return meOf(userId, await creatorOf(userId), await botOf());
   }),
 );
 
 creatorRouter.get(
   "/creator/submissions",
-  requireAuth,
+  requireUser,
   h(async (req): Promise<SubmissionView[]> => {
-    const wallet = requireWallet(req);
+    const userId = requireUserId(req);
     // Light columns: nothing of the whole manifest (only the name, truncated in the database), `scans` or `approved`.
     const rows = await db
       .select({ ...listColumns, validation: schema.packageSubmissions.validation })
       .from(schema.packageSubmissions)
-      .where(eq(schema.packageSubmissions.creatorWallet, wallet))
+      .where(eq(schema.packageSubmissions.creatorUserId, userId))
       .orderBy(desc(schema.packageSubmissions.createdAt))
       .limit(100);
-    const fresh = await newAgentSet([...new Set(rows.map((r) => r.agentId))]);
-    return rows.map((r) => toSubmissionView({ ...r, manifest: r.name ? { name: r.name } : null }, fresh.has(r.agentId)));
+    return rows.map((r) => toSubmissionView({ ...r, manifest: r.name ? { name: r.name } : null }));
   }),
 );
 
 creatorRouter.get(
   "/creator/submissions/:id",
-  requireAuth,
+  requireUser,
   h(async (req): Promise<SubmissionView> => {
-    const wallet = requireWallet(req);
+    const userId = requireUserId(req);
     const id = String(req.params.id);
     if (!SUBMISSION_ID_RE.test(id)) throw notFound("Submission not found.");
     const [row] = await db.select().from(schema.packageSubmissions).where(eq(schema.packageSubmissions.id, id));
     // Another creator's submission answers 404, not 403: it does not confirm the id exists.
-    if (!row || row.creatorWallet !== wallet) throw notFound("Submission not found.");
-    return toSubmissionView(row, await isNewAgent(row.agentId));
+    if (!row || row.creatorUserId !== userId) throw notFound("Submission not found.");
+    return toSubmissionView(row);
   }),
 );
 

@@ -170,10 +170,3 @@ export function memoryText(v: MemoryView): string {
   parts.push(MEMORY_USE_RULES);
   return parts.join("\n\n");
 }
-
-/** No memory key on this connection: calibration is impossible and the specialist continues with its defaults. */
-export function memoryUnavailableText(hasOnboarding: boolean): string {
-  const base = "Memory is unavailable on this connection (the key was not authorized). Continue without memory.";
-  if (!hasOnboarding) return base;
-  return `${base}\nonboarding_unavailable: calibration isn't possible right now. Continue with the specialist's defaults and tell the user that, for it to adapt to them, they need to reconnect Solvers and confirm the memory signature in their wallet.`;
-}

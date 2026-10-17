@@ -1,40 +1,40 @@
 import { existsSync } from "node:fs";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { AdminReviewInput } from "@solvers/shared";
 import { db, schema } from "../db/index.js";
 import { deleteKnowledgeVersion } from "../knowledge/ingest.js";
 import { HttpError } from "../lib/http.js";
 import { packageHashOf } from "../review/hash.js";
 import { packageFromFolder } from "../runtime/validate/input.js";
-import { minPriceUnits, ownershipConflict } from "./lookup.js";
-import { creatorMessage, notifyCreatorWallet } from "./notify.js";
+import { ownershipConflict } from "./lookup.js";
+import { creatorMessage, notifyCreatorUser } from "./notify.js";
 import { extractedDirOf, stagingVersion } from "./paths.js";
 import { planApproval, reviewTransitionProblem, REVIEW_TRANSITIONS, versionGreater, type Approved } from "./rules.js";
 
 // Reviewer decisions on a submission in `pending_review` (PACKAGE_SPEC.md 14.4 and 15.3). Every action respects
 // `canTransition`, is conditional on the current state (two simultaneous decisions do not both go through) and leaves a row
-// in `package_reviews`, which is insert-only (database trigger). Approving on the site does NOT sign anything on-chain.
+// in `package_reviews`, which is insert-only (database trigger). Approving moves the submission to `publishing`; the
+// caller then runs the publication (publish/finalize.ts).
 
 type Row = typeof schema.packageSubmissions.$inferSelect;
 
 export type ReviewCtx = {
   id: string;
-  reviewerWallet: string;
+  reviewerUserId: string;
   ip: string | undefined;
   input: AdminReviewInput;
 };
 
 export type ReviewDeps = {
-  minPriceUnits: () => Promise<bigint>;
-  notifyCreator: (wallet: string, text: string) => Promise<void>;
+  notifyCreator: (userId: string, text: string) => Promise<void>;
   deleteStaging: (agentId: string, version: string) => Promise<number>;
   /** Tests only: tracks the order of the approval's writes. */
   trace?: (step: "published_version" | "submission" | "review") => void;
 };
 
-export const defaultReviewDeps: ReviewDeps = { minPriceUnits, notifyCreator: notifyCreatorWallet, deleteStaging: deleteKnowledgeVersion };
+export const defaultReviewDeps: ReviewDeps = { notifyCreator: notifyCreatorUser, deleteStaging: deleteKnowledgeVersion };
 
-const subjectOf = (r: Row) => ({ id: r.id, slug: r.slug, version: r.version, creatorWallet: r.creatorWallet, name: (r.manifest?.name as string | undefined) ?? null });
+const subjectOf = (r: Row) => ({ id: r.id, slug: r.slug, version: r.version, creatorUserId: r.creatorUserId, name: (r.manifest?.name as string | undefined) ?? null });
 
 async function load(id: string): Promise<Row> {
   const [row] = await db.select().from(schema.packageSubmissions).where(eq(schema.packageSubmissions.id, id));
@@ -51,22 +51,21 @@ async function lockPending(tx: Parameters<Parameters<typeof db.transaction>[0]>[
 }
 
 /**
- * Approves: freezes hash, price, royalty, name and version in `package_submissions.approved` and moves to
- * `awaiting_creator_signature`. The approved version goes into `agent_published_versions` BEFORE any other write:
- * `/tx/submit` indexes the creator's transaction right away, and the indexer would compare the chain with a row that did not exist yet.
+ * Approves: freezes hash, price, name and version in `package_submissions.approved` and moves to `publishing`. The
+ * approved version goes into `agent_published_versions` first, in the same transaction.
  */
-export async function approveSubmission(ctx: ReviewCtx, deps: ReviewDeps = defaultReviewDeps): Promise<{ id: string; status: "awaiting_creator_signature"; approved: Approved }> {
+export async function approveSubmission(ctx: ReviewCtx, deps: ReviewDeps = defaultReviewDeps): Promise<{ id: string; status: "publishing"; approved: Approved }> {
   const row = await load(ctx.id);
   // Separation of duties: whoever submitted the package cannot approve it (not even as an admin).
-  if (ctx.reviewerWallet === row.creatorWallet) throw new HttpError(403, "You can't approve your own submission: another administrator has to review it.", "self_review");
+  if (ctx.reviewerUserId === row.creatorUserId) throw new HttpError(403, "You can't approve your own submission: another administrator has to review it.", "self_review");
   const bad = reviewTransitionProblem(row.status, "approve");
   if (bad) throw new HttpError(409, bad, "invalid_state");
   const dir = extractedDirOf(ctx.id);
   if (!existsSync(dir)) throw new HttpError(409, "The extracted files for this submission no longer exist on the server.", "files_missing");
 
-  // The hash is computed HERE, over the folder the reviewer saw: it is the `versionHash` that goes on-chain.
+  // The hash is computed HERE, over the folder the reviewer saw: publication checks the package against it.
   const versionHash = packageHashOf(packageFromFolder(dir));
-  const plan = planApproval({ status: row.status, validation: row.validation, manifest: row.manifest, checklist: ctx.input.checklist, versionHash, minPriceUnits: await deps.minPriceUnits() });
+  const plan = planApproval({ status: row.status, validation: row.validation, manifest: row.manifest, checklist: ctx.input.checklist, versionHash });
   if (!plan.ok) throw new HttpError(plan.status, plan.message, plan.code);
 
   await db.transaction(async (tx) => {
@@ -83,17 +82,17 @@ export async function approveSubmission(ctx: ReviewCtx, deps: ReviewDeps = defau
       throw new HttpError(409, `Version ${plan.approved.version} is not greater than the already published ${live.version}. Ask the creator to bump the version.`, "version_already_published");
     }
     // Owner of the slug and id: the catalog, the platform and other approved submissions count as of now, not as of the upload.
-    const conflict = await ownershipConflict({ submissionId: fresh.id, wallet: fresh.creatorWallet, agentId: fresh.agentId, slug: fresh.slug });
+    const conflict = await ownershipConflict({ submissionId: fresh.id, userId: fresh.creatorUserId, agentId: fresh.agentId, slug: fresh.slug });
     if (conflict) throw new HttpError(409, conflict, "ownership_conflict");
 
     // 1) approved version: before anything else.
     deps.trace?.("published_version");
     await tx
       .insert(schema.agentPublishedVersions)
-      .values({ agentId: fresh.agentId, version: plan.approved.version, versionHash, priceUsdc: plan.priceUnits })
+      .values({ agentId: fresh.agentId, version: plan.approved.version, versionHash, priceCents: plan.approved.priceCents })
       .onConflictDoUpdate({
         target: [schema.agentPublishedVersions.agentId, schema.agentPublishedVersions.version],
-        set: { versionHash, priceUsdc: plan.priceUnits, approvedAt: new Date(), approveTx: null },
+        set: { versionHash, priceCents: plan.approved.priceCents, approvedAt: new Date() },
       });
     // 2) submission: frozen data and new state.
     deps.trace?.("submission");
@@ -105,7 +104,7 @@ export async function approveSubmission(ctx: ReviewCtx, deps: ReviewDeps = defau
     deps.trace?.("review");
     await tx.insert(schema.packageReviews).values({
       submissionId: ctx.id,
-      reviewerWallet: ctx.reviewerWallet,
+      reviewerUserId: ctx.reviewerUserId,
       action: "approve",
       notes: ctx.input.notes,
       checklist: ctx.input.checklist,
@@ -114,8 +113,8 @@ export async function approveSubmission(ctx: ReviewCtx, deps: ReviewDeps = defau
       ip: ctx.ip ?? null,
     });
   });
-  await deps.notifyCreator(row.creatorWallet, creatorMessage("approved", subjectOf(row)));
-  return { id: ctx.id, status: "awaiting_creator_signature", approved: plan.approved };
+  await deps.notifyCreator(row.creatorUserId, creatorMessage("approved", subjectOf(row)));
+  return { id: ctx.id, status: "publishing", approved: plan.approved };
 }
 
 async function decide(action: "request_changes" | "reject", ctx: ReviewCtx, deps: ReviewDeps): Promise<{ id: string; status: "changes_requested" | "rejected" }> {
@@ -133,7 +132,7 @@ async function decide(action: "request_changes" | "reject", ctx: ReviewCtx, deps
       .where(and(eq(schema.packageSubmissions.id, ctx.id), eq(schema.packageSubmissions.status, fresh.status)));
     await tx.insert(schema.packageReviews).values({
       submissionId: ctx.id,
-      reviewerWallet: ctx.reviewerWallet,
+      reviewerUserId: ctx.reviewerUserId,
       action,
       notes: ctx.input.notes,
       checklist: ctx.input.checklist,
@@ -144,7 +143,7 @@ async function decide(action: "request_changes" | "reject", ctx: ReviewCtx, deps
   });
   // Final rejection: the test knowledge is of no use to anyone anymore.
   if (to === "rejected") await deps.deleteStaging(row.agentId, stagingVersion(ctx.id)).catch((e) => console.warn("[submissions] staging cleanup failed:", (e as Error).message));
-  await deps.notifyCreator(row.creatorWallet, creatorMessage(to === "rejected" ? "rejected" : "changes_requested", subjectOf(row), ctx.input.notes));
+  await deps.notifyCreator(row.creatorUserId, creatorMessage(to === "rejected" ? "rejected" : "changes_requested", subjectOf(row), ctx.input.notes));
   return { id: ctx.id, status: to };
 }
 
@@ -152,9 +151,9 @@ export const requestChanges = (ctx: ReviewCtx, deps: ReviewDeps = defaultReviewD
 export const rejectSubmission = (ctx: ReviewCtx, deps: ReviewDeps = defaultReviewDeps) => decide("reject", ctx, deps) as Promise<{ id: string; status: "rejected" }>;
 
 /**
- * Revokes an approval the creator has not signed yet (`awaiting_creator_signature` -> `changes_requested`): clears the
- * approved record, removes the approved version from `agent_published_versions` (nothing on-chain backs it) and leaves a
- * `revoke` row in `package_reviews`. The creator fixes it and resubmits through the same submission.
+ * Revokes an approval whose publication failed (`publish_failed` -> `changes_requested`): clears the approved record,
+ * removes the approved version from `agent_published_versions` (it never went live) and leaves a `revoke` row in
+ * `package_reviews`. The creator fixes it and resubmits through the same submission.
  */
 export async function revokeApproval(ctx: ReviewCtx, deps: ReviewDeps = defaultReviewDeps): Promise<{ id: string; status: "changes_requested" }> {
   const row = await load(ctx.id);
@@ -168,15 +167,15 @@ export async function revokeApproval(ctx: ReviewCtx, deps: ReviewDeps = defaultR
     await tx
       .update(schema.packageSubmissions)
       .set({ status: REVIEW_TRANSITIONS.revoke.to, approved: null, reviewerNotes: ctx.input.notes, error: null, updatedAt: new Date() })
-      .where(and(eq(schema.packageSubmissions.id, ctx.id), eq(schema.packageSubmissions.status, "awaiting_creator_signature")));
+      .where(and(eq(schema.packageSubmissions.id, ctx.id), eq(schema.packageSubmissions.status, "publish_failed")));
     if (approved?.version) {
       await tx
         .delete(schema.agentPublishedVersions)
-        .where(and(eq(schema.agentPublishedVersions.agentId, fresh.agentId), eq(schema.agentPublishedVersions.version, approved.version), isNull(schema.agentPublishedVersions.approveTx)));
+        .where(and(eq(schema.agentPublishedVersions.agentId, fresh.agentId), eq(schema.agentPublishedVersions.version, approved.version)));
     }
     await tx.insert(schema.packageReviews).values({
       submissionId: ctx.id,
-      reviewerWallet: ctx.reviewerWallet,
+      reviewerUserId: ctx.reviewerUserId,
       action: "revoke",
       notes: ctx.input.notes,
       checklist: ctx.input.checklist,
@@ -185,6 +184,6 @@ export async function revokeApproval(ctx: ReviewCtx, deps: ReviewDeps = defaultR
       ip: ctx.ip ?? null,
     });
   });
-  await deps.notifyCreator(row.creatorWallet, creatorMessage("changes_requested", subjectOf(row), ctx.input.notes));
+  await deps.notifyCreator(row.creatorUserId, creatorMessage("changes_requested", subjectOf(row), ctx.input.notes));
   return { id: ctx.id, status: "changes_requested" };
 }

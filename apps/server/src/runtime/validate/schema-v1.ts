@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AGENT_ID_RE } from "../agent-ids.js";
-import { ManifestBase } from "../manifest.js";
+import { ManifestBase, VerifyCheck } from "../manifest.js";
 
 // Schema of the `specVersion: 1` manifest (PACKAGE_SPEC.md 4.1). Extends the current base with the new fields and is STRICT:
 // an unknown field is an error (MANIFEST_UNKNOWN_FIELD). Platform v0 packages keep using `Manifest`.
@@ -56,9 +56,12 @@ const TrialBase = ManifestBase.shape.trial.unwrap();
 
 export const ManifestV1Base = ManifestBase.extend({
   specVersion: z.literal(1),
-  /** Absent in the 1st version: the server assigns it and binds it to the creator's wallet. */
+  /** Absent in the 1st version: the server assigns it and binds it to the creator. */
   id: z.string().regex(AGENT_ID_RE).optional(),
-  steps: z.array(z.object({ file: z.string(), title: z.string().optional(), gate: z.array(Gate).default([]) }).strict()).min(1).max(12),
+  steps: z
+    .array(z.object({ file: z.string(), title: z.string().optional(), gate: z.array(Gate).default([]), verify: z.array(VerifyCheck).max(10).optional() }).strict())
+    .min(1)
+    .max(12),
   tools: z.array(Tool).default([]),
   terms: z.object({ rightsConfirmed: z.boolean(), sourcesListed: z.boolean() }).strict().optional(),
   platform: z.boolean().optional(),

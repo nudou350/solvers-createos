@@ -3,7 +3,7 @@ import express, { Router } from "express";
 import { and, asc, eq } from "drizzle-orm";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import { MAX_IMAGE_UPLOAD_BYTES, MAX_REVIEW_IMAGES, type ImageRef } from "@solvers/shared";
-import { requireAuth, requireWallet } from "../auth/jwt.js";
+import { requireUser, requireUserId } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { ImageError, processImage } from "../images/process.js";
 import { toImageRefs } from "../images/refs.js";
@@ -12,8 +12,8 @@ import { forbidden, h, HttpError, notFound } from "../lib/http.js";
 import { findAgentRow } from "./catalog.js";
 import { firstFreePosition } from "./image-rules.js";
 
-// Review photos: up to 3 per review, only from license holders. A photo is attached after the review exists (the
-// review is confirmed on-chain first); images are OUTSIDE the review's hash.
+// Review photos: up to 3 per review, only from license holders. A photo is attached after the review exists;
+// images are OUTSIDE the review's content hash.
 
 export const imagesRouter = Router();
 
@@ -23,7 +23,7 @@ const uploadLimit = rateLimit({
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: { error: "Too many image uploads. Please wait a moment and try again.", code: "rate_limited" },
-  keyGenerator: (req) => req.wallet ?? ipKeyGenerator(req.ip ?? "0.0.0.0"),
+  keyGenerator: (req) => req.userId ?? ipKeyGenerator(req.ip ?? "0.0.0.0"),
 });
 
 const rawImage = express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: MAX_IMAGE_UPLOAD_BYTES });
@@ -36,18 +36,18 @@ function requireStore(): ImageStore {
   return store;
 }
 
-/** My confirmed review of this specialist, and only while I still hold the license. */
-async function myReview(wallet: string, idOrSlug: string) {
+/** My review of this specialist, and only while I still hold the license. */
+async function myReview(userId: string, idOrSlug: string) {
   const agent = await findAgentRow(idOrSlug);
   const [review] = await db
     .select()
     .from(schema.reviews)
-    .where(and(eq(schema.reviews.agentId, agent.id), eq(schema.reviews.authorWallet, wallet), eq(schema.reviews.onchain, true)));
+    .where(and(eq(schema.reviews.agentId, agent.id), eq(schema.reviews.authorUserId, userId)));
   if (!review) throw new HttpError(409, "Publish your review before attaching photos.", "review_required");
   const [license] = await db
     .select({ id: schema.licenses.id })
     .from(schema.licenses)
-    .where(and(eq(schema.licenses.ownerWallet, wallet), eq(schema.licenses.agentId, agent.id), eq(schema.licenses.burned, false)));
+    .where(and(eq(schema.licenses.userId, userId), eq(schema.licenses.agentId, agent.id)));
   if (!license) throw forbidden("Only people who bought this specialist can attach photos.");
   return review;
 }
@@ -85,12 +85,12 @@ async function insertAtFreePosition(reviewId: string, img: { key: string; width:
 
 imagesRouter.post(
   "/agents/:idOrSlug/reviews/mine/images",
-  requireAuth,
+  requireUser,
   uploadLimit,
   rawImage,
   h(async (req) => {
     const store = requireStore();
-    const review = await myReview(requireWallet(req), String(req.params.idOrSlug));
+    const review = await myReview(requireUserId(req), String(req.params.idOrSlug));
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) throw new ImageError("Send a JPG, PNG or WebP image.");
     if (firstFreePosition(await usedPositions(review.id), MAX_REVIEW_IMAGES) === null) throw new HttpError(409, LIMIT_MSG, "image_limit");
 
@@ -109,9 +109,9 @@ imagesRouter.post(
 
 imagesRouter.delete(
   "/agents/:idOrSlug/reviews/mine/images/:imageId",
-  requireAuth,
+  requireUser,
   h(async (req) => {
-    const review = await myReview(requireWallet(req), String(req.params.idOrSlug));
+    const review = await myReview(requireUserId(req), String(req.params.idOrSlug));
     const [img] = await db
       .delete(schema.reviewImages)
       .where(and(eq(schema.reviewImages.id, String(req.params.imageId)), eq(schema.reviewImages.reviewId, review.id)))

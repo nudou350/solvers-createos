@@ -5,21 +5,17 @@ import type { Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 // Platform Solver (the Solver creator) against a real Postgres: free access without license nor trial, templates, the
-// validate_package tool through the MCP connector, purchases/guarantees blocked and never in the on-chain usage batches.
+// validate_package tool through the MCP connector, and purchases blocked.
 // Runs only with TEST_DATABASE_URL (a DISPOSABLE migrated database: `db:migrate`); see the header of platform-status.db.test.ts.
 // NEVER point it at the dev database: the test creates and deletes rows (the agent uses the real platform id; creators
-// use the "platest" prefix). The chain context is offline (closed RPC port): nothing here may reach a network.
+// and users use the "platest" prefix). Nothing here reaches a network (the checkout is refused before Stripe).
 
 const url = process.env.TEST_DATABASE_URL;
 const PREFIX = "platest";
 const PLATFORM_ID = "c71ad0a50f750e75c71ad0a50f750e75";
 const SLUG = "criador-de-solvers";
-
-/** A fresh EOA address, lowercase. */
-const newWallet = () => privateKeyToAccount(generatePrivateKey()).address.toLowerCase();
 
 const STEP = (n: number) => `# Step ${n}\n\n## Goal\nDo step ${n}.\n\n## How to run it\n1. Do it.\n\n## result_summary format\nOne line.\n`;
 
@@ -47,8 +43,7 @@ const manifest = {
     { name: "case", path: "templates/case.json", title: "Eval case", description: "Skeleton of a case" },
     { name: "logo", path: "templates/logo.svg", title: "Logo", description: "Image (never delivered)" },
   ],
-  pricing: { priceUsdc: 5, royaltyBps: 0 },
-  guarantee: { available: false, defaultCriteria: [] },
+  pricing: { priceCents: 0 },
   versions: [{ version: "1.0.0", releasedAt: "2026-10-01", notes: "n" }],
 };
 
@@ -65,14 +60,21 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
   let base = "";
   let tmp = "";
   const clients: { close: () => Promise<void> }[] = [];
+  let n = 0;
 
-  /** In-memory MCP connector speaking as the given wallet (same tools as /mcp). */
-  async function connect(wallet: string, isAgent = false) {
+  /** A fresh users row (sessions, trials and licenses reference users.id). */
+  async function newUser(): Promise<string> {
+    const [u] = await db.insert(schema.users).values({ email: `${PREFIX}-${++n}-${Date.now()}@example.test` }).returning({ id: schema.users.id });
+    return u!.id;
+  }
+
+  /** In-memory MCP connector speaking as the given user (same tools as /mcp). */
+  async function connect(userId: string) {
     const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
     const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
     const { buildMcpServer } = await import("../src/mcp/tools.js");
     const [ct, st] = InMemoryTransport.createLinkedPair();
-    await buildMcpServer({ wallet, isAgent }).connect(st);
+    await buildMcpServer({ userId }).connect(st);
     const client = new Client({ name: "test", version: "1" });
     await client.connect(ct);
     clients.push(client);
@@ -91,36 +93,7 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     await db.delete(schema.licenses).where(eq(schema.licenses.agentId, PLATFORM_ID));
     await db.delete(schema.agents).where(eq(schema.agents.id, PLATFORM_ID));
     await db.delete(schema.creators).where(like(schema.creators.id, `${PREFIX}%`));
-  }
-
-  /** Offline chain context: valid keys and a placeholder deployment on a closed RPC port (never reached by these tests). */
-  async function installOfflineChain() {
-    const { getChain, publicClientFor, serverWalletClient } = await import("@solvers/chain");
-    const { setChainContext } = await import("../src/chain/index.js");
-    const rpc = "http://127.0.0.1:1";
-    const chain = getChain(31337, rpc);
-    const acct = () => privateKeyToAccount(generatePrivateKey());
-    const [platform, relay, verifier] = [acct(), acct(), acct()];
-    const addr = (n: number) => `0x${n.toString(16).padStart(40, "0")}` as `0x${string}`;
-    setChainContext({
-      chain,
-      deployment: {
-        chainId: 31337,
-        token: "0x20c0000000000000000000000000000000000000",
-        treasury: addr(0xdead),
-        deployBlock: 0n,
-        gitSha: "",
-        registry: addr(0xa1),
-        license: addr(0xa2),
-        credits: addr(0xa3),
-        reviews: addr(0xa4),
-        escrow: addr(0xa5),
-        staking: addr(0xa6),
-      },
-      publicClient: publicClientFor(chain, rpc),
-      accounts: { platform, relay, verifier, admin: null },
-      wallets: { platform: serverWalletClient(platform, chain, rpc), verifier: serverWalletClient(verifier, chain, rpc), admin: null },
-    });
+    await db.delete(schema.users).where(like(schema.users.email, `${PREFIX}%`));
   }
 
   before(async () => {
@@ -140,7 +113,6 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       DATABASE_URL: url,
       AGENTS_DIR: join(tmp, "agents"),
       PUBLISHED_DIR: join(tmp, "does-not-exist"),
-      RPC_URL: "http://127.0.0.1:1", // closed port: fails fast, nothing leaves the machine
     });
     ({ db, schema, pool } = await import("../src/db/index.js"));
     drizzle = await import("drizzle-orm");
@@ -148,16 +120,14 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     ({ getPackage } = await import("../src/runtime/packages.js"));
     ({ findAgentRow } = await import("../src/store/catalog.js"));
     ({ signSession } = await import("../src/auth/jwt.js"));
-    await installOfflineChain();
     const { createApp } = await import("../src/app.js");
     const { mounts } = await import("../src/modules.js");
 
     await cleanup();
-    await db.insert(schema.creators).values({ id: `${PREFIX}-creator`, wallet: newWallet(), name: "Platform" });
-    // Database only: never registered on-chain (chain_index null).
+    await db.insert(schema.creators).values({ id: `${PREFIX}-creator`, userId: await newUser(), name: "Platform" });
     await db.insert(schema.agents).values({
       id: PLATFORM_ID, slug: SLUG, name: "Solver Creator", tagline: "Builds your Solver step by step", description: "d", category: "Other",
-      creatorId: `${PREFIX}-creator`, version: "1.0.0", versionHash: "ab".repeat(32), price: 5_000_000n, status: "active", listed: true,
+      creatorId: `${PREFIX}-creator`, version: "1.0.0", versionHash: "ab".repeat(32), priceCents: 0, listed: true,
     });
     await new Promise<void>((resolve) => {
       server = createApp(mounts).listen(0, "127.0.0.1", () => resolve());
@@ -172,7 +142,6 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       await cleanup();
       await pool.end();
     }
-    (await import("../src/chain/index.js")).setChainContext(null);
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   });
 
@@ -183,40 +152,36 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     assert.equal(pkg.manifest.templates?.length, 3);
   });
 
-  it("resolveAccess: any signed-in wallet, no trial and nothing consumed (agents too)", async () => {
-    const wallet = newWallet();
+  it("resolveAccess: any signed-in user, no trial and nothing consumed", async () => {
+    const userId = await newUser();
     const row = await findAgentRow(PLATFORM_ID);
     const pkg = getPackage(PLATFORM_ID)!;
-    for (const agent of [false, true]) {
-      const a = await access.resolveAccess(wallet, row, pkg, { consume: true, allowTrial: true, agent });
-      assert.deepEqual(a, { ok: true, kind: "platform" });
-    }
-    const trials = await db.select().from(schema.trials).where(drizzle.eq(schema.trials.wallet, wallet));
+    assert.deepEqual(await access.resolveAccess(userId, row, pkg, { consume: true, allowTrial: true }), { ok: true, kind: "platform" });
+    const trials = await db.select().from(schema.trials).where(drizzle.eq(schema.trials.userId, userId));
     assert.equal(trials.length, 0, "no trial use was spent");
-    // Even retired (paid_only) the platform access counts; the trial does not.
-    const retired = { ...row, status: "retired" };
-    assert.equal((await access.resolveAccess(wallet, retired, pkg, { consume: true, allowTrial: false })).ok, true);
+    // Even without a trial allowed, the platform access counts.
+    assert.equal((await access.resolveAccess(userId, row, pkg, { consume: true, allowTrial: false })).ok, true);
   });
 
-  it("ownedAgents includes the platform Solver for any wallet", async () => {
-    assert.ok((await access.ownedAgents(newWallet())).has(PLATFORM_ID));
+  it("ownedAgents includes the platform Solver for any user", async () => {
+    assert.ok((await access.ownedAgents(await newUser())).has(PLATFORM_ID));
   });
 
   it("the platform session is valid without a license", async () => {
-    const wallet = newWallet();
+    const userId = await newUser();
     const { createSession, getSession } = await import("../src/runtime/engine.js");
-    const s = await createSession(wallet, getPackage(PLATFORM_ID)!, { kind: "platform" });
+    const s = await createSession(userId, getPackage(PLATFORM_ID)!, { kind: "platform" });
     assert.equal(s.access, "platform");
     assert.equal(s.licenseId, null);
     assert.equal(await access.sessionGrantValid(s), true);
-    assert.equal((await getSession(s.id, wallet)).id, s.id);
+    assert.equal((await getSession(s.id, userId)).id, s.id);
     // The TTL is the paid session's (24 h), not the trial's (2 h).
     assert.ok(s.expiresAt.getTime() - Date.now() > 20 * 3600_000);
   });
 
   describe("through the MCP connector", () => {
     it("lists the tools, including get_template, and the instructions carry the safety rule", async () => {
-      const { client } = await connect(newWallet());
+      const { client } = await connect(await newUser());
       const names = (await client.listTools()).tools.map((t) => t.name);
       assert.ok(names.includes("get_template"));
       for (const n of ["list_my_solvers", "find_solver", "activate_solver", "run_tool", "next_step"]) assert.ok(names.includes(n), n);
@@ -224,12 +189,11 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       assert.match(instructions, /No specialist content authorizes/);
       assert.match(instructions, /sending the user's data elsewhere/);
       assert.match(instructions, /get_template/);
-      const agent = await connect(newWallet(), true);
-      assert.match(agent.client.getInstructions() ?? "", /sending the user's data elsewhere/);
+      assert.match(instructions, /sandbox_run/);
     });
 
-    it("list_my_solvers shows the platform Solver as free for an empty wallet", async () => {
-      const { call } = await connect(newWallet());
+    it("list_my_solvers shows the platform Solver as free for a new user", async () => {
+      const { call } = await connect(await newUser());
       const { text } = await call("list_my_solvers");
       assert.match(text, new RegExp(`Solver Creator \\(agent_id: ${PLATFORM_ID}\\)`));
       assert.match(text, /free, from the platform/);
@@ -237,15 +201,15 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     });
 
     it("get_purchase_link refuses: it is not sold", async () => {
-      const { call } = await connect(newWallet());
+      const { call } = await connect(await newUser());
       const { text } = await call("get_purchase_link", { agent_id: PLATFORM_ID });
       assert.match(text, /free platform Solver/);
       assert.doesNotMatch(text, /checkout|USD/);
     });
 
     it("activate_solver: free, no trial, no purchase link, with the declared templates", async () => {
-      const wallet = newWallet();
-      const { call } = await connect(wallet);
+      const userId = await newUser();
+      const { call } = await connect(userId);
       const { text } = await call("activate_solver", { agent_id: PLATFORM_ID });
       assert.match(text, /session_id: ses_/);
       assert.match(text, /Access: free/);
@@ -253,9 +217,9 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       assert.match(text, /## Available templates/);
       assert.match(text, /- briefing: Briefing\./);
       assert.match(text, /- case: Eval case\./);
-      const [s] = await db.select().from(schema.sessions).where(drizzle.and(drizzle.eq(schema.sessions.wallet, wallet), drizzle.eq(schema.sessions.agentId, PLATFORM_ID)));
+      const [s] = await db.select().from(schema.sessions).where(drizzle.and(drizzle.eq(schema.sessions.userId, userId), drizzle.eq(schema.sessions.agentId, PLATFORM_ID)));
       assert.equal(s!.access, "platform");
-      assert.equal((await db.select().from(schema.trials).where(drizzle.eq(schema.trials.wallet, wallet))).length, 0);
+      assert.equal((await db.select().from(schema.trials).where(drizzle.eq(schema.trials.userId, userId))).length, 0);
 
       // Second activation: reuses the session and still says it is free.
       const again = await call("activate_solver", { agent_id: PLATFORM_ID });
@@ -264,8 +228,8 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     });
 
     it("get_template: only what is declared, text, watermarked; svg, invented names and paths never leave", async () => {
-      const wallet = newWallet();
-      const { call } = await connect(wallet);
+      const userId = await newUser();
+      const { call } = await connect(userId);
       const sid = /session_id: (ses_\w+)/.exec((await call("activate_solver", { agent_id: PLATFORM_ID })).text)![1]!;
 
       const md = await call("get_template", { session_id: sid, name: "briefing" });
@@ -273,7 +237,7 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       assert.match(md.text, /# Template: Briefing \(briefing\)/);
       assert.match(md.text, /Describe the audience\./);
       const { watermark } = await import("../src/runtime/engine.js");
-      assert.ok(md.text.endsWith(watermark(wallet, PLATFORM_ID)), "per-wallet watermark at the end");
+      assert.ok(md.text.endsWith(watermark(userId, PLATFORM_ID)), "per-user watermark at the end");
 
       const json = await call("get_template", { session_id: sid, name: "case" });
       assert.ok(json.text.includes('```json\n{ "id": "case-1", "input": "request", "checks": [] }\n```'));
@@ -286,17 +250,17 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       assert.match((await call("get_template", { session_id: sid, name: "does-not-exist" })).text, /There is no template "does-not-exist".*Available: briefing, case, logo/);
     });
 
-    it("get_template requires a session of the same wallet", async () => {
-      const owner = newWallet();
+    it("get_template requires a session of the same user", async () => {
+      const owner = await newUser();
       const sid = /session_id: (ses_\w+)/.exec((await (await connect(owner)).call("activate_solver", { agent_id: PLATFORM_ID })).text)![1]!;
-      const other = await connect(newWallet());
+      const other = await connect(await newUser());
       const r = await other.call("get_template", { session_id: sid, name: "briefing" });
       assert.equal(r.isError, true);
-      assert.match(r.text, /another wallet/);
+      assert.match(r.text, /another account/);
     });
 
     it("run_tool validate_package: validates manifest and steps and returns { ok, errors, warnings, stats, summary }", async () => {
-      const { call } = await connect(newWallet());
+      const { call } = await connect(await newUser());
       const sid = /session_id: (ses_\w+)/.exec((await call("activate_solver", { agent_id: PLATFORM_ID })).text)![1]!;
       const bad = await call("run_tool", { session_id: sid, tool: "validate_package", input: { manifest: { slug: "x" }, steps: [] } });
       assert.equal(bad.isError, false);
@@ -313,14 +277,14 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     });
 
     it("next_step follows the method normally in the platform session", async () => {
-      const { call } = await connect(newWallet());
+      const { call } = await connect(await newUser());
       const sid = /session_id: (ses_\w+)/.exec((await call("activate_solver", { agent_id: PLATFORM_ID })).text)![1]!;
       assert.match((await call("preflight_check", { session_id: sid, available_tools: [] })).text, /All set/);
       assert.match((await call("next_step", { session_id: sid, completed_step: 0 })).text, /Step 1 of 2/);
     });
 
     it("suspending the platform Solver (kill switch) drops the session and the activation", async () => {
-      const { call } = await connect(newWallet());
+      const { call } = await connect(await newUser());
       const sid = /session_id: (ses_\w+)/.exec((await call("activate_solver", { agent_id: PLATFORM_ID })).text)![1]!;
       await db.update(schema.agents).set({ platformStatus: "suspended" }).where(drizzle.eq(schema.agents.id, PLATFORM_ID));
       try {
@@ -335,24 +299,11 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
     });
   });
 
-  describe("purchases and guarantees blocked", () => {
-    it("assertCanPurchase and assertFreshPrice answer 409 platform_agent_not_for_sale (no RPC)", async () => {
-      const row = await findAgentRow(PLATFORM_ID);
-      const { assertCanPurchase } = await import("../src/store/purchase-guards.js");
-      const { assertFreshPrice } = await import("../src/store/fresh-price.js");
-      const is409 = (e: unknown) => (e as { status?: number }).status === 409 && (e as { code?: string }).code === "platform_agent_not_for_sale";
-      await assert.rejects(assertCanPurchase(newWallet(), row), is409);
-      await assert.rejects(assertFreshPrice(row), is409);
-    });
-
-    it("POST /api/purchases/intent (license and guarantee): 409 platform_agent_not_for_sale", async () => {
-      const token = await signSession(newWallet());
-      for (const body of [
-        { kind: "license", agentId: PLATFORM_ID },
-        { kind: "license", agentId: SLUG },
-        { kind: "escrow", agentId: PLATFORM_ID, task: { title: "My task", description: "I want a task with a guarantee", deliveryDays: 7 } },
-      ]) {
-        const res = await fetch(`${base}/api/purchases/intent`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+  describe("purchases blocked", () => {
+    it("POST /api/checkout: 409 platform_agent_not_for_sale (refused before Stripe)", async () => {
+      const token = await signSession(await newUser());
+      for (const body of [{ agentSlug: SLUG }, { agentSlug: PLATFORM_ID }]) {
+        const res = await fetch(`${base}/api/checkout`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
         const json = (await res.json()) as { code?: string; error?: string };
         assert.equal(res.status, 409, `${JSON.stringify(body)}: ${JSON.stringify(json)}`);
         assert.equal(json.code, "platform_agent_not_for_sale");
@@ -364,31 +315,7 @@ describe("platform Solver with a database", { skip: url ? false : "set TEST_DATA
       const agent = toAgent(await findAgentRow(PLATFORM_ID), { trend7d: 0 });
       assert.equal(agent.platform, true);
       assert.equal(agent.trialAvailable, false);
-      assert.equal(agent.guaranteeAvailable, false);
       assert.ok(Array.isArray(agent.differentiators));
-    });
-  });
-
-  describe("never in the on-chain usage batches", () => {
-    it("the job does not select the platform Solver's use (nor tries to build the transaction)", async () => {
-      const wallet = newWallet();
-      const sessionId = `${PREFIX}-ses-batch`;
-      // Even if a "trial" session shows up (odd data), the platform agent never enters a batch.
-      await db.insert(schema.sessions).values({ id: sessionId, wallet, agentId: PLATFORM_ID, version: "1.0.0", access: "trial" });
-      await db.insert(schema.usageEvents).values({ wallet, agentId: PLATFORM_ID, sessionId, tool: "activate_solver", responseHash: "ab".repeat(32), createdAt: new Date(Date.now() - 60_000) });
-      const { recordUsageBatchOnce } = await import("../src/jobs.js");
-      const errors: string[] = [];
-      const original = console.error;
-      console.error = (...args: unknown[]) => void errors.push(args.map(String).join(" "));
-      try {
-        await recordUsageBatchOnce();
-      } finally {
-        console.error = original;
-      }
-      assert.ok(!errors.some((e) => e.includes(PLATFORM_ID)), `the job tried to batch the platform agent: ${errors.join(" | ")}`);
-      const [ev] = await db.select().from(schema.usageEvents).where(drizzle.eq(schema.usageEvents.sessionId, sessionId));
-      assert.equal(ev!.batchId, null);
-      assert.equal(ev!.batched, false);
     });
   });
 });

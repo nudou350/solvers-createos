@@ -9,7 +9,7 @@ import { after, before, describe, it } from "node:test";
 // Fixes from the review of the Solver creation flow, against a real Postgres: worker attempts (poison pill), queue
 // without submissions in backoff, approval (self-review, version, owner), revocation, cleanup and light lists.
 // Only runs with TEST_DATABASE_URL (DISPOSABLE database already migrated: `db:migrate`); see the header of platform-status.db.test.ts.
-// package_reviews is insert-only: ids are unique per run (prefix P).
+// package_reviews is insert-only (it references users), so the test users (e-mail prefix P) are left behind on purpose.
 
 const url = process.env.TEST_DATABASE_URL;
 const P = `cfx${Date.now().toString(36)}`;
@@ -31,20 +31,21 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
   let paths: typeof import("../src/submissions/paths.js");
   let root = "";
 
-  const A = `${P}-creatora`;
-  const B = `${P}-creatorb`;
-  const REVIEWER = `${P}-revisor`;
+  /** users.id of creator A, creator B and the reviewer (created in `before`). */
+  let A = "";
+  let B = "";
+  let REVIEWER = "";
   const agentIds: string[] = [];
   const noop = async () => undefined;
 
-  const procDeps = (over: Record<string, unknown> = {}) => ({ ...proc.defaultProcessDeps, notifyAdmin: noop, notifyCreator: noop, minPriceUnits: async () => 5_000_000n, ...over });
-  const reviewDeps = () => ({ ...review.defaultReviewDeps, minPriceUnits: async () => 5_000_000n, notifyCreator: noop, deleteStaging: async () => 0 });
+  const procDeps = (over: Record<string, unknown> = {}) => ({ ...proc.defaultProcessDeps, notifyAdmin: noop, notifyCreator: noop, ...over });
+  const reviewDeps = () => ({ ...review.defaultReviewDeps, notifyCreator: noop, deleteStaging: async () => 0 });
 
   async function sub(over: Partial<typeof schema.packageSubmissions.$inferInsert> = {}) {
     const id = hex(12);
     const agentId = over.agentId ?? hex(16);
     agentIds.push(agentId);
-    await db.insert(schema.packageSubmissions).values({ id, creatorWallet: A, agentId, slug: `${P}-s-${id.slice(0, 6)}`, version: "1.0.0", status: "submitted", ...over });
+    await db.insert(schema.packageSubmissions).values({ id, creatorUserId: A, agentId, slug: `${P}-s-${id.slice(0, 6)}`, version: "1.0.0", status: "submitted", ...over });
     return { id, agentId };
   }
   const row = async (id: string) => (await db.select().from(schema.packageSubmissions).where(eq(schema.packageSubmissions.id, id)))[0]!;
@@ -53,8 +54,8 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
   async function wipe() {
     await db.delete(schema.agentPublishedVersions).where(inArray(schema.agentPublishedVersions.agentId, agentIds));
     await db.delete(schema.agents).where(inArray(schema.agents.id, agentIds));
-    await db.delete(schema.packageSubmissions).where(like(schema.packageSubmissions.creatorWallet, `${P}%`));
-    await db.delete(schema.creators).where(like(schema.creators.wallet, `${P}%`));
+    if (A) await db.delete(schema.packageSubmissions).where(inArray(schema.packageSubmissions.creatorUserId, [A, B]));
+    await db.delete(schema.creators).where(like(schema.creators.id, `${P}%`));
   }
 
   before(async () => {
@@ -62,7 +63,7 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
     Object.assign(process.env, {
       DATABASE_URL: url,
       JWT_SECRET: process.env.JWT_SECRET ?? "j".repeat(40),
-      SERVER_KEK: process.env.SERVER_KEK ?? Buffer.alloc(32, 7).toString("base64"),
+      MEMORY_KEK: process.env.MEMORY_KEK ?? Buffer.alloc(32, 7).toString("base64"),
       SEARCH_MODE: "fts",
       SUBMISSIONS_DIR: root,
       PUBLISHED_DIR: join(root, "published"),
@@ -76,9 +77,12 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
     lookup = await import("../src/submissions/lookup.js");
     paths = await import("../src/submissions/paths.js");
     await wipe();
+    const user = async (name: string) =>
+      (await db.insert(schema.users).values({ email: `${P}-${name}@example.test` }).returning({ id: schema.users.id }))[0]!.id;
+    [A, B, REVIEWER] = [await user("creatora"), await user("creatorb"), await user("reviewer")];
     await db.insert(schema.creators).values([
-      { id: `${P}-ca`, wallet: A, name: "Criadora A", bio: "Bio da criadora A com mais de dez caracteres", invited: true, termsAcceptedAt: new Date() },
-      { id: `${P}-cb`, wallet: B, name: "Criador B", bio: "Bio do criador B com mais de dez caracteres", invited: true, termsAcceptedAt: new Date() },
+      { id: `${P}-ca`, userId: A, name: "Criadora A", bio: "Bio da criadora A com mais de dez caracteres", invited: true, termsAcceptedAt: new Date() },
+      { id: `${P}-cb`, userId: B, name: "Criador B", bio: "Bio do criador B com mais de dez caracteres", invited: true, termsAcceptedAt: new Date() },
     ]);
   });
 
@@ -141,9 +145,9 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
 
   // ---------------------------------------------------------------------------------------------------------------
   describe("approval", () => {
-    const pkg = (version: string) => ({ name: "Solver", version, pricing: { priceUsdc: 10, royaltyBps: 0 } });
+    const pkg = (version: string) => ({ name: "Solver", version, pricing: { priceCents: 1000 } });
     const CHECK = { promiseDelivered: true, twoDifferentiatorsProven: true, rightsAndSources: true, noHarmfulInstructions: true, priceTrialShowcaseCoherent: true };
-    const ctx = (id: string, reviewer = REVIEWER) => ({ id, reviewerWallet: reviewer, ip: undefined, input: { notes: "ok", checklist: CHECK } });
+    const ctx = (id: string, reviewer = REVIEWER) => ({ id, reviewerUserId: reviewer, ip: undefined, input: { notes: "ok", checklist: CHECK } });
 
     async function pending(version: string, over: Partial<typeof schema.packageSubmissions.$inferInsert> = {}) {
       const s = await sub({ status: "pending_review", version, manifest: pkg(version), validation: { ok: true, errors: [], warnings: [] }, ...over });
@@ -153,7 +157,7 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
       return s;
     }
     async function agentRow(id: string, slug: string, creatorId: string, version: string) {
-      await db.insert(schema.agents).values({ id, slug, name: "Solver", tagline: "t", description: "d", category: "Outros", creatorId, version, versionHash: "00", price: 10_000_000n });
+      await db.insert(schema.agents).values({ id, slug, name: "Solver", tagline: "t", description: "d", category: "Outros", creatorId, version, versionHash: "00", priceCents: 1000 });
     }
 
     it("the submission's creator cannot approve their own submission (403 self_review)", async () => {
@@ -172,8 +176,9 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
       await assert.rejects(review.approveSubmission(ctx(lower.id), reviewDeps()), (e: any) => e.code === "version_already_published");
       const up = await pending("1.3.0", { agentId, slug });
       const out = await review.approveSubmission(ctx(up.id), reviewDeps());
-      assert.equal(out.status, "awaiting_creator_signature");
-      assert.equal((await row(up.id)).status, "awaiting_creator_signature");
+      assert.equal(out.status, "publishing");
+      assert.equal(out.approved.priceCents, 1000);
+      assert.equal((await row(up.id)).status, "publishing");
     });
 
     it("the slug/id now belongs to another creator in the catalog: 409 ownership_conflict (nothing is written)", async () => {
@@ -187,16 +192,17 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
     });
 
     it("a reserved platform id and a reserved slug are refused", async () => {
-      assert.match((await lookup.ownershipConflict({ submissionId: "x", wallet: A, agentId: "c71ad0a50f750e75c71ad0a50f750e75", slug: `${P}-livre` })) ?? "", /platform/);
-      assert.match((await lookup.ownershipConflict({ submissionId: "x", wallet: A, agentId: hex(16), slug: "solvers" })) ?? "", /reserved/);
-      assert.equal(await lookup.ownershipConflict({ submissionId: "x", wallet: A, agentId: hex(16), slug: `${P}-livre2` }), null);
+      assert.match((await lookup.ownershipConflict({ submissionId: "x", userId: A, agentId: "c71ad0a50f750e75c71ad0a50f750e75", slug: `${P}-livre` })) ?? "", /platform/);
+      assert.match((await lookup.ownershipConflict({ submissionId: "x", userId: A, agentId: hex(16), slug: "solvers" })) ?? "", /reserved/);
+      assert.equal(await lookup.ownershipConflict({ submissionId: "x", userId: A, agentId: hex(16), slug: `${P}-livre2` }), null);
     });
 
-    it("revoke: awaiting_creator_signature goes back to changes_requested, clears the approved record and leaves the trail", async () => {
+    it("revoke: publish_failed goes back to changes_requested, clears the approved record and leaves the trail", async () => {
       const s = await pending("2.0.0");
       await review.approveSubmission(ctx(s.id), reviewDeps());
       assert.equal((await db.select().from(schema.agentPublishedVersions).where(eq(schema.agentPublishedVersions.agentId, s.agentId))).length, 1);
-      await assert.rejects(review.revokeApproval(ctx(await (await pending("2.0.1")).id), reviewDeps()), (e: any) => e.code === "invalid_state", "only applies to a submission that is approved and not yet signed");
+      await assert.rejects(review.revokeApproval(ctx(await (await pending("2.0.1")).id), reviewDeps()), (e: any) => e.code === "invalid_state", "only applies to an approval whose publication failed");
+      await db.update(schema.packageSubmissions).set({ status: "publish_failed" }).where(eq(schema.packageSubmissions.id, s.id));
       const out = await review.revokeApproval(ctx(s.id), reviewDeps());
       assert.equal(out.status, "changes_requested");
       const r = await row(s.id);
@@ -211,10 +217,9 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
   describe("cleanup", () => {
     const old = (days: number) => new Date(Date.now() - days * DAY);
 
-    it("expires changes_requested and awaiting_creator_signature idle for more than 30 days (slug freed, system trail)", async () => {
+    it("expires changes_requested idle for more than 30 days (slug freed, trail under the creator)", async () => {
       const a = await sub({ status: "changes_requested", updatedAt: old(40) });
-      const b = await sub({ status: "awaiting_creator_signature", updatedAt: old(31), approved: { versionHash: "ab", priceUsdc: "10000000", royaltyBps: 0, name: "N", version: "1.0.0" } });
-      await db.insert(schema.agentPublishedVersions).values({ agentId: b.agentId, version: "1.0.0", versionHash: "ab", priceUsdc: 10_000_000n });
+      const b = await sub({ status: "changes_requested", updatedAt: old(31) });
       const fresh = await sub({ status: "changes_requested", updatedAt: old(5) });
       const other = await sub({ status: "pending_review", updatedAt: old(90) });
       await cleanup.expireStaleSubmissions({ notify: false });
@@ -223,9 +228,8 @@ describe("creation flow fixes with a database", { skip: url ? false : "set TEST_
         assert.equal(r.status, "rejected");
         assert.match(r.reviewerNotes ?? "", /expired/i);
         const rv = await reviews(s.id);
-        assert.deepEqual(rv.map((x) => [x.action, x.reviewerWallet]), [["expire", "system"]]);
+        assert.deepEqual(rv.map((x) => [x.action, x.reviewerUserId]), [["expire", A]]);
       }
-      assert.equal((await db.select().from(schema.agentPublishedVersions).where(eq(schema.agentPublishedVersions.agentId, b.agentId))).length, 0);
       assert.equal((await row(fresh.id)).status, "changes_requested");
       assert.equal((await row(other.id)).status, "pending_review", "in review does not expire: it is the admin's queue");
     });

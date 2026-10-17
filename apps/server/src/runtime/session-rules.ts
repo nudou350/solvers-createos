@@ -35,10 +35,3 @@ export function withSummary(context: Record<string, unknown>, slot: number, summ
   if (slot >= 0) summaries[slot] = summary.slice(0, 4000);
   return { ...context, summaries };
 }
-
-/** On-chain recheck of a session's license: at most once per short window. */
-export const LICENSE_RECHECK_MS = 45_000;
-
-export function licenseRecheckDue(lastCheckedAt: number | undefined, now: number, ttlMs = LICENSE_RECHECK_MS): boolean {
-  return lastCheckedAt === undefined || now - lastCheckedAt >= ttlMs || now < lastCheckedAt;
-}

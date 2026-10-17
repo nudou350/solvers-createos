@@ -12,8 +12,9 @@ import { validatePackage, type Issue, type ValidationResult } from "../runtime/v
 import { packageFromFolder } from "../runtime/validate/input.js";
 import { reloadPackages } from "../runtime/packages.js";
 import { RESERVED_SLUGS } from "@solvers/shared";
-import { duplicateVersion, loadOwnership, currentPackages, minPriceUnits, PLATFORM_OWNER, type Ownership } from "./lookup.js";
-import { adminMessage, creatorMessage, notifyAdmin, notifyCreatorWallet } from "./notify.js";
+import { MIN_PRICE_CENTS } from "../runtime/price.js";
+import { duplicateVersion, loadOwnership, currentPackages, PLATFORM_OWNER, type Ownership } from "./lookup.js";
+import { adminMessage, creatorMessage, notifyAdmin, notifyCreatorUser } from "./notify.js";
 import { extractedDirOf, stagingVersion, submissionDir, zipPathOf } from "./paths.js";
 import { mergeWarnings, normalizeManifest, reportFromZip, safeManifestFields } from "./rules.js";
 import { extractZip, NUCLEO_ZIP_LIMITS, ZipError, type ZipLimits } from "./zip.js";
@@ -31,8 +32,7 @@ export type ProcessDeps = {
   ingest: typeof ingestKnowledgeDir;
   deleteStaging: typeof deleteKnowledgeVersion;
   notifyAdmin: (text: string) => Promise<void>;
-  notifyCreator: (wallet: string, text: string) => Promise<void>;
-  minPriceUnits: () => Promise<bigint>;
+  notifyCreator: (userId: string, text: string) => Promise<void>;
   limits: () => ZipLimits;
   /** Time cap for one pass (default `SUBMISSION_TIMEOUT_MS`); tests shorten it. */
   timeoutMs?: number;
@@ -42,8 +42,7 @@ export const defaultProcessDeps: ProcessDeps = {
   ingest: ingestKnowledgeDir,
   deleteStaging: deleteKnowledgeVersion,
   notifyAdmin,
-  notifyCreator: notifyCreatorWallet,
-  minPriceUnits,
+  notifyCreator: notifyCreatorUser,
   limits: () => ({ ...NUCLEO_ZIP_LIMITS, zipBytes: env.SUBMISSION_MAX_ZIP_BYTES, expandedBytes: env.SUBMISSION_MAX_UNZIPPED_BYTES, files: env.SUBMISSION_MAX_FILES }),
 };
 
@@ -145,9 +144,9 @@ async function rejectExhausted(row: Row, deps: ProcessDeps): Promise<boolean> {
   if (!moved) return false;
   await rm(extractedDirOf(row.id), { recursive: true, force: true }).catch(() => undefined);
   await deps.deleteStaging(row.agentId, stagingVersion(row.id)).catch(() => undefined);
-  const subject = { id: row.id, slug: row.slug, version: row.version, creatorWallet: row.creatorWallet, name: null };
+  const subject = { id: row.id, slug: row.slug, version: row.version, creatorUserId: row.creatorUserId, name: null };
   await deps.notifyAdmin(adminMessage("rejected_validation", subject, `Repeated system failures (${MAX_ATTEMPTS} attempts); check the worker log.`)).catch(() => undefined);
-  await deps.notifyCreator(row.creatorWallet, creatorMessage("rejected_validation", subject)).catch(() => undefined);
+  await deps.notifyCreator(row.creatorUserId, creatorMessage("rejected_validation", subject)).catch(() => undefined);
   return true;
 }
 
@@ -217,12 +216,12 @@ const checkDeadline = (deadline: number): void => {
 
 async function run(row: Row, deps: ProcessDeps, deadline: number): Promise<SubmissionStatus> {
   const id = row.id;
-  const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.wallet, row.creatorWallet));
+  const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.userId, row.creatorUserId));
   if (!creator) {
     await setStatus(id, "validating", "rejected_validation", { error: "Creator profile not found.", validation: reportFromZip([{ code: "CREATOR_NOT_FOUND", path: "", message: "Creator profile not found.", fix: "Complete your creator profile." }]) });
     return "rejected_validation";
   }
-  const subject = (r: Row) => ({ id, slug: r.slug, version: r.version, creatorWallet: r.creatorWallet, name: (r.manifest?.name as string | undefined) ?? null });
+  const subject = (r: Row) => ({ id, slug: r.slug, version: r.version, creatorUserId: r.creatorUserId, name: (r.manifest?.name as string | undefined) ?? null });
   const dir = extractedDirOf(id);
 
   // Resume only what is missing: validation and scans already saved + extracted folder intact.
@@ -243,7 +242,7 @@ async function run(row: Row, deps: ProcessDeps, deadline: number): Promise<Submi
       await setStatus(id, "validating", "rejected_validation", { validation: outcome.validation, manifest: outcome.manifest, slug: outcome.slug, version: outcome.version, agentId: outcome.agentId, error: null });
       const after = { ...row, slug: outcome.slug, version: outcome.version, manifest: outcome.manifest };
       await deps.notifyAdmin(adminMessage("rejected_validation", subject(after), `${outcome.validation.errors.length} error(s).`));
-      await deps.notifyCreator(row.creatorWallet, creatorMessage("rejected_validation", subject(after)));
+      await deps.notifyCreator(row.creatorUserId, creatorMessage("rejected_validation", subject(after)));
       return "rejected_validation";
     }
     // Validation and scans in a single UPDATE: this is the resume point.
@@ -261,7 +260,7 @@ async function run(row: Row, deps: ProcessDeps, deadline: number): Promise<Submi
     const counts = (current.scans as { report?: { counts?: { high?: number; warn?: number } } } | null)?.report?.counts;
     const extra = `Validator warnings: ${(current.validation as { warnings?: unknown[] } | null)?.warnings?.length ?? 0}. Scans: ${counts?.high ?? 0} high, ${counts?.warn ?? 0} medium.`;
     await deps.notifyAdmin(adminMessage("pending_review", subject(current), extra));
-    await deps.notifyCreator(current.creatorWallet, creatorMessage("pending_review", subject(current)));
+    await deps.notifyCreator(current.creatorUserId, creatorMessage("pending_review", subject(current)));
   }
   return "pending_review";
 }
@@ -298,12 +297,11 @@ async function validateStage(row: Row, creator: typeof schema.creators.$inferSel
   const manifestId = typeof rawObj?.id === "string" && /^[0-9a-f]{32}$/.test(rawObj.id) ? rawObj.id : undefined;
 
   const own: Ownership = await loadOwnership({ submissionId: row.id, creatorId: creator.id, manifestId, slug: fields.slug });
-  const minUnits = await deps.minPriceUnits();
   const result = validatePackage(input, {
     origin: "third_party",
     phase: "nucleo",
     creatorId: creator.id,
-    minPriceUsdc: Number(minUnits) / 1_000_000,
+    minPriceCents: MIN_PRICE_CENTS,
     reservedSlugs: RESERVED_SLUGS,
     existing: {
       creatorId: creator.id,
@@ -322,7 +320,7 @@ async function validateStage(row: Row, creator: typeof schema.creators.$inferSel
     validation.errors.push({ code: "MANIFEST_ID_OWNER", path: "manifest.json#id", message: "The manifest id is not the id of the Solver that uses this slug.", fix: "Use your Solver's id or remove the id field." });
   }
   if (own.idOwner.get(agentId) === PLATFORM_OWNER) agentId = row.agentId;
-  if (fields.version && (await duplicateVersion({ submissionId: row.id, wallet: row.creatorWallet, agentId, version: fields.version }))) {
+  if (fields.version && (await duplicateVersion({ submissionId: row.id, userId: row.creatorUserId, agentId, version: fields.version }))) {
     validation.errors.push({ code: "MANIFEST_VERSION_NOT_GREATER", path: "manifest.json#version", message: `You already have another submission of version ${fields.version} of this Solver.`, fix: "Resubmit through the submission that requested changes, or bump the version." });
   }
   validation.ok = validation.errors.length === 0;

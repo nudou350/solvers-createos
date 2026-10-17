@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { PackageInput } from "../runtime/validate/index.js";
 
 // Package hash from a PackageInput (ZIP extracted in memory, or a folder). It is the SAME algorithm as
-// `packageHash(dir)` in runtime/package-loader.ts, which becomes the on-chain `versionHash`: sha256 over (path + "\0" +
+// `packageHash(dir)` in runtime/package-loader.ts, which becomes the published `versionHash`: sha256 over (path + "\0" +
 // sha256 of the content) of every file in alphabetical order, with CRLF normalized in text extensions, excluding
 // `evals/report.json`, `node_modules` and names starting with a dot. If one changes, the other changes with it (the test in
 // test/review-hash.test.ts compares both on the packages in agents/).

@@ -4,26 +4,28 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { AdminReviewInput, SubmissionStatus, type AdminSubmissionDetail, type AdminSubmissionRow, type SubmissionFileEntry } from "@solvers/shared";
-import { requireAuth } from "../auth/jwt.js";
+import { requireUser } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { env } from "../env.js";
 import { searchKnowledgeInVersion } from "../knowledge/ingest.js";
 import { badRequest, forbidden, h, HttpError, notFound, parse } from "../lib/http.js";
+import { finalizePublication } from "../publish/finalize.js";
+import { publicationResult } from "../publish/routes.js";
 import { PackagePathError, resolveInsidePackage } from "../runtime/package-paths.js";
 import { packageFromFolder } from "../runtime/validate/input.js";
 import { isNewAgent, listColumns, newAgentSet } from "./lookup.js";
 import { extractedDirOf, stagingVersion, SUBMISSION_ID_RE } from "./paths.js";
 import { approveSubmission, rejectSubmission, requestChanges, revokeApproval } from "./review.js";
-import { differentiatorsOf, isAdminWallet, reviewPathProblem, toAdminListRow, toSubmissionView } from "./rules.js";
+import { differentiatorsOf, isAdminUser, reviewPathProblem, toAdminListRow, toSubmissionView } from "./rules.js";
 
-// Site review (PACKAGE_SPEC.md 14.4 and 14.5). Admin = a wallet in ADMIN_WALLETS, confirmed by the login.
+// Site review (PACKAGE_SPEC.md 14.4 and 14.5). Admin = a user id in ADMIN_USER_IDS, confirmed by the login.
 // The review screen is the most valuable target (whoever approves publishes): every response is TEXT JSON, no HTML,
 // `nosniff` and no cache; what the creator wrote is never served as a page.
 
 export const adminRouter: Router = Router();
 
 function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  if (!isAdminWallet(req.wallet, env.ADMIN_WALLETS)) return next(forbidden("Only administrators can review packages."));
+  if (!isAdminUser(req.userId, env.ADMIN_USER_IDS)) return next(forbidden("Only administrators can review packages."));
   next();
 }
 
@@ -33,7 +35,7 @@ function noSniff(_req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-adminRouter.use("/admin", noSniff, requireAuth, requireAdmin);
+adminRouter.use("/admin", noSniff, requireUser, requireAdmin);
 
 const idParam = (req: Request): string => {
   const id = String(req.params.id ?? "");
@@ -56,15 +58,16 @@ adminRouter.get(
     const raw = typeof req.query.status === "string" ? req.query.status : undefined;
     const status = raw === undefined ? undefined : parse(SubmissionStatus, raw);
     const rows = await db
-      .select({ s: listColumns, wallet: schema.creators.wallet, creatorName: schema.creators.name })
+      .select({ s: listColumns, email: schema.users.email, creatorName: schema.creators.name })
       .from(schema.packageSubmissions)
-      .leftJoin(schema.creators, eq(schema.creators.wallet, schema.packageSubmissions.creatorWallet))
+      .leftJoin(schema.creators, eq(schema.creators.userId, schema.packageSubmissions.creatorUserId))
+      .leftJoin(schema.users, eq(schema.users.id, schema.packageSubmissions.creatorUserId))
       .where(status ? eq(schema.packageSubmissions.status, status) : undefined)
       // Review queue: oldest first. The other lists: newest first.
       .orderBy(status === "pending_review" ? schema.packageSubmissions.createdAt : desc(schema.packageSubmissions.createdAt))
       .limit(200);
     const fresh = await newAgentSet([...new Set(rows.map((r) => r.s.agentId))]);
-    return rows.map((r) => toAdminListRow(r.s, { wallet: r.wallet ?? r.s.creatorWallet, name: r.creatorName ?? null }, fresh.has(r.s.agentId)));
+    return rows.map((r) => toAdminListRow(r.s, { userId: r.s.creatorUserId, email: r.email ?? null, name: r.creatorName ?? null }, fresh.has(r.s.agentId)));
   }),
 );
 
@@ -100,12 +103,13 @@ adminRouter.get(
   "/admin/submissions/:id",
   h(async (req): Promise<AdminSubmissionDetail> => {
     const row = await loadRow(idParam(req));
-    const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.wallet, row.creatorWallet));
+    const [creator] = await db.select().from(schema.creators).where(eq(schema.creators.userId, row.creatorUserId));
+    const [user] = await db.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, row.creatorUserId));
     const fresh = await isNewAgent(row.agentId);
     const reviews = await db.select().from(schema.packageReviews).where(eq(schema.packageReviews.submissionId, row.id)).orderBy(schema.packageReviews.id);
     return {
-      submission: toSubmissionView(row, fresh),
-      creator: { wallet: row.creatorWallet as `0x${string}`, name: creator?.name ?? null, bio: creator?.bio ?? null, contactVerified: creator?.telegramChatId != null },
+      submission: toSubmissionView(row),
+      creator: { userId: row.creatorUserId, email: user?.email ?? null, name: creator?.name ?? null, bio: creator?.bio ?? null, contactVerified: creator?.telegramChatId != null },
       isNewAgent: fresh,
       manifest: row.manifest,
       validation: (row.validation as AdminSubmissionDetail["validation"]) ?? null,
@@ -113,7 +117,7 @@ adminRouter.get(
       files: filesOf(row.id, row.scans),
       knowledge: await knowledgeSummary(row.agentId, row.id),
       differentiators: differentiatorsOf(row.manifest, row.validation),
-      reviews: reviews.map((r) => ({ id: r.id, reviewerWallet: r.reviewerWallet as `0x${string}`, action: r.action, notes: r.notes, checklist: r.checklist, createdAt: r.createdAt.toISOString() })),
+      reviews: reviews.map((r) => ({ id: r.id, reviewerUserId: r.reviewerUserId, action: r.action, notes: r.notes, checklist: r.checklist, createdAt: r.createdAt.toISOString() })),
     };
   }),
 );
@@ -154,10 +158,18 @@ adminRouter.get(
 // ---------------------------------------------------------------------------------------------------------------
 // Decisions (reason required; approving requires the whole checklist)
 
-const ctxOf = (req: Request) => ({ id: idParam(req), reviewerWallet: req.wallet!, ip: req.ip, input: parse(AdminReviewInput, req.body) });
+const ctxOf = (req: Request) => ({ id: idParam(req), reviewerUserId: req.userId!, ip: req.ip, input: parse(AdminReviewInput, req.body) });
 
-adminRouter.post("/admin/submissions/:id/approve", h((req) => approveSubmission(ctxOf(req))));
+/** Approves and publishes right away; a failed publication stays in `publish_failed` for the "Finish" retry. */
+adminRouter.post(
+  "/admin/submissions/:id/approve",
+  h(async (req) => {
+    const ctx = ctxOf(req);
+    const { approved } = await approveSubmission(ctx);
+    return { ...(await publicationResult(ctx.id, await finalizePublication(ctx.id))), approved };
+  }),
+);
 adminRouter.post("/admin/submissions/:id/request-changes", h((req) => requestChanges(ctxOf(req))));
 adminRouter.post("/admin/submissions/:id/reject", h((req) => rejectSubmission(ctxOf(req))));
-/** Undoes an approval the creator has not signed yet (back to `changes_requested`; reason required). */
+/** Undoes an approval whose publication failed (back to `changes_requested`; reason required). */
 adminRouter.post("/admin/submissions/:id/revoke", h((req) => revokeApproval(ctxOf(req))));

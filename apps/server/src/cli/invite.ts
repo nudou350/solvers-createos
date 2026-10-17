@@ -1,5 +1,4 @@
 import { desc, eq, sql } from "drizzle-orm";
-import { isAddress } from "@solvers/shared";
 import { db, pool, schema } from "../db/index.js";
 import { generateInviteCode, normalizeInviteCode } from "../submissions/rules.js";
 
@@ -9,7 +8,7 @@ import { generateInviteCode, normalizeInviteCode } from "../submissions/rules.js
 //   pnpm cli:invite create [--email someone@x.com] [--note "who"] [--count 3]   # generates code(s); you e-mail them
 //   pnpm cli:invite list                                                         # all of them, with who used them
 //   pnpm cli:invite revoke <code>                                                # deletes an unused invite
-//   pnpm cli:invite set-chat <wallet> <chatId>                                   # admin shortcut: links the creator's Telegram
+//   pnpm cli:invite set-chat <email> <chatId>                                    # admin shortcut: links the creator's Telegram
 //
 // From the repository root: `pnpm --filter @solvers/server cli:invite create ...` (same form, no `--`).
 // Creators normally link it themselves on the site (POST /creator/telegram-link + /vincular in the bot); `set-chat` is the shortcut.
@@ -33,7 +32,7 @@ async function list() {
   const rows = await db.select().from(schema.creatorInvites).orderBy(desc(schema.creatorInvites.createdAt));
   if (rows.length === 0) return console.log("no invites");
   for (const r of rows) {
-    const state = r.usedAt ? `used by ${r.wallet} at ${r.usedAt.toISOString()}` : "free";
+    const state = r.usedAt ? `used by ${r.userId} at ${r.usedAt.toISOString()}` : "free";
     console.log(`${r.code}  ${state}${r.email ? `  <${r.email}>` : ""}${r.note ? `  (${r.note})` : ""}`);
   }
 }
@@ -50,15 +49,16 @@ async function revoke() {
 }
 
 async function setChat() {
-  const [wallet, chatId] = rest;
-  if (!wallet || !chatId) throw new Error("usage: set-chat <wallet> <chatId>");
-  if (!isAddress(wallet)) throw new Error(`"${wallet}" is not a wallet address`);
+  const [email, chatId] = rest;
+  if (!email || !chatId) throw new Error("usage: set-chat <email> <chatId>");
+  const [user] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, email.trim()));
+  if (!user) throw new Error(`no account with the e-mail ${email}`);
   const upd = await db
     .update(schema.creators)
     .set({ telegramChatId: chatId })
-    .where(eq(schema.creators.wallet, wallet.toLowerCase()))
+    .where(eq(schema.creators.userId, user.id))
     .returning({ id: schema.creators.id, name: schema.creators.name });
-  if (upd.length === 0) throw new Error("no creator with this wallet (the creator must have saved the profile on the site)");
+  if (upd.length === 0) throw new Error("no creator with this account (the creator must have saved the profile on the site)");
   console.log(`Telegram linked to ${upd[0]!.name} (${upd[0]!.id}); contact verified.`);
 }
 

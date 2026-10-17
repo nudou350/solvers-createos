@@ -7,19 +7,18 @@ import { env } from "../env.js";
 import { deleteKnowledgeVersion, renameKnowledgeVersion } from "../knowledge/ingest.js";
 import { notifyCreator, sendTelegram } from "../notify/telegram.js";
 import { loadPackage, packageHash, reloadPackages, type SolverPackage } from "../runtime/packages.js";
-import { FINALIZABLE_STATUSES, nextPublicationStep, parseApproved, statusAfterChain, type ApprovedRecord, type PublicationStep } from "./approval-rules.js";
+import { FINALIZABLE_STATUSES, parseApproved, type ApprovedRecord } from "./approval-rules.js";
 import { prepareCatalog, relist, writeCatalog, type PreparedCatalog } from "./catalog.js";
-import { publishChain, type PublishChain } from "./chain-port.js";
 import { cleanIncoming, findPackageRoot, incomingParent, publishedIdentityOf, publishedVersionOf, stagePackage, swapInPublished } from "./fs.js";
 import { versionGreater } from "../submissions/rules.js";
 
-// Publication finalization (PACKAGE_SPEC.md 15.3, step 5): the approved version becomes the one served. Idempotent and
-// resumable: each step checks what was already done, and a failure leaves the submission in `publish_failed` for the
-// admin to retry (POST /admin/submissions/:id/finish). The store does NOT change before the last step: the catalog is
-// written in a single transaction at the end, after the disk and the knowledge base.
+// Publication finalization (PACKAGE_SPEC.md 15.3): the approved version becomes the one served. Runs right after the
+// reviewer's approval (`pending_review` -> `publishing`). Idempotent and resumable: each step checks what was already
+// done, and a failure leaves the submission in `publish_failed` for the admin to retry (POST /admin/submissions/:id/finish).
+// The store does NOT change before the last step: the catalog is written in a single transaction at the end, after the
+// disk and the knowledge base.
 
 export type FinalizeDeps = {
-  port: PublishChain;
   /** Published packages folder and submissions folder (resolved; the tests point them to a temporary folder). */
   publishedDir: string;
   submissionsDir: string;
@@ -34,7 +33,6 @@ export type FinalizeDeps = {
 
 export function defaultFinalizeDeps(): FinalizeDeps {
   return {
-    port: publishChain(),
     publishedDir: resolve(process.cwd(), env.PUBLISHED_DIR),
     submissionsDir: resolve(process.cwd(), env.SUBMISSIONS_DIR),
     renameKnowledge: renameKnowledgeVersion,
@@ -51,8 +49,8 @@ export type FinalizeResult =
   | { outcome: "already_published" }
   /** Another process is finalizing this submission (event + button + CLI at the same time): nothing to do. */
   | { outcome: "busy" }
-  /** Not yet: wrong state, chain behind the approved record, agent suspended. Nothing changed (except the state advance). */
-  | { outcome: "not_ready"; status: SubmissionStatus; step?: PublicationStep; reason: string }
+  /** Not yet: wrong state, no approved record, agent suspended. Nothing changed. */
+  | { outcome: "not_ready"; status: SubmissionStatus; reason: string }
   | { outcome: "failed"; error: string };
 
 type SubmissionRow = typeof schema.packageSubmissions.$inferSelect;
@@ -82,12 +80,12 @@ export async function moveSubmission(id: string, from: SubmissionStatus, to: Sub
 }
 
 /**
- * Publishes the approved version. `actor` (admin wallet) becomes a `finish` row in `package_reviews` when finalization is
- * the admin's action (the "Finish" button, `cli:approve`); triggered by a chain event, nothing is recorded.
+ * Publishes the approved version. `actor` (admin user id) becomes a `finish` row in `package_reviews` when finalization is
+ * the admin's retry (the "Finish" button); right after the approval, the `approve` row already records it.
  */
 export async function finalizePublication(submissionId: string, opts: { actor?: string; deps?: Partial<FinalizeDeps> } = {}): Promise<FinalizeResult> {
   const deps = { ...defaultFinalizeDeps(), ...opts.deps };
-  // One finalization per submission: chain event, admin button and CLI can arrive together. The lock belongs to the
+  // One finalization per submission: the approval and the admin's retry can arrive together. The lock belongs to the
   // Postgres session (released by itself if the process dies).
   const client = await pool.connect();
   const key = `finalize:${submissionId}`;
@@ -96,7 +94,7 @@ export async function finalizePublication(submissionId: string, opts: { actor?: 
     if (!got.rows[0]?.ok) return { outcome: "busy" };
     try {
       const result = await run(submissionId, opts.actor, deps);
-      // Another process (the `cli:approve` CLI) may have published: the API reloads the cache from disk.
+      // Another process may have published: the API reloads the cache from disk.
       if (result.outcome === "already_published" || result.outcome === "busy") deps.reload();
       return result;
     } finally {
@@ -119,26 +117,6 @@ async function run(id: string, actor: string | undefined, deps: FinalizeDeps): P
   // Agent suspended by the platform: publishing a version must not lift the suspension by accident.
   const [existing] = await db.select({ platformStatus: schema.agents.platformStatus }).from(schema.agents).where(eq(schema.agents.id, sub.agentId));
   if (existing?.platformStatus === "suspended") return { outcome: "not_ready", status, reason: "the Solver is suspended: resume it (cli:suspend --resume) before publishing" };
-
-  // The chain must match the approved record exactly and the agent must be Active (approved by the on-chain admin).
-  let step: PublicationStep;
-  try {
-    step = nextPublicationStep(approved, await deps.port.fetchAgentState(sub.agentId));
-  } catch (e) {
-    return { outcome: "not_ready", status, reason: `could not read the chain: ${short(e)}` };
-  }
-  if (step !== "ready") {
-    const next = statusAfterChain(status, step);
-    if (next !== "finalize" && next !== status) {
-      if (await moveSubmission(id, status, next)) {
-        if (next === "awaiting_onchain_approval") {
-          await deps.notifyAdmin(`Solvers: ${sub.slug} v${approved.version} is ready for the on-chain approval.\nRun: pnpm --filter @solvers/server cli:approve ${sub.slug}`).catch(() => undefined);
-        }
-        return { outcome: "not_ready", status: next, step, reason: `missing: ${step}` };
-      }
-    }
-    return { outcome: "not_ready", status, step, reason: `missing: ${step}` };
-  }
 
   // From here on it is "publishing": any failure becomes publish_failed and the admin retries.
   if (status !== "publishing") {
@@ -182,23 +160,23 @@ async function publish(sub: SubmissionRow, approved: ApprovedRecord, actor: stri
   cleanIncoming(deps.publishedDir, id);
 
   // 2. Knowledge: the staging chunks become the real version's (one UPDATE, no vectors recomputed). The old version's
-  // chunks leave only after the new one is live (step 7), so the RAG is never empty.
+  // chunks leave only after the new one is live (step 6), so the RAG is never empty.
   await deps.renameKnowledge(sub.agentId, `staging:${id}`, approved.version);
 
   // 3. Who the creator is (the profile owns `creators.id`, not the manifest) and the search vectors (slow; outside the transaction).
-  const [creator] = await db.select({ id: schema.creators.id }).from(schema.creators).where(eq(schema.creators.wallet, sub.creatorWallet));
-  if (!creator) throw new Error(`creator ${sub.creatorWallet} has no profile (creators)`);
+  const [creator] = await db.select({ id: schema.creators.id }).from(schema.creators).where(eq(schema.creators.userId, sub.creatorUserId));
+  if (!creator) throw new Error(`creator ${sub.creatorUserId} has no profile (creators)`);
   const prepared = await deps.prepare(pkg);
 
-  // 4. Catalog, in a single transaction: this is where the store changes. A brand-new row starts `active` (the chain
-  // was just read as Active: step "ready"); existing rows keep the status the chain mirror wrote.
+  // 4. Catalog, in a single transaction: this is where the store changes. The approved version goes live at the approved
+  // price; the platform kill switch (`platform_status`) is never lifted here.
   const [prior] = await db
     .select({ id: schema.packageSubmissions.id })
     .from(schema.packageSubmissions)
     .where(and(eq(schema.packageSubmissions.agentId, sub.agentId), ne(schema.packageSubmissions.id, id), inArray(schema.packageSubmissions.status, ["published", "superseded", "suspended", "withdrawn"])))
     .limit(1);
   await db.transaction(async (tx) => {
-    await writeCatalog(prepared, sub.creatorWallet, { agentId: sub.agentId, upsertCreator: false, creatorId: creator.id, insertStatus: "active" }, tx as unknown as typeof db);
+    await writeCatalog(prepared, { agentId: sub.agentId, upsertCreator: false, creatorId: creator.id, priceCents: approved.priceCents }, tx as unknown as typeof db);
     await relist(sub.agentId, tx as unknown as typeof db);
     // First publication of the agent: platform_status starts `active`. Later ones never touch it (suspension is the admin's call).
     if (!prior) await tx.update(schema.agents).set({ platformStatus: "active" }).where(eq(schema.agents.id, sub.agentId));
@@ -213,20 +191,15 @@ async function publish(sub: SubmissionRow, approved: ApprovedRecord, actor: stri
       .set({ status: "superseded", updatedAt: new Date() })
       .where(and(eq(schema.packageSubmissions.agentId, sub.agentId), ne(schema.packageSubmissions.id, id), eq(schema.packageSubmissions.status, "published")));
     if (actor) {
-      await tx.insert(schema.packageReviews).values({ submissionId: id, reviewerWallet: actor, action: "finish", notes: "Publication finished", versionHash: approved.versionHash });
+      await tx.insert(schema.packageReviews).values({ submissionId: id, reviewerUserId: actor, action: "finish", notes: "Publication finished", versionHash: approved.versionHash });
     }
   });
 
-  // 5. Chain mirror (chain index, stake, cap, counters) onto the row that now exists. The indexer does the same; a
-  // failure here only delays those columns.
-  await deps.port.syncAgent(sub.agentId).catch((e) => console.warn(`[publish] chain mirror of ${sub.slug} failed: ${short(e)}`));
-
-  // 6. The runtime serves the new package (sessions of the old version get session_outdated and reactivate).
+  // 5. The runtime serves the new package (sessions of the old version get session_outdated and reactivate).
   deps.reload();
 
-  // 7. Only now the previous versions' chunks leave (a failure leaves garbage, but the publication is up). The catalog
-  // version is NOT the reference (the chain mirror may have changed it when the creator signed): what counts is what
-  // exists in knowledge_chunks, minus the new version and the `staging:*` of other submissions in progress.
+  // 6. Only now the previous versions' chunks leave (a failure leaves garbage, but the publication is up). What counts is
+  // what exists in knowledge_chunks, minus the new version and the `staging:*` of other submissions in progress.
   try {
     const rows = await db.selectDistinct({ version: schema.knowledgeChunks.version }).from(schema.knowledgeChunks).where(eq(schema.knowledgeChunks.agentId, sub.agentId));
     for (const { version } of rows) {
@@ -248,7 +221,7 @@ function checkPackage(pkg: SolverPackage, sub: SubmissionRow, approved: Approved
   if (m.version !== approved.version) throw new PublishCheckError(`the manifest version (${m.version}) is not the approved one (${approved.version})`);
 }
 
-/** Shortcut: the (latest) submission of a Solver in a finalizable state, for the chain event and the CLI. */
+/** Shortcut: the (latest) submission of a Solver in a finalizable state. */
 export async function pendingSubmissionFor(agentId: string): Promise<SubmissionRow | null> {
   const [row] = await db
     .select()

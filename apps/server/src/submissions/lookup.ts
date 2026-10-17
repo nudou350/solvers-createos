@@ -3,8 +3,6 @@ import { db, schema } from "../db/index.js";
 import { RESERVED_SLUGS } from "@solvers/shared";
 import { PLATFORM_AGENT_IDS } from "../runtime/platform-agents.js";
 import { getPackage, reloadPackages, type SolverPackage } from "../runtime/packages.js";
-import { deploymentOrNull, registryConfig } from "../store/chain-reads.js";
-import { DEFAULT_MIN_PRICE_UNITS } from "./rules.js";
 
 // Database and on-disk catalog queries shared by the worker and the review: who owns the `id`/`slug`, which version is
 // already published and whether the Solver is new (PACKAGE_SPEC.md 4.1, 13 and 14).
@@ -51,14 +49,14 @@ export async function loadOwnership(args: { submissionId: string; creatorId: str
   const subFilters = [manifestId ? eq(schema.packageSubmissions.agentId, manifestId) : undefined, slug ? eq(schema.packageSubmissions.slug, slug) : undefined].filter((f) => f !== undefined);
   if (subFilters.length > 0) {
     const subs = await db
-      .select({ agentId: schema.packageSubmissions.agentId, slug: schema.packageSubmissions.slug, wallet: schema.packageSubmissions.creatorWallet })
+      .select({ agentId: schema.packageSubmissions.agentId, slug: schema.packageSubmissions.slug, userId: schema.packageSubmissions.creatorUserId })
       .from(schema.packageSubmissions)
       .where(and(or(...subFilters), ne(schema.packageSubmissions.id, args.submissionId), notInArray(schema.packageSubmissions.status, RELEASED_STATUSES)));
-    const wallets = [...new Set(subs.map((s) => s.wallet))];
-    const owners = wallets.length ? await db.select({ id: schema.creators.id, wallet: schema.creators.wallet }).from(schema.creators).where(inArray(schema.creators.wallet, wallets)) : [];
-    const byWallet = new Map(owners.map((o) => [o.wallet, o.id]));
+    const userIds = [...new Set(subs.map((s) => s.userId))];
+    const owners = userIds.length ? await db.select({ id: schema.creators.id, userId: schema.creators.userId }).from(schema.creators).where(inArray(schema.creators.userId, userIds)) : [];
+    const byUser = new Map(owners.map((o) => [o.userId, o.id]));
     for (const s of subs) {
-      const owner = byWallet.get(s.wallet);
+      const owner = byUser.get(s.userId);
       if (!owner) continue;
       if (!idOwner.has(s.agentId)) idOwner.set(s.agentId, owner);
       if (s.slug && !slugOwner.has(s.slug)) slugOwner.set(s.slug, owner);
@@ -89,7 +87,7 @@ export async function loadOwnership(args: { submissionId: string; creatorId: str
  */
 export const listColumns = {
   id: schema.packageSubmissions.id,
-  creatorWallet: schema.packageSubmissions.creatorWallet,
+  creatorUserId: schema.packageSubmissions.creatorUserId,
   agentId: schema.packageSubmissions.agentId,
   slug: schema.packageSubmissions.slug,
   version: schema.packageSubmissions.version,
@@ -104,7 +102,7 @@ export const listColumns = {
   warningCount: sql<number>`case when jsonb_typeof(${schema.packageSubmissions.validation}->'warnings') = 'array' then jsonb_array_length(${schema.packageSubmissions.validation}->'warnings') else 0 end`,
 };
 
-/** The Solver does not exist in the catalog yet (the on-chain step will be `registerAgent`, not `updateVersion`). */
+/** The Solver does not exist in the catalog yet (first publication, not a new version). */
 export async function isNewAgent(agentId: string): Promise<boolean> {
   const [a] = await db.select({ id: schema.agents.id }).from(schema.agents).where(eq(schema.agents.id, agentId));
   return !a;
@@ -118,13 +116,13 @@ export async function newAgentSet(agentIds: string[]): Promise<Set<string>> {
 }
 
 /** Another live submission (in progress or published) of the same creator, for the same Solver and version. */
-export async function duplicateVersion(args: { submissionId: string; wallet: string; agentId: string; version: string }): Promise<boolean> {
+export async function duplicateVersion(args: { submissionId: string; userId: string; agentId: string; version: string }): Promise<boolean> {
   const rows = await db
     .select({ id: schema.packageSubmissions.id })
     .from(schema.packageSubmissions)
     .where(
       and(
-        eq(schema.packageSubmissions.creatorWallet, args.wallet),
+        eq(schema.packageSubmissions.creatorUserId, args.userId),
         eq(schema.packageSubmissions.agentId, args.agentId),
         eq(schema.packageSubmissions.version, args.version),
         ne(schema.packageSubmissions.id, args.submissionId),
@@ -135,26 +133,25 @@ export async function duplicateVersion(args: { submissionId: string; wallet: str
 }
 
 /** States in which another submission already "holds" the slug and id (approved, publishing or live): they block approving another creator. */
-const HOLDING_STATUSES = ["awaiting_creator_signature", "awaiting_onchain_approval", "publishing", "publish_failed", "published", "suspended", "withdrawn"];
+const HOLDING_STATUSES = ["publishing", "publish_failed", "published", "suspended", "withdrawn"];
 
 /**
  * Approval check (runs inside the reviewer's transaction): do the submission's id and slug still belong to its creator?
  * Returns the reason in English or null. The catalog, platform Solvers, reserved slugs and ANOTHER creator's approved
  * submissions count; another creator's merely pending submissions do not (the first to be approved wins).
  */
-export async function ownershipConflict(args: { submissionId: string; wallet: string; agentId: string; slug: string }): Promise<string | null> {
+export async function ownershipConflict(args: { submissionId: string; userId: string; agentId: string; slug: string }): Promise<string | null> {
   const { agentId, slug } = args;
   if (RESERVED_SLUGS.includes(slug)) return `The slug ${slug} is reserved.`;
   if (PLATFORM_AGENT_IDS.includes(agentId)) return "This Solver's id is reserved for the platform.";
-  const [creator] = await db.select({ id: schema.creators.id }).from(schema.creators).where(eq(schema.creators.wallet, args.wallet));
+  const [creator] = await db.select({ id: schema.creators.id }).from(schema.creators).where(eq(schema.creators.userId, args.userId));
   if (!creator) return "The creator profile for this submission no longer exists.";
 
   const agents = await db.select({ id: schema.agents.id, slug: schema.agents.slug, creatorId: schema.agents.creatorId }).from(schema.agents).where(or(eq(schema.agents.id, agentId), eq(schema.agents.slug, slug)));
   for (const a of agents) {
     if (a.id !== agentId) return `The slug ${slug} already belongs to another Solver in the catalog (${a.id}).`;
-    // The indexer's minimal row (agent registered before the catalog) keeps the wallet as owner and the id as slug.
-    if (a.creatorId !== creator.id && a.creatorId !== args.wallet) return "This Solver's id already belongs to another creator in the catalog.";
-    if (a.slug !== slug && a.slug !== a.id) return `This Solver already exists in the catalog with a different slug (${a.slug}).`;
+    if (a.creatorId !== creator.id) return "This Solver's id already belongs to another creator in the catalog.";
+    if (a.slug !== slug) return `This Solver already exists in the catalog with a different slug (${a.slug}).`;
   }
 
   // Packages on disk: the platform's (agents/ folder) never belong to a creator.
@@ -164,9 +161,9 @@ export async function ownershipConflict(args: { submissionId: string; wallet: st
   }
 
   const holders = await db
-    .select({ wallet: schema.packageSubmissions.creatorWallet })
+    .select({ userId: schema.packageSubmissions.creatorUserId })
     .from(schema.packageSubmissions)
-    .where(and(ne(schema.packageSubmissions.id, args.submissionId), ne(schema.packageSubmissions.creatorWallet, args.wallet), or(eq(schema.packageSubmissions.agentId, agentId), eq(schema.packageSubmissions.slug, slug)), inArray(schema.packageSubmissions.status, HOLDING_STATUSES)))
+    .where(and(ne(schema.packageSubmissions.id, args.submissionId), ne(schema.packageSubmissions.creatorUserId, args.userId), or(eq(schema.packageSubmissions.agentId, agentId), eq(schema.packageSubmissions.slug, slug)), inArray(schema.packageSubmissions.status, HOLDING_STATUSES)))
     .limit(1);
   if (holders.length > 0) return "Another creator already has an approved version with this id or slug.";
   return null;
@@ -175,12 +172,4 @@ export async function ownershipConflict(args: { submissionId: string; wallet: st
 /** Packages on disk (platform + published), one per id, re-read from disk: the worker is another process and does not see the API's swaps. */
 export function currentPackages(): SolverPackage[] {
   return [...new Map([...reloadPackages().values()].map((p) => [p.manifest.id, p])).values()];
-}
-
-
-/** Minimum price in base units: the Registry's `minPrice` when the chain context is initialized (API), never below the default (worker: the default). */
-export async function minPriceUnits(): Promise<bigint> {
-  if (!deploymentOrNull()) return DEFAULT_MIN_PRICE_UNITS;
-  const onchain = (await registryConfig())?.minPrice ?? 0n;
-  return onchain > DEFAULT_MIN_PRICE_UNITS ? onchain : DEFAULT_MIN_PRICE_UNITS;
 }

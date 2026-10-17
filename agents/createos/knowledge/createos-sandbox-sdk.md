@@ -4,6 +4,7 @@ source: CreateOS Sandbox SDK (@nodeops-createos/sandbox 0.8.2 README and type de
 source_url: https://github.com/NodeOps-app/createos-sandbox-sdk
 source_date: 2026-10-17
 valid_until: 2027-01-15
+trial: true
 tags: [createos, sandbox, sdk, typescript, exec, files, preview, fork, pause]
 ---
 

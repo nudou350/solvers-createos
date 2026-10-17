@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, eq, gt, sql } from "drizzle-orm";
-import { requireAuth, requireWallet } from "../auth/jwt.js";
+import { requireUser, requireUserId } from "../auth/middleware.js";
 import { db, schema } from "../db/index.js";
 import { h, HttpError, parse } from "../lib/http.js";
 import { escalate } from "../notify/telegram.js";
@@ -14,22 +14,22 @@ export const helpRouter = Router();
 
 helpRouter.post(
   "/agents/:idOrSlug/help",
-  requireAuth,
+  requireUser,
   h(async (req) => {
-    const wallet = requireWallet(req);
+    const userId = requireUserId(req);
     const { message, contact } = parse(HelpRequest, req.body);
     const agent = await findAgentRow(String(req.params.idOrSlug));
 
-    // Limit per wallet (all specialists together), counted in the database: holds across restarts and instances.
+    // Limit per user (all specialists together), counted in the database: holds across restarts and instances.
     const [{ n }] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(schema.escalations)
-      .where(and(eq(schema.escalations.wallet, wallet), gt(schema.escalations.createdAt, new Date(Date.now() - 3600_000))));
+      .where(and(eq(schema.escalations.userId, userId), gt(schema.escalations.createdAt, new Date(Date.now() - 3600_000))));
     if (n >= HELP_PER_HOUR) {
       throw new HttpError(429, "You've already sent a few requests a moment ago. Wait an hour or wait for the reply.", "rate_limited");
     }
 
-    const { protocol, notified } = await escalate(wallet, agent.id, null, buildHelpSummary(message, contact || undefined));
+    const { protocol, notified } = await escalate(userId, agent.id, null, buildHelpSummary(message, contact || undefined));
     return { protocol, notified };
   }),
 );

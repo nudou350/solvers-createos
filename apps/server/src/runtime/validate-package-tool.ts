@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MIN_PRICE_CENTS } from "./price.js";
 import { badRequest } from "../lib/http.js";
 import { validatePackage, type Issue, type PackageInput, type ValidationResult } from "./validate/index.js";
 
@@ -11,8 +12,6 @@ import { validatePackage, type Issue, type PackageInput, type ValidationResult }
 /** Cap of the request body (the same as /mcp). */
 export const MAX_INPUT_BYTES = 1_000_000;
 
-/** Current `minPrice` of the Registry config (5 USD); the upload checks against the chain's real value. */
-const MIN_PRICE_USDC = 5;
 
 const Path = z.string().min(1).max(200);
 
@@ -111,7 +110,7 @@ export function validatePackageTool(raw: unknown): ValidatePackageOutput {
   const bytes = enc.encode(JSON.stringify(input)).byteLength;
   if (bytes > MAX_INPUT_BYTES) throw badRequest(`The input is ${bytes} bytes and the limit is ${MAX_INPUT_BYTES}. Send only the beginning of the knowledge files and validate the eval cases in another call.`);
   const has = { files: input.files !== undefined, knowledge: input.knowledge !== undefined, templates: input.templates !== undefined, evals: input.evals !== undefined };
-  const result = validatePackage(buildPackage(input), { mode: "third_party", minPriceUsdc: MIN_PRICE_USDC });
+  const result = validatePackage(buildPackage(input), { mode: "third_party", minPriceCents: MIN_PRICE_CENTS });
   const keep = (i: Issue) => !outOfScope(i.code, i.message, has);
   const errors = result.errors.filter(keep);
   const warnings = result.warnings.filter(keep);

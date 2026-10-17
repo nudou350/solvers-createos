@@ -4,54 +4,53 @@ import { db, schema } from "../db/index.js";
 import { forbidden, notFound } from "../lib/http.js";
 import { randomId, sha256Hex } from "../lib/crypto.js";
 import type { SolverPackage } from "./packages.js";
-import { escrowIsOpen, paidAccessById, sessionGrantValid, type PaidAccess, type PlatformAccess } from "./access.js";
-import { assertAgentCanServe, servePolicy, type AccessKind } from "./availability.js";
-import { licenseRecheckDue, withSummary } from "./session-rules.js";
+import type { VerifyResult } from "@solvers/shared";
+import { runStepVerify } from "../sandbox/verify.js";
+import { paidAccessById, sessionGrantValid, type PaidAccess, type PlatformAccess } from "./access.js";
+import { assertAgentCanServe, type AccessKind } from "./availability.js";
+import { withSummary } from "./session-rules.js";
 import { declaredTemplates, templatesOverview } from "./templates.js";
 
 // Step engine (INSTRUCTIONS.md 5.4): one session per activation, one step at a time, gates,
-// and a simple per-wallet watermark.
+// sandbox-proven gates (`steps[].verify`) and a simple per-user watermark.
 
 export type Session = typeof schema.sessions.$inferSelect;
-
-/** Last successful on-chain license check per session (license:wallet), in ms. */
-const licenseChecked = new Map<string, number>();
 
 /** Free trial: short session with a call cap (prevents downloading the whole knowledge base for free). */
 const TRIAL_TTL_MS = 2 * 3600_000;
 const PAID_TTL_MS = 24 * 3600_000;
 export const TRIAL_MAX_CALLS = 60;
 
-/** Session access: free trial, paid (license / guaranteed task, whose escrowId is kept in context) or platform Solver (free). */
+/** Session access: free trial, paid (license) or platform Solver (free). */
 export type SessionGrant = { kind: "trial" } | PaidAccess | PlatformAccess;
 
-export async function createSession(wallet: string, pkg: SolverPackage, grant: SessionGrant): Promise<Session> {
+export async function createSession(userId: string, pkg: SolverPackage, grant: SessionGrant): Promise<Session> {
   const ttl = grant.kind === "trial" ? TRIAL_TTL_MS : PAID_TTL_MS;
   const [s] = await db
     .insert(schema.sessions)
     .values({
       id: `ses_${randomId(12)}`,
-      wallet,
+      userId,
       agentId: pkg.manifest.id,
       version: pkg.manifest.version,
       stepIndex: 0,
       access: grant.kind,
       licenseId: grant.kind === "license" ? grant.licenseId : null,
-      context: grant.kind === "guarantee" ? { summaries: [], escrowId: grant.escrowId } : { summaries: [] },
+      context: { summaries: [] },
       expiresAt: new Date(Date.now() + ttl),
     })
     .returning();
   return s!;
 }
 
-/** A still-open session for the same wallet and solver: reused without charging another use. */
-export async function findOpenSession(wallet: string, agentId: string, version: string, totalSteps: number): Promise<Session | null> {
+/** A still-open session for the same user and solver: reused without charging another use. */
+export async function findOpenSession(userId: string, agentId: string, version: string, totalSteps: number): Promise<Session | null> {
   const [s] = await db
     .select()
     .from(schema.sessions)
     .where(
       and(
-        eq(schema.sessions.wallet, wallet),
+        eq(schema.sessions.userId, userId),
         eq(schema.sessions.agentId, agentId),
         eq(schema.sessions.version, version),
         gt(schema.sessions.expiresAt, new Date()),
@@ -64,18 +63,15 @@ export async function findOpenSession(wallet: string, agentId: string, version: 
 }
 
 /**
- * Trial session of a user who now has paid access (bought the license or opened a guarantee):
+ * Trial session of a user who now has paid access (bought the license):
  * it becomes a paid session, with no limits and the paid TTL, keeping the step where the user stopped.
  */
 export async function promoteSession(session: Session, paid: PaidAccess): Promise<Session> {
-  const context = { ...(session.context as Record<string, unknown>) };
-  if (paid.kind === "guarantee") context.escrowId = paid.escrowId;
   const [s] = await db
     .update(schema.sessions)
     .set({
       access: paid.kind,
-      licenseId: paid.kind === "license" ? paid.licenseId : null,
-      context,
+      licenseId: paid.licenseId,
       expiresAt: new Date(Date.now() + PAID_TTL_MS),
       updatedAt: new Date(),
     })
@@ -87,63 +83,42 @@ export async function promoteSession(session: Session, paid: PaidAccess): Promis
   return cur ?? session;
 }
 
-/** Ends the session (license transferred, guarantee closed): the next activation opens a new one. */
+/** Ends the session (license revoked): the next activation opens a new one. */
 export async function expireSession(sessionId: string): Promise<void> {
   await db.update(schema.sessions).set({ expiresAt: new Date(), updatedAt: new Date() }).where(eq(schema.sessions.id, sessionId));
 }
 
 /**
- * Loads the session, ensuring it belongs to the token's wallet, the specialist is not suspended, it has not expired, the free
- * trial has not exceeded its cap and the license (if any) is still held by the same wallet.
+ * Loads the session, ensuring it belongs to the token's user, the specialist is not suspended, it has not expired, the free
+ * trial has not exceeded its cap and the license (if any) is still valid.
  */
-export async function getSession(sessionId: string, wallet: string): Promise<Session> {
-  let [s] = await db
+export async function getSession(sessionId: string, userId: string): Promise<Session> {
+  const [s] = await db
     .update(schema.sessions)
     .set({ calls: sql`${schema.sessions.calls} + 1` })
-    .where(and(eq(schema.sessions.id, sessionId), eq(schema.sessions.wallet, wallet)))
+    .where(and(eq(schema.sessions.id, sessionId), eq(schema.sessions.userId, userId)))
     .returning();
   if (!s) {
     const [other] = await db.select({ id: schema.sessions.id }).from(schema.sessions).where(eq(schema.sessions.id, sessionId));
-    if (other) throw forbidden("This session belongs to another wallet.");
+    if (other) throw forbidden("This session belongs to another account.");
     throw notFound("Session not found. Activate the solver again with activate_solver.");
   }
-  // Kill switch (PACKAGE_SPEC.md 15.4): a suspended specialist (platform or chain) drops open sessions immediately.
+  // Kill switch (PACKAGE_SPEC.md 15.4): a suspended specialist drops open sessions immediately.
   const [agent] = await db
-    .select({ status: schema.agents.status, platformStatus: schema.agents.platformStatus })
+    .select({ platformStatus: schema.agents.platformStatus })
     .from(schema.agents)
     .where(eq(schema.agents.id, s.agentId));
-  const availability = agent ?? { status: "missing", platformStatus: "suspended" };
-  // Retired Solver: only paid access continues. A trial session of someone who bought later becomes paid; without access, it closes.
-  if (s.access === "trial" && servePolicy(availability) === "paid_only") {
-    const paid = await paidAccessById(wallet, s.agentId);
-    if (paid) s = await promoteSession(s, paid);
-  }
+  const availability = agent ?? { platformStatus: "suspended" };
   assertAgentCanServe(availability, s.access as AccessKind);
   if (s.expiresAt < new Date()) throw forbidden("Session expired. Activate the solver again with activate_solver.");
   if (s.access === "trial" && s.calls > TRIAL_MAX_CALLS) {
     // Only at the moment of blocking: someone who bought during the trial continues in the same session, with no limits.
-    const paid = await paidAccessById(wallet, s.agentId);
+    const paid = await paidAccessById(userId, s.agentId);
     if (paid) return promoteSession(s, paid);
     throw forbidden("Free trial limit reached in this session. To continue, the user can buy the specialist.");
   }
-  if (s.access === "guarantee") {
-    const escrowId = (s.context as { escrowId?: unknown }).escrowId;
-    if (typeof escrowId !== "string" || !(await escrowIsOpen(escrowId))) {
-      throw forbidden("This specialist's guaranteed task has been closed. Activate the solver again with activate_solver.");
-    }
-  }
-  if (s.access === "license") {
-    // License may have changed hands: check the on-chain owner (sessionGrantValid falls back to the DB if the RPC fails), with a short cache
-    // so the RPC is not hit on every call.
-    const key = `${s.licenseId}:${wallet}`;
-    if (licenseRecheckDue(licenseChecked.get(key), Date.now())) {
-      if (!s.licenseId || !(await sessionGrantValid(s))) {
-        licenseChecked.delete(key);
-        throw forbidden("This specialist's license no longer belongs to this wallet.");
-      }
-      if (licenseChecked.size > 2000) for (const [k, t] of licenseChecked) if (licenseRecheckDue(t, Date.now())) licenseChecked.delete(k);
-      licenseChecked.set(key, Date.now());
-    }
+  if (s.access === "license" && !(await sessionGrantValid(s))) {
+    throw forbidden("This specialist's license is no longer active for this account.");
   }
   return s;
 }
@@ -157,18 +132,7 @@ export async function advance(session: Session, resultSummary?: string): Promise
     .where(and(eq(schema.sessions.id, session.id), eq(schema.sessions.stepIndex, session.stepIndex)))
     .returning();
   // Another call advanced first: return the current state without skipping a step.
-  return s ?? (await getSession(session.id, session.wallet));
-}
-
-/** The guarantee session now points to another open task of the same specialist (chosen by the given escrow_id). */
-export async function bindSessionEscrow(session: Session, escrowId: string): Promise<Session> {
-  const context = { ...(session.context as Record<string, unknown>), escrowId };
-  const [s] = await db
-    .update(schema.sessions)
-    .set({ context, updatedAt: new Date() })
-    .where(and(eq(schema.sessions.id, session.id), eq(schema.sessions.access, "guarantee")))
-    .returning();
-  return s ?? session;
+  return s ?? (await getSession(session.id, session.userId));
 }
 
 /** Step resubmission (repeated next_step): only stores the summary in the right slot, without advancing the session. */
@@ -190,11 +154,11 @@ const WATERMARKS = [
 ];
 
 /**
- * Control phrase chosen by the wallet hash (1 of 8 = 3 bits). It serves as a HINT of a leak's origin,
- * not as proof or individual tracking (PACKAGE_SPEC.md 6.5): many wallets map to the same phrase.
+ * Control phrase chosen by the user id hash (1 of 8 = 3 bits). It serves as a HINT of a leak's origin,
+ * not as proof or individual tracking (PACKAGE_SPEC.md 6.5): many users map to the same phrase.
  */
-export function watermark(wallet: string, agentId: string): string {
-  const n = createHash("sha256").update(`${wallet}:${agentId}`).digest().readUInt32BE(0);
+export function watermark(userId: string, agentId: string): string {
+  const n = createHash("sha256").update(`${userId}:${agentId}`).digest().readUInt32BE(0);
   return WATERMARKS[n % WATERMARKS.length]!;
 }
 
@@ -231,14 +195,18 @@ export function renderStep(pkg: SolverPackage, session: Session, index: number):
   }
   const step = pkg.steps[index]!;
   const gate = step.gate.length ? step.gate.map((g) => `- [ ] ${g}`).join("\n") : "- [ ] Step goal achieved";
+  const proven = step.verify.length
+    ? ["", `next_step runs these checks in the sandbox before advancing: ${step.verify.map((v) => `"${v.label}"`).join(", ")}. Make them pass with sandbox_run first.`]
+    : [];
   const text = [
     `# Step ${index + 1} of ${total}: ${step.title}`,
     "",
     step.body.trim(),
     "",
     "## Exit checklist (gate)",
-    watermark(session.wallet, pkg.manifest.id),
+    watermark(session.userId, pkg.manifest.id),
     gate,
+    ...proven,
     "",
     `When the checklist is complete, call next_step with session_id="${session.id}", completed_step=${index + 1} and result_summary in the format requested above.`,
   ].join("\n");
@@ -246,3 +214,41 @@ export function renderStep(pkg: SolverPackage, session: Session, index: number):
 }
 
 export const responseHash = (text: string) => sha256Hex(text);
+
+/** Proof that a gate check passed in the sandbox (shown in the next_step response). */
+export type StepProof = { label: string; exitCode: number; execMs: number };
+
+export type StepVerifyOutcome = { passed: true; proofs: StepProof[] } | { passed: false; text: string };
+
+/** Keeps the end of a long output: errors are usually at the bottom. */
+const tail = (t: string, max = 2000) => (t.length > max ? `…${t.slice(-max)}` : t);
+
+function failureText(stepNo: number, results: VerifyResult[]): string {
+  const lines = [`Step ${stepNo} is not done yet: its gate checks failed in the sandbox, so the session did not advance.`, ""];
+  for (const r of results) {
+    lines.push(`## ${r.passed ? "PASS" : "FAIL"}: ${r.label} (exit ${r.exitCode}, ${r.execMs} ms)`);
+    if (r.passed) continue;
+    if (r.stdout.trim()) lines.push("stdout:", "```", tail(r.stdout.trimEnd()), "```");
+    if (r.stderr.trim()) lines.push("stderr:", "```", tail(r.stderr.trimEnd()), "```");
+  }
+  lines.push("", "Fix the problem with sandbox_run, then call next_step again with the same completed_step.");
+  return lines.join("\n");
+}
+
+/**
+ * Runs the `verify` checks of step `index` (0-based) in the session's sandbox before the session advances (PLANO.md 6.3).
+ * Steps without `verify` pass with no proof. A failed check blocks the advance and returns stdout/stderr to the model.
+ */
+export async function verifyStep(pkg: SolverPackage, session: Session, index: number): Promise<StepVerifyOutcome> {
+  const checks = pkg.steps[index]?.verify ?? [];
+  if (!checks.length) return { passed: true, proofs: [] };
+  const { passed, results } = await runStepVerify({ userId: session.userId, sessionId: session.id, agentId: session.agentId, checks });
+  if (!passed) return { passed: false, text: failureText(index + 1, results) };
+  return { passed: true, proofs: results.map((r) => ({ label: r.label, exitCode: r.exitCode, execMs: r.execMs })) };
+}
+
+/** "Proven in the sandbox" block appended to the next_step response. */
+export function proofText(stepNo: number, proofs: StepProof[]): string {
+  if (!proofs.length) return "";
+  return [`## Step ${stepNo} gate proven in the sandbox`, ...proofs.map((p) => `- [x] ${p.label} (exit ${p.exitCode}, ${p.execMs} ms)`)].join("\n");
+}

@@ -1,9 +1,8 @@
-// Site admin = a wallet listed in ADMIN_WALLETS (comma separated), confirmed by login (PACKAGE_SPEC.md 14.4). It grants
-// reviewing and finishing on the site: it is NOT the on-chain admin (cold key, only the `cli:approve`/`cli:suspend` CLIs).
-// Addresses are compared lowercase (D7). Pure (no env): tested in test/publish-rules.test.ts.
+// Site admin = a user id listed in ADMIN_USER_IDS (comma separated), confirmed by login (PACKAGE_SPEC.md 14.4). It grants
+// reviewing, finishing and suspending on the site. Pure (no env): tested in test/publish-rules.test.ts.
 
-/** Admin wallets of a "a,b , c" list (empty entries ignored), lowercase. */
-export function parseAdminWallets(raw: string): Set<string> {
+/** Admin user ids of a "a,b , c" list (empty entries ignored), lowercase (uuids). */
+export function parseAdminUserIds(raw: string): Set<string> {
   return new Set(
     raw
       .split(",")
@@ -12,6 +11,6 @@ export function parseAdminWallets(raw: string): Set<string> {
   );
 }
 
-export function isAdminIn(wallet: string, raw: string): boolean {
-  return parseAdminWallets(raw).has(wallet.trim().toLowerCase());
+export function isAdminIn(userId: string | undefined, raw: string): boolean {
+  return !!userId && parseAdminUserIds(raw).has(userId.trim().toLowerCase());
 }

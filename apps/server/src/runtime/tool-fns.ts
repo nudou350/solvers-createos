@@ -410,7 +410,7 @@ const SKIP_INPUT_TYPES = /^(hidden|submit|button|reset|image)$/i;
 /**
  * Static accessibility check of JSX/HTML code (does not render): field labels, button
  * names, images without alt, clickable div/span, positive tabIndex and outline removal.
- * issues = errors (they block the guarantee); warnings = warnings. passed = no errors.
+ * issues = errors (they fail the check); warnings = warnings. passed = no errors.
  * Linear in input size: one tokenization per file and one pass over the tokens.
  */
 export function a11yCheck(files: Record<string, string>) {

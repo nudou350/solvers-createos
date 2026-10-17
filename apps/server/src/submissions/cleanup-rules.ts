@@ -5,14 +5,14 @@ const DAY_MS = 86_400_000;
 
 /** Rejected (validation or reviewer): the ZIP and the extracted folder are removed after this period. */
 export const REJECTED_FILES_TTL_DAYS = 30;
-/** Requested changes or a signature the creator never made: after this period the submission expires and the slug is released. */
+/** Requested changes the creator never made: after this period the submission expires and the slug is released. */
 export const STALE_OPEN_TTL_DAYS = 30;
 /** Leftovers of an interrupted upload (`.part`) and folders with no database row: one day. */
 export const ORPHAN_TTL_DAYS = 1;
 
 const REJECTED_STATUSES = ["rejected_validation", "rejected"] as const;
 /** States that depend on the creator and could sit idle forever, holding the slug. */
-export const EXPIRABLE_STATUSES = ["changes_requested", "awaiting_creator_signature"] as const;
+export const EXPIRABLE_STATUSES = ["changes_requested"] as const;
 
 const olderThan = (at: Date | number, now: Date | number, days: number): boolean => new Date(now).getTime() - new Date(at).getTime() > days * DAY_MS;
 
@@ -41,5 +41,3 @@ export function orphanFolderStale(hasRow: boolean, mtimeMs: number, now: Date = 
 
 /** Note written to `reviewer_notes` and `package_reviews` when the system expires an idle submission. */
 export const EXPIRED_NOTE = "Submission expired: it sat idle for more than 30 days, waiting for the creator. The slug has been released; submit the package again if you still want to publish.";
-/** Wallet that signs the system's actions in `package_reviews`. */
-export const SYSTEM_REVIEWER = "system";
