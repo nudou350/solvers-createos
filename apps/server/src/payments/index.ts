@@ -1,34 +1,28 @@
-import { PixIntermediatedProvider } from "../pix/provider.js";
-import { SolanaPayProvider } from "../solana-pay/provider.js";
-import { DirectWalletProvider } from "./providers/direct-wallet.js";
-import { FiatOnrampProvider, PixMarketplaceSplitProvider } from "./providers/stubs.js";
+import { StripeProvider } from "./providers/stripe.js";
 import { getProvider, registerProvider } from "./registry.js";
-import { installSaleHook } from "./sale-hook.js";
 
-// Boot of the payments module: registers the providers and installs the `SaleAuthorized` handler the indexer calls.
-// Idempotent; routes.ts calls it on import so mounting the router is enough.
+// Boot of the payments module: registers the providers. Idempotent; the routers call it on import so mounting them is
+// enough.
 
 let ready = false;
 
 export function initPayments(): void {
   if (ready) return;
-  registerProvider(new DirectWalletProvider());
-  registerProvider(new PixIntermediatedProvider());
-  // Always registered so the reconcile job finishes open charges even after SOLANA_PAY_ENABLED is turned off; new
-  // charges are refused while it is off.
-  registerProvider(new SolanaPayProvider());
-  registerProvider(new PixMarketplaceSplitProvider());
-  registerProvider(new FiatOnrampProvider());
-  // agent-pay registers itself when its router is mounted (src/agent-pay/routes.ts, only with AGENT_PAY_ENABLED).
-  installSaleHook();
+  registerProvider(new StripeProvider());
   ready = true;
 }
 
-export const directWallet = () => getProvider<DirectWalletProvider>("direct-wallet");
-export const pixProvider = () => getProvider<PixIntermediatedProvider>("pix-intermediated");
-export const solanaPayProvider = () => getProvider<SolanaPayProvider>("solana-pay");
+export const stripeProvider = () => getProvider<StripeProvider>("stripe");
+
+/**
+ * Reconciliation job body (schedule it every few minutes): Checkout Sessions still pending an hour after they were
+ * opened are read from the Stripe API and settled (paid -> fulfilled with its license, expired -> expired), and paid
+ * charges whose fulfilment was interrupted are finished. Returns how many charges changed status.
+ */
+export async function reconcileStripeCheckouts(now = new Date()): Promise<number> {
+  initPayments();
+  return (await stripeProvider().reconcile(now)).advanced;
+}
 
 export { registerProvider, getProvider, reconcileAll } from "./registry.js";
-export { handleSaleAuthorized } from "./sale-hook.js";
-export { preparePurchase } from "./intent.js";
-export { setEscrowPlanner, type EscrowPlanner, type EscrowPlan } from "./escrow-plan.js";
+export { prepareCheckout } from "./intent.js";

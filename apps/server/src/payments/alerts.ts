@@ -1,8 +1,8 @@
 import { env } from "../env.js";
 import { sendTelegram } from "../notify/telegram.js";
 
-// Admin alerts of the payments module (Telegram admin chat). Throttled per key so a stuck charge or a low float does not
-// flood the chat every 30 s; without a bot token the alert is only logged.
+// Admin alerts of the payments module (Telegram admin chat). Throttled per key so a stuck charge does not
+// flood the chat on every reconcile pass; without a bot token the alert is only logged.
 
 const last = new Map<string, number>();
 

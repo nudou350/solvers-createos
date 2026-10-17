@@ -1,6 +1,4 @@
-import type { PaymentProvider, PaymentProviderId } from "@solvers/shared";
-
-import { NotImplementedError } from "./providers/stubs.js";
+import type { PaymentProvider, PaymentProviderId } from "./types.js";
 
 // Provider registry: every provider the server knows, by id. `initPayments()` (index.ts) registers the real ones at boot;
 // tests register their own instances (e.g. a fresh FakeProvider).
@@ -25,14 +23,13 @@ export function registeredProviders(): PaymentProvider[] {
   return [...providers.values()];
 }
 
-/** Runs `reconcile` on every implemented provider; one failing provider does not stop the others. */
+/** Runs `reconcile` on every provider; one failing provider does not stop the others. */
 export async function reconcileAll(now: Date): Promise<number> {
   let advanced = 0;
   for (const p of providers.values()) {
     try {
       advanced += (await p.reconcile(now)).advanced;
     } catch (e) {
-      if (e instanceof NotImplementedError) continue;
       console.error(`[payments] reconcile ${p.id} failed:`, (e as Error).message);
     }
   }

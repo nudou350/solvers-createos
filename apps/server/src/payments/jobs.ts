@@ -1,17 +1,8 @@
 import { every, type Job } from "../lib/jobs.js";
-import { checkFloat } from "./float.js";
-import { initPayments } from "./index.js";
-import { reconcileAll } from "./registry.js";
+import { reconcileStripeCheckouts } from "./index.js";
 
 // Periodic jobs of the payments module (listed by src/jobs.ts):
-// - reconcile (every 30 s): expires stale charges, fulfils confirmed ones, resumes interrupted fulfilments from the chain
-//   (`purchaseRef`, journal receipts) and finishes interrupted refunds;
-// - float balance (every 10 min): Telegram alert when PLATFORM or RELAY is below FLOAT_LOW_BALANCE_UNITS.
+// - reconcile (every 5 min): Checkout Sessions pending for over an hour are read from Stripe and settled, and paid
+//   charges whose fulfilment was interrupted are finished.
 
-export const paymentsJobs: Job[] = [
-  every(30_000, "payments: reconcile", () => {
-    initPayments();
-    return reconcileAll(new Date());
-  }),
-  every(10 * 60_000, "payments: float balance", () => checkFloat()),
-];
+export const paymentsJobs: Job[] = [every(5 * 60_000, "payments: reconcile stripe checkouts", () => reconcileStripeCheckouts(new Date()))];

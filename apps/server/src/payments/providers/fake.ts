@@ -1,49 +1,25 @@
-import type { ChargeIntent, WebhookRequest } from "@solvers/shared";
+import type { LedgerRow } from "../ledger.js";
+import { PlatformProvider, type PaymentState, type StartedPayment } from "../platform-provider.js";
+import type { WebhookRequest } from "../types.js";
 
-import type { LedgerRow, ProviderPayload } from "../ledger.js";
-import { PlatformProvider, type CreateContext, type PaymentState, type StartedPayment } from "../platform-provider.js";
-
-// In-memory payment provider for tests (plan §5): the money side lives in memory (`pay()`, refunds recorded in
-// `refunds`), everything else is the real platform path (ledger, lifecycle, fulfilment from the float, reconcile).
-// `failFulfillOnce()` makes the next `fulfill` throw before touching the charge (a transient provider/infra failure);
-// `replayWebhook()` delivers the same notification again.
+// In-memory payment provider for tests: the money side lives in memory (`pay()`, `expire()`), everything else is the
+// real platform path (ledger, lifecycle, fulfilment with the license grant, reconcile). `replayWebhook()` delivers the
+// same notification again.
 
 export class FakeProvider extends PlatformProvider {
   readonly id = "fake" as const;
-  protected readonly prefix = "fake";
   private readonly paid = new Set<string>();
-  private failures = 0;
-  /** Refunds the provider performed: chargeId -> reason. */
-  readonly refunds = new Map<string, string>();
+  private readonly expired = new Set<string>();
   /** Webhook notifications received (including replays). */
   webhooks = 0;
 
-  constructor(private readonly ttl = 30 * 60_000) {
-    super();
-  }
-
-  protected ttlMs(): number {
-    return this.ttl;
-  }
-
-  protected async startPayment(row: LedgerRow, _intent: ChargeIntent, _ctx: CreateContext): Promise<StartedPayment> {
-    return { providerChargeId: `fake-${row.id}`, payload: { fake: true } };
+  protected async startPayment(row: LedgerRow): Promise<StartedPayment> {
+    return { providerRef: `fake_${row.id}`, payload: { checkoutUrl: `https://checkout.invalid/${row.id}` } };
   }
 
   protected async paymentState(row: LedgerRow): Promise<PaymentState> {
-    return this.paid.has(row.id) ? "paid" : "pending";
-  }
-
-  /** How many times `returnPayment` ran per charge (a refund must run once). */
-  readonly refundCalls = new Map<string, number>();
-  /** Delay inside `returnPayment` (lets tests overlap concurrent refunds). */
-  refundDelayMs = 0;
-
-  protected async returnPayment(row: LedgerRow, reason: string): Promise<ProviderPayload> {
-    this.refundCalls.set(row.id, (this.refundCalls.get(row.id) ?? 0) + 1);
-    if (this.refundDelayMs) await new Promise((r) => setTimeout(r, this.refundDelayMs));
-    this.refunds.set(row.id, reason);
-    return { fakeRefund: true };
+    if (this.paid.has(row.id)) return "paid";
+    return this.expired.has(row.id) ? "expired" : "pending";
   }
 
   /** The buyer pays (in memory). */
@@ -51,16 +27,9 @@ export class FakeProvider extends PlatformProvider {
     this.paid.add(chargeId);
   }
 
-  failFulfillOnce(): void {
-    this.failures++;
-  }
-
-  override async fulfill(chargeId: string) {
-    if (this.failures > 0) {
-      this.failures--;
-      throw new Error("fake: injected fulfilment failure");
-    }
-    return super.fulfill(chargeId);
+  /** The provider closes the unpaid payment (in memory). */
+  expire(chargeId: string): void {
+    this.expired.add(chargeId);
   }
 
   /** Body `{ "chargeId": "..." }`; the state comes from `paymentState`, never from the body. */
@@ -73,8 +42,7 @@ export class FakeProvider extends PlatformProvider {
       return null;
     }
     if (!chargeId) return null;
-    const charge = await this.confirm(chargeId);
-    if (charge.status === "confirmed") await this.fulfill(chargeId);
+    await this.confirm(chargeId);
     return { chargeId };
   }
 
